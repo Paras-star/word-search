@@ -96,6 +96,19 @@ export function lineCells(start: Cell, end: Cell, size: number): Cell[] {
   return Array.from({ length: count }, (_, index) => ({ row: start.row + rowStep * index, col: start.col + colStep * index })).filter((cell) => cell.row >= 0 && cell.col >= 0 && cell.row < size && cell.col < size);
 }
 
+export type GridBounds = { x: number; y: number; width: number; height: number };
+
+export function gridCellFromPoint(pageX: number, pageY: number, bounds: GridBounds, size: number): Cell | null {
+  if (bounds.width <= 0 || bounds.height <= 0) return null;
+  const localX = pageX - bounds.x;
+  const localY = pageY - bounds.y;
+  if (localX < 0 || localY < 0 || localX >= bounds.width || localY >= bounds.height) return null;
+  return {
+    row: Math.min(size - 1, Math.floor((localY / bounds.height) * size)),
+    col: Math.min(size - 1, Math.floor((localX / bounds.width) * size)),
+  };
+}
+
 export function lettersFor(grid: string[][], cells: Cell[]): string {
   return cells.map(({ row, col }) => grid[row]?.[col] ?? '').join('');
 }
