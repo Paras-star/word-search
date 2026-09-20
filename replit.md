@@ -1,6 +1,6 @@
-# [Project name]
+# Word Hunt
 
-_Replace the heading above with the project's name, and this line with one sentence describing what this app does for users._
+An offline-first mobile word-search game with category progression, two game modes, hints, scoring, coins, and a replaceable reward boundary.
 
 ## Run & Operate
 
@@ -10,6 +10,7 @@ _Replace the heading above with the project's name, and this line with one sente
 - `pnpm --filter @workspace/api-spec run codegen` — regenerate API hooks and Zod schemas from the OpenAPI spec
 - `pnpm --filter @workspace/db run push` — push DB schema changes (dev only)
 - Required env: `DATABASE_URL` — Postgres connection string
+- `pnpm --filter @workspace/word-hunt run dev` — run the Expo mobile app
 
 ## Stack
 
@@ -22,23 +23,33 @@ _Replace the heading above with the project's name, and this line with one sente
 
 ## Where things live
 
-_Populate as you build — short repo map plus pointers to the source-of-truth file for DB schema, API contracts, theme files, etc._
+- `artifacts/word-hunt/app/` — Expo Router screens for the home, category, mode, game, reward boundary, and results flow
+- `artifacts/word-hunt/game/` — deterministic puzzle generation, line selection, scoring, and progression rules
+- `artifacts/word-hunt/data/` — the ordered category catalog and local bonus-word dictionary
+- `artifacts/word-hunt/services/` — AsyncStorage persistence, reward gateway, audio and ad boundaries
+- `artifacts/word-hunt/context/GameProvider.tsx` — hydrated local coin/progression state
+- `artifacts/api-server/src/routes/health.ts` — minimal `/api/health` endpoint
 
 ## Architecture decisions
 
-_Populate as you build — non-obvious choices a reader couldn't infer from the code (3-5 bullets)._
+- Gameplay is entirely client-side and does not depend on the API server or network access.
+- The puzzle generator uses a seeded PRNG so puzzle creation is deterministic and independently testable.
+- Progress is stored centrally through AsyncStorage; malformed values fall back safely to 300 coins and no completed levels.
+- Puzzle completion calls `RewardGateway` before navigating to the intentionally generic reward placeholder; no reward records or dumpling-specific concepts exist in Phase 1.
+- The current Expo-compatible build keeps audio and ad integrations non-blocking and platform-safe so unavailable native services never stop gameplay.
 
 ## Product
 
-_Describe the high-level user-facing capabilities of this app once they exist._
+Players choose from 15 ordered categories, select Classic or two-minute Time Mode, find target words in all eight directions, earn bonus-word points, use three hints, complete levels for coins, and unlock the next category locally.
 
 ## User preferences
 
-_Populate as you build — explicit user instructions worth remembering across sessions._
+The user requested a complete Word Hunt Phase 1 implementation without the future Mystery Dumpling reward system.
 
 ## Gotchas
 
-_Populate as you build — sharp edges, "always run X before Y" rules._
+- Use `pnpm --filter @workspace/word-hunt run typecheck` for the mobile app; use `pnpm dlx expo-doctor@latest` for Expo dependency validation.
+- Do not add dumpling-specific models, assets, rarity rules, or persistence until a later reward phase.
 
 ## Pointers
 

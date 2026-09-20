@@ -1,0 +1,24 @@
+kind = "mobile"
+previewPath = "/"
+title = "Word Hunt"
+description = "An offline-first mobile word-search game with category progression, Classic and Time modes, hints, scoring, coins, and a replaceable reward experience boundary."
+version = "1.0.0"
+id = "artifacts/word-hunt"
+router = "expo-domain"
+
+[[services]]
+name = "expo"
+ensurePreviewReachable = "/status"
+paths = [ "/" ]
+localPort = 24300
+
+[services.development]
+run = "pnpm --filter @workspace/word-hunt run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/word-hunt", "run", "build" ]
+run = [ "pnpm", "--filter", "@workspace/word-hunt", "run", "serve" ]
+
+[services.env]
+PORT = "24300"
+BASE_PATH = "/"
