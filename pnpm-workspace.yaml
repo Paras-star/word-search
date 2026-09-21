@@ -160,5 +160,7 @@ overrides:
   esbuild: "0.28.2"
   # orval pins js-yaml to an exact version older than the CVE fix (>=4.3.2)
   js-yaml: '4.3.2'
-  # @expo/ngrok pins uuid 3.4.0, which is vulnerable to insecure randomness
-  "@expo/ngrok>uuid": "7.0.3"
+  # Expo's transitive uuid versions are below the buffer-bounds security fix
+  uuid: "11.1.1"
+  # query-string pins a version vulnerable to malformed-input denial of service
+  decode-uri-component: "0.5.0"
