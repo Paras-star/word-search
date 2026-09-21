@@ -1,0 +1,1 @@
+- [Mystery Dumpling visual constraints](mystery-dumpling-visual-constraints.md) — preserve supplied collectible artwork and the single combined collection-room environment exactly.

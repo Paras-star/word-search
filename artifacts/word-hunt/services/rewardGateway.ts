@@ -1,4 +1,5 @@
 import type { GameMode } from '@/game/types';
+import { generateAndPersistReward } from '@/services/dumplingRewards';
 
 export type PuzzleCompletion = {
   puzzleId: string;
@@ -11,9 +12,8 @@ export interface RewardGateway {
   onPuzzleCompleted(input: PuzzleCompletion): Promise<void>;
 }
 
-/** Phase 1 intentionally has no reward records or reward-specific game logic. */
 export const rewardGateway: RewardGateway = {
-  async onPuzzleCompleted() {
-    return Promise.resolve();
+  async onPuzzleCompleted(input) {
+    await generateAndPersistReward(input);
   },
 };
