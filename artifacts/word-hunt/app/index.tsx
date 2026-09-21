@@ -23,7 +23,7 @@ export default function HomeScreen() {
     </View>
     <View style={styles.actions}>
       <PrimaryButton onPress={() => router.push('/categories')} testID="play-button">PLAY</PrimaryButton>
-      <SoftButton onPress={() => {}} disabled testID="collection-button"><Feather name="grid" size={17} color={colors.mutedForeground} />  COLLECTION · SOON</SoftButton>
+      <SoftButton onPress={() => router.push('/collection')} testID="collection-button"><Feather name="grid" size={17} color={colors.foreground} />  COLLECTION</SoftButton>
     </View>
     <Text style={[styles.footer, { color: colors.mutedForeground }]}>15 categories · 2 ways to play · zero internet required</Text>
   </Screen>;
