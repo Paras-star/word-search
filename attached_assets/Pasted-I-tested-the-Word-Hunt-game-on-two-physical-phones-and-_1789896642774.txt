@@ -1,0 +1,67 @@
+I tested the Word Hunt game on two physical phones and found a critical touch-selection bug in the word-search grid.
+
+Current behavior:
+
+* The grid renders correctly.
+* Classic and Time modes work.
+* Hints work.
+* Timer and score work.
+* The problem occurs identically on both phones.
+* When I tap or drag on ANY column, the game behaves as if the touch started in the FIRST/LEFTMOST column.
+* Horizontal movement is not being mapped correctly.
+* Selection starts from the first letter in the left column.
+* Dragging downward works, but dragging upward does not work correctly.
+* Therefore the touch/gesture coordinates are being translated to grid row/column incorrectly.
+
+Please debug and fix ONLY the grid touch/gesture coordinate mapping.
+
+Inspect the existing implementation in:
+
+* components/GameUI.tsx
+* app/game.tsx
+* game/puzzle.ts
+    and any other file directly responsible for grid touch handling.
+
+Specifically inspect all use of:
+
+* onTouchStart
+* onTouchMove
+* onTouchEnd
+* PanResponder
+* Gesture/GestureDetector
+* locationX/locationY
+* pageX/pageY
+* absoluteX/absoluteY
+* grid/container measurements
+* cell width/height calculations
+
+Determine the actual rendered grid position and dimensions and make sure the touch coordinates are converted into the correct local grid coordinates before calculating row and column.
+
+Requirements:
+
+1. Tapping/dragging in every column must select the correct column.
+2. Tapping/dragging in every row must select the correct row.
+3. Dragging horizontally must work.
+4. Dragging vertically must work both upward and downward.
+5. Diagonal word selection must work.
+6. Selection must begin from the actual letter/cell where the user’s finger touches.
+7. Do not hard-code a particular phone resolution.
+8. Do not hard-code offsets.
+9. The solution must work across different screen sizes.
+10. Do not change the game’s UI design.
+11. Do not change scoring, hints, timer, ads, progression, rewards, categories, or navigation.
+12. Do not modify the Mystery Dumpling architecture.
+13. Keep the existing word-selection behavior and only correct the coordinate mapping.
+14. Add or update tests for the coordinate-to-grid-cell calculation if the project has an appropriate testing setup.
+
+Before changing code, identify the exact cause of the coordinate error.
+
+After fixing it:
+
+* run the existing test suite
+* run TypeScript/type checking
+* run lint if configured
+* run the Expo build/start validation available in this project
+* report exactly which files were changed and why.
+
+Do not make unrelated refactors or UI changes.

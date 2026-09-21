@@ -1,0 +1,631 @@
+We are now beginning Phase 2 of the Word Hunt project: the Mystery Dumpling reward and collection system.
+
+IMPORTANT: Before making any code changes, inspect ALL of the attached Mystery Dumpling assets and reference materials carefully.
+
+The attached materials are the authoritative visual references for this feature:
+
+1. Common dumplings PNG — contains exactly 12 Common dumplings.
+2. Uncommon dumplings PNG — contains exactly 7 Uncommon dumplings.
+3. Rare dumplings PNG — contains exactly 5 Rare dumplings.
+4. Epic dumplings PNG — contains exactly 4 Epic dumplings.
+5. Legendary dumplings PNG — contains exactly 2 Legendary dumplings.
+6. Collection room PNG — the complete collection-room environment.
+7. Dumpling catalog text file — contains the exact names and rarity information for the dumplings.
+8. Unboxing reference video — reference for the unboxing sequence, timing, visual effects, sound effects, atmosphere, and UI behavior.
+
+TOTAL COLLECTIBLE DUMPLINGS: 30.
+
+RARITY DISTRIBUTION:
+
+* Common: 12
+* Uncommon: 7
+* Rare: 5
+* Epic: 4
+* Legendary: 2
+
+==================================================
+NON-NEGOTIABLE ARTWORK RULE
+===========================
+
+The supplied dumpling artwork is the SOURCE OF TRUTH.
+
+DO NOT:
+
+* generate new dumplings
+* redesign the dumplings
+* reinterpret the dumplings
+* change their shape
+* change their colors
+* change their toppings
+* change their facial features/details
+* change their proportions
+* add decorations to the dumplings
+* remove details from the dumplings
+* create AI-generated replacement artwork
+* substitute your own dumpling designs
+* rename the dumplings
+
+The 30 dumplings supplied in the PNG references must be the exact dumplings used in the game.
+
+The names written underneath the dumplings in the supplied references, together with the attached dumpling catalog, are authoritative. Use those exact names.
+
+If individual image assets are required, they must be extracted/cropped from the supplied transparent PNG artwork without altering the artwork. Do not redraw or regenerate the assets.
+
+==================================================
+COLLECTION ROOM RULE
+====================
+
+The supplied Collection Room image is also authoritative.
+
+It represents ONE combined collection environment containing the different areas/environments shown in the reference, including areas such as bedroom, kitchen, garden, office, park, playground, and the other areas visible in the supplied reference.
+
+DO NOT split it into separate environments.
+
+DO NOT redesign the environment.
+
+DO NOT create a different room.
+
+Use the supplied Collection Room artwork as the visual foundation for the actual collection screen.
+
+The dumplings should eventually be displayed within this environment in a way that follows the reference.
+
+==================================================
+UNBOXING REFERENCE RULE
+=======================
+
+The supplied unboxing video is a REFERENCE for the experience.
+
+Study it carefully for:
+
+* overall UI composition
+* basket/container presentation
+* anticipation
+* opening sequence
+* movement
+* timing
+* reveal sequence
+* particles
+* glow
+* sparkle effects
+* transitions
+* sound effects
+* background atmosphere
+* rarity presentation
+* interaction patterns
+
+Do not copy copyrighted artwork or assets from the reference video.
+
+The actual dumpling artwork must ALWAYS come from our supplied PNG assets.
+
+The reference video should guide the implementation of the EXPERIENCE and EFFECTS, while our supplied artwork remains the source of truth.
+
+==================================================
+EXISTING WORD HUNT ARCHITECTURE
+===============================
+
+DO NOT rebuild the existing Word Hunt engine.
+
+DO NOT rewrite the existing game.
+
+DO NOT change:
+
+* puzzle generation
+* word selection
+* categories
+* difficulty/modes
+* scoring
+* timer
+* hints
+* rewarded-ad hint system
+* progression
+* navigation
+* existing game UI
+* existing touch-selection implementation
+* existing reward gateway architecture unless absolutely necessary for integration
+
+The existing Word Hunt game has already been physically tested on two phones and the grid touch-selection bug has been fixed.
+
+The current stable architecture includes the existing reward gateway and reward screen.
+
+Mystery Dumpling should integrate through the existing reward gateway rather than coupling the Word Hunt engine directly to dumpling implementation details.
+
+The intended architecture is:
+
+WORD HUNT
+↓
+LEVEL COMPLETE
+↓
+REWARD GATEWAY
+↓
+MYSTERY DUMPLING SYSTEM
+↓
+REWARD GENERATED
+↓
+REWARD PERSISTED
+↓
+UNBOXING
+↓
+DUMPLING REVEALED
+↓
+COLLECT
+↓
+COLLECTION ROOM
+
+The Word Hunt engine should not need to know how rarity, dumpling assets, animation, or collection storage work internally.
+
+==================================================
+PHASE 2 — IMPLEMENTATION PLAN
+=============================
+
+Implement this in small, maintainable modules rather than putting everything into one screen.
+
+First inspect the existing:
+
+* services/rewardGateway.ts
+* app/reward.tsx
+* game/types.ts
+* game/progression.ts
+* services/storage.ts
+* app/game.tsx
+* app/results.tsx
+* app/_layout.tsx
+
+Determine how the existing reward flow works before modifying anything.
+
+Reuse existing architecture wherever appropriate.
+
+==================================================
+
+1. DUMPLING DATA MODEL
+   ==================================================
+
+Create a structured dumpling catalog containing all 30 supplied dumplings.
+
+Each dumpling should have at minimum:
+
+* stable unique ID
+* exact name from the catalog/reference
+* rarity
+* asset reference
+* collection status
+
+Do not generate names.
+
+Do not generate additional dumplings.
+
+The 30 supplied dumplings are the complete initial collection.
+
+==================================================
+2. RARITY SYSTEM
+================
+
+Implement the five supplied rarity tiers:
+
+Common
+Uncommon
+Rare
+Epic
+Legendary
+
+The rarity must be stored as data, not inferred from visual appearance.
+
+The system must know exactly which dumplings belong to which rarity.
+
+Do not invent additional rarity tiers.
+
+Do not change the supplied distribution.
+
+==================================================
+3. REWARD GENERATION
+====================
+
+When the player successfully completes a Word Hunt level, the Mystery Dumpling system should generate one reward.
+
+The reward-generation logic must be separate from the visual animation.
+
+IMPORTANT:
+
+Generate the reward BEFORE beginning the unboxing animation.
+
+Persist the generated reward before the animation/reveal begins.
+
+This prevents the result from changing if the app is closed during the animation.
+
+The animation should reveal the already-determined reward rather than deciding the reward during the animation.
+
+Design the reward system so that duplicate handling can be controlled later without rewriting the architecture.
+
+For the initial implementation, define a clear deterministic data model for:
+
+* reward ID
+* dumpling ID
+* rarity
+* timestamp/earned state
+* collection state
+
+Do not invent complicated economy mechanics yet.
+
+==================================================
+4. REWARD SCREEN
+================
+
+Transform the existing placeholder Mystery Reward experience into the real Mystery Dumpling reward experience.
+
+Keep useful existing result information such as:
+
+* score
+* time
+* category
+* coins
+* next level
+* play again
+* home
+
+But make the Mystery Dumpling reward the visual focal point.
+
+The player should feel that completing a level has earned something special.
+
+The intended flow is:
+
+Level completed
+↓
+Reward screen
+↓
+Mystery bamboo basket/container
+↓
+Player opens/reveals it
+↓
+Dumpling appears
+↓
+Rarity is revealed
+↓
+Player collects it
+
+Do not make the reward feel like another ordinary results screen.
+
+==================================================
+5. UNBOXING EXPERIENCE
+======================
+
+Build the unboxing sequence using the supplied video as the interaction/effect reference.
+
+The experience should feel:
+
+* satisfying
+* polished
+* visually attractive
+* mysterious
+* rewarding
+* smooth
+* tactile
+* slightly ASMR-like
+
+Use:
+
+* subtle particles
+* glow
+* sparkles
+* controlled anticipation
+* basket movement
+* reveal effects
+* rarity-specific visual intensity
+* smooth transitions
+
+Avoid simply covering the screen with excessive particles.
+
+The effect should build anticipation and then provide a clear payoff.
+
+Suggested progression:
+
+Basket appears
+↓
+subtle ambient particles
+↓
+basket anticipation/shake
+↓
+glow increases
+↓
+opening
+↓
+reveal flash
+↓
+dumpling appears
+↓
+rarity presentation
+↓
+particles settle
+↓
+Collect button
+
+The supplied dumpling itself must remain unchanged.
+
+Effects may be applied AROUND the dumpling, but must not alter the artwork.
+
+==================================================
+6. RARITY EFFECTS
+=================
+
+The visual intensity of the reveal should correspond to rarity.
+
+Common:
+
+* clean
+* subtle glow
+* simple reveal
+
+Uncommon:
+
+* slightly stronger glow
+* more particles
+
+Rare:
+
+* stronger reveal
+* more noticeable sparkle/lighting
+
+Epic:
+
+* significantly more dramatic reveal
+* richer particle effects
+* stronger visual anticipation
+
+Legendary:
+
+* most elaborate reveal
+* strongest glow
+* distinctive particle treatment
+* special presentation
+* longer anticipation if appropriate
+
+Do not change the actual dumpling artwork based on rarity.
+
+Only the surrounding presentation/effects should vary.
+
+==================================================
+7. AUDIO
+========
+
+The supplied video should be used as a reference for sound design and timing.
+
+Create an audio architecture with separate sound points for:
+
+* basket appearance
+* basket movement
+* anticipation
+* opening
+* reveal
+* rarity reveal
+* collection
+
+The sound should feel satisfying and somewhat ASMR-like without becoming loud or annoying.
+
+Use soft ambient/background audio where appropriate.
+
+Do not make audio mandatory for the core game to function.
+
+If audio assets are not yet available, implement the audio hooks cleanly so they can be added later without restructuring the feature.
+
+Do not use copyrighted audio assets from the reference video.
+
+==================================================
+8. COLLECTION SYSTEM
+====================
+
+After revealing a dumpling, provide a Collect action.
+
+Once collected:
+
+* mark the dumpling as owned
+* persist ownership
+* prevent the collection from being lost when the app closes
+* make the dumpling available in the Collection Room
+
+Create the collection data model independently from the reward animation.
+
+==================================================
+9. COLLECTION ROOM
+==================
+
+Create a Collection Room screen using the supplied Collection Room image as the authoritative environment.
+
+The Collection Room is ONE combined environment.
+
+Do not create separate bedroom/kitchen/garden/office/park screens.
+
+The player's collected dumplings should be displayed within the environment.
+
+Uncollected dumplings should have an appropriate locked/uncollected state without modifying the supplied artwork.
+
+The player should be able to see their collection progress.
+
+At minimum, support:
+
+* owned dumplings
+* unowned dumplings
+* exact dumpling names
+* rarity
+* collection progress
+
+Keep the first implementation simple and stable.
+
+Do not build additional environments beyond the supplied Collection Room.
+
+==================================================
+10. PERSISTENCE
+===============
+
+Collection ownership must persist across:
+
+* navigation
+* app restart
+* reopening the game
+
+Use the project's existing storage architecture where possible.
+
+Do not introduce an unnecessary backend/database dependency for this phase unless the existing architecture genuinely requires it.
+
+==================================================
+11. REWARD DUPLICATES
+=====================
+
+Design the system so duplicate rewards are technically supported.
+
+Do not invent a complex duplicate-conversion economy yet.
+
+The architecture should make it possible to later add:
+
+* duplicate conversion
+* coins
+* collection bonuses
+* special rewards
+
+without rewriting the reward system.
+
+==================================================
+12. RESPONSIVE DESIGN
+=====================
+
+The game already works on physical phones.
+
+Do not hard-code:
+
+* phone dimensions
+* screen coordinates
+* device-specific offsets
+
+The Mystery Dumpling experience must adapt to different screen sizes.
+
+The supplied transparent PNG assets should preserve their proportions.
+
+==================================================
+13. PERFORMANCE
+===============
+
+Keep the implementation appropriate for React Native/Expo.
+
+Avoid unnecessary:
+
+* continuous animations
+* excessive particle counts
+* huge runtime computations
+* unnecessary re-renders
+
+The unboxing should look visually rich without causing poor performance on ordinary mobile devices.
+
+==================================================
+14. ACCESSIBILITY / USER EXPERIENCE
+===================================
+
+The reward must not trap the player.
+
+Provide clear controls for:
+
+* opening/revealing
+* collecting
+* continuing
+* returning to the game/home
+
+Make sure the player can recover gracefully if the app is interrupted during the reward sequence.
+
+==================================================
+15. DO NOT OVERBUILD
+====================
+
+For this first implementation, DO NOT add:
+
+* multiplayer
+* accounts
+* social sharing
+* leaderboards
+* online trading
+* multiple collection rooms
+* complex economy
+* achievements
+* daily rewards
+* unnecessary backend infrastructure
+
+Build the core Mystery Dumpling loop first.
+
+==================================================
+16. VALIDATION
+==============
+
+After implementation:
+
+Run:
+
+* TypeScript/typecheck
+* existing test suite if configured
+* lint if configured
+* Expo/Metro bundling validation
+
+Then verify the actual flow:
+
+Home
+→ Play
+→ Category
+→ Classic/Time
+→ Complete level
+→ Mystery Dumpling reward
+→ Generate reward
+→ Persist reward
+→ Unboxing
+→ Reveal exact supplied dumpling
+→ Show correct rarity
+→ Collect
+→ Collection Room
+→ Verify collected dumpling
+→ Close/reopen app
+→ Verify collection persists
+→ Play another level
+→ Verify another reward can be generated
+
+Test all five rarity tiers through a development/test mechanism if necessary, but do not alter the normal production reward logic just to make testing easier.
+
+==================================================
+17. GIT / CHANGE CONTROL
+========================
+
+We are currently working on:
+
+feature/mystery-dumpling
+
+Do not modify the main branch.
+
+Keep changes scoped to Mystery Dumpling.
+
+Do not perform destructive Git operations.
+
+Do not reset, revert, or overwrite existing stable Word Hunt work.
+
+Do not modify unrelated files.
+
+Before making large architectural changes, explain what needs to change and why.
+
+==================================================
+FINAL IMPORTANT INSTRUCTION
+===========================
+
+The goal is NOT for you to invent your own version of Mystery Dumpling.
+
+The goal is to turn the supplied artwork and references into a polished, functional game system.
+
+SOURCE OF TRUTH:
+
+1. Supplied dumpling PNGs = exact dumpling artwork.
+2. Dumpling catalog = exact names and rarity.
+3. Supplied Collection Room image = exact collection environment reference.
+4. Supplied unboxing video = reference for interaction, animation, sound, timing, and visual effects.
+5. Existing Word Hunt project = source of truth for the working game architecture.
+
+If anything is ambiguous, inspect the supplied files and existing code before making assumptions.
+
+Do not generate replacement artwork.
+
+Do not redesign the dumplings.
+
+Do not create additional dumplings.
+
+Do not change the existing Word Hunt mechanics.
+
+Build the Mystery Dumpling system around the assets and architecture that already exist.
