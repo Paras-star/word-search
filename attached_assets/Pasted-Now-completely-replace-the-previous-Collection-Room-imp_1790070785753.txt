@@ -1,0 +1,172 @@
+Now completely replace the previous Collection Room implementation.
+
+### Remove the old room asset
+
+The previously supplied combined/multi-room Collection Room image is no longer wanted.
+
+Do NOT use it.
+
+Do NOT attempt to crop it into separate rooms.
+
+Do NOT try to clean it up.
+
+Do NOT keep the baked-in dumplings or decorative dumplings from that image.
+
+Remove its use from the Collection Room UI and code.
+
+### New Collection Room concept
+
+Use ONE shared room/environment as the permanent Collection Room.
+
+The room should function as a simple environment in which the player's collected dumplings live.
+
+The room itself should remain relatively static.
+
+The dumplings are the interactive/living elements.
+
+Do not create multiple rooms.
+
+Do not create separate kitchen/bedroom/garden/office/park collections.
+
+There is one shared Collection Room.
+
+### Dumpling placement
+
+Use the 30 individual transparent dumpling PNGs already supplied.
+
+Each dumpling should have a defined display position inside the shared room.
+
+Do not use a generic grid if the room layout allows more natural placement.
+
+The positions should look intentional and visually balanced.
+
+The room must never contain baked-in duplicate dumplings from a background image.
+
+Every visible collectible dumpling should come from the game's actual individual dumpling asset.
+
+### Owned vs locked
+
+For an owned dumpling:
+
+* show its actual individual PNG
+* show its correct name/rarity through the game's UI
+* give it the subtle living animation described below
+
+For a locked dumpling:
+
+* do not show the full collectible artwork as though it has been collected
+* use an appropriate subtle locked/silhouette/placeholder treatment
+* maintain the player's sense that the room is being filled over time
+
+### IMPORTANT: Make the dumplings feel alive
+
+Do NOT create transparent videos.
+
+Use the transparent PNGs as the actual dumpling artwork and animate them in React Native.
+
+When a dumpling is visible in the Collection Room, it should feel alive through subtle:
+
+* gentle floating
+* tiny rotation
+* slight scale movement
+* occasional sparkle/glitter
+* subtle glow/shine
+
+DO NOT add blinking.
+
+Do not modify the actual dumpling artwork.
+
+The movement should be cute and subtle rather than chaotic.
+
+### Scroll-based animation behavior
+
+The Collection Room should support scrolling if necessary because there may eventually be many dumplings.
+
+IMPORTANT:
+
+Only dumplings currently visible/on-screen should perform their active "alive" animation.
+
+When the player scrolls:
+
+* dumplings entering the visible viewport can begin their gentle movement/glitter
+* dumplings currently visible can continue their animation
+* dumplings that have scrolled off-screen should stop/pause their animation
+* do not continuously animate all 30 dumplings when they are not visible
+
+This is both a visual-design requirement and a performance requirement.
+
+When a dumpling becomes visible again, its idle animation can resume.
+
+### Newly collected dumpling
+
+When the player has just collected a new dumpling and enters the Collection Room:
+
+Make that newly collected dumpling briefly more expressive than the other dumplings.
+
+For example:
+
+* gentle entrance movement
+* slightly stronger sparkle
+* small celebratory glow
+* settle into its permanent position
+
+After the short introduction, return it to the normal subtle idle animation.
+
+### No blinking
+
+Do not implement eye blinking or facial animation.
+
+The dumplings should feel alive through movement and glitter only.
+
+### Performance
+
+Do not use video playback for individual dumplings.
+
+Use lightweight native/React Native animations.
+
+Avoid unnecessary continuous animations for off-screen elements.
+
+### Collection progress
+
+Preserve the existing collection progress system.
+
+The Collection Room should continue to reflect:
+
+* owned dumplings
+* locked dumplings
+* rarity
+* collection progress
+* exact names
+
+Do not change the existing 30-dumpling catalog or reward logic.
+
+### Visual goal
+
+The final room should feel like:
+
+"These are my little dumplings living in this room."
+
+It should NOT feel like:
+
+"a static room image with random dumpling PNGs pasted over it."
+
+The dumplings should appear intentionally placed inside the environment and visually belong there.
+
+Do not redesign the entire game UI.
+
+After implementation, verify:
+
+1. The old multi-room image is completely removed from the Collection Room.
+2. No baked-in duplicate dumplings remain.
+3. All displayed dumplings come from the actual individual assets.
+4. Owned/locked states work.
+5. Dumplings animate only while visible.
+6. Off-screen dumplings stop/pause their animation.
+7. Newly collected dumplings receive a brief entrance effect.
+8. No blinking is implemented.
+9. Collection progress still works.
+10. The room remains responsive on Android.
+11. TypeScript passes.
+12. Expo Doctor passes.
+
+Do not modify unrelated Word Hunt systems.

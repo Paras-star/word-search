@@ -220,7 +220,7 @@ export default function RewardScreen() {
           {stage === 'opening' && <View style={styles.openingPill}><ActivityIndicator color="#FFFFFF" /><Text style={styles.openingText}>A little magic is happening</Text></View>}
           {stage === 'revealed' && <PrimaryButton onPress={handleCollect} style={[styles.actionButton, { backgroundColor: presentation.color }]} testID="reward-collect">COLLECT {dumpling.name.toUpperCase()}</PrimaryButton>}
           {stage === 'collected' && <>
-            <PrimaryButton onPress={() => router.replace('/collection')} style={[styles.actionButton, { backgroundColor: '#F4499A' }]}>VIEW COLLECTION ROOM</PrimaryButton>
+            <PrimaryButton onPress={() => router.replace({ pathname: '/collection', params: !isDuplicate ? { newDumplingId: dumpling.id } : undefined })} style={[styles.actionButton, { backgroundColor: '#F4499A' }]}>VIEW COLLECTION ROOM</PrimaryButton>
             <SoftButton onPress={goToResults} style={styles.continueButton}>CONTINUE</SoftButton>
           </>}
         </View>
