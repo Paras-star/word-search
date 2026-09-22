@@ -1,0 +1,195 @@
+We are now changing ONLY the visual layout of the Collection Room.
+
+The current Collection Room uses a map-style structure with platforms, scattered positions, doors/windows, and dumplings placed around the environment. Replace that layout with a clean, normal collection grid organized strictly by rarity.
+
+IMPORTANT:
+Do NOT modify the dumpling artwork/assets.
+Do NOT modify reward logic.
+Do NOT modify rarity probabilities.
+Do NOT modify duplicate handling.
+Do NOT modify collection persistence.
+Do NOT modify reveal.tsx/reward.tsx or the reveal animation.
+Do NOT modify the existing dumpling catalog IDs, names, or rarity assignments.
+Do NOT modify the existing dumpling floating/glitter animation behavior unless a tiny layout-related adjustment is required.
+Do NOT regenerate or redesign any dumpling PNGs.
+
+ONLY change the Collection Room layout/presentation.
+
+## REQUIRED ORDER
+
+The Collection Room must display rarity sections vertically in this exact order:
+
+1. LEGENDARY
+2. EPIC
+3. RARE
+4. UNCOMMON
+5. COMMON
+
+The rarest rarity must be at the TOP and Common must be at the BOTTOM.
+
+Current catalog counts are:
+
+* Legendary: 2
+* Epic: 4
+* Rare: 5
+* Uncommon: 7
+* Common: 12
+
+Total: 30 dumplings.
+
+## GRID STRUCTURE
+
+Replace the map-style positioning with a conventional row-and-column grid.
+
+Each rarity should have its own clearly separated section.
+
+Example structure:
+
+COLLECTION ROOM
+collection progress
+
+LEGENDARY
+[slot] [slot]
+
+EPIC
+[slot] [slot] [slot] [slot]
+
+RARE
+[slot] [slot] [slot] [slot] [slot]
+
+UNCOMMON
+[slot] [slot] [slot] [slot]
+[slot] [slot] [slot]
+
+COMMON
+[slot] [slot] [slot] [slot]
+[slot] [slot] [slot] [slot]
+[slot] [slot] [slot] [slot]
+
+Use responsive rows/columns so the layout works properly on Android phone screens and does not cause horizontal overflow.
+
+## DUMPLING SLOTS
+
+For an UNLOCKED/OWNED dumpling:
+
+* Show the existing individual dumpling PNG.
+* Use the exact existing asset associated with that catalog entry.
+* Preserve its existing name and rarity information.
+* Preserve the existing subtle floating/rotation/scale/glow/sparkle animation.
+* Do not crop the dumpling.
+
+For a LOCKED dumpling:
+
+* Show a generic locked/silhouette placeholder.
+* Do NOT reveal the actual dumpling artwork.
+* Do NOT reveal the dumpling name if the existing design intentionally hides it for locked items.
+
+The locked placeholder should occupy the same approximate space as an owned dumpling so the grid remains consistent.
+
+## VISUAL DESIGN
+
+Do NOT create another illustrated map.
+
+Remove the current:
+
+* scattered map positioning
+* platforms
+* doors
+* random environmental placement
+* map-like pathways
+* arbitrary dumpling coordinates
+
+The Collection Room should feel like a clean, attractive dumpling collection gallery.
+
+The background can remain warm and visually pleasant, but it should be subtle enough that the dumplings are the main focus.
+
+Use:
+
+* clear rarity headings
+* consistent spacing
+* consistent slot/card sizing
+* clean rows and columns
+* enough vertical spacing between rarity sections
+* smooth vertical scrolling
+* strong visual hierarchy
+
+The rarity headings should make it immediately obvious where each rarity begins.
+
+## RESPONSIVE BEHAVIOR
+
+The primary target is Android phones.
+
+Make the grid responsive to screen width.
+
+There must be:
+
+* no horizontal scrolling
+* no clipped dumplings
+* no overlapping cards
+* no dumplings extending outside their slots
+* no broken spacing at smaller Android screen sizes
+
+Use the existing ScrollView/list structure if possible rather than introducing unnecessary complexity.
+
+The Collection Room should be able to scroll vertically through all five rarity sections.
+
+## PRESERVE CURRENT FUNCTIONALITY
+
+After the layout change, verify:
+
+1. Collection progress still works.
+2. Newly collected dumplings appear in their correct rarity section.
+3. Existing collected dumplings remain collected.
+4. Locked dumplings remain locked.
+5. Duplicate rewards still behave exactly as before.
+6. Persistence still works after leaving and reopening Collection Room.
+7. The correct dumpling name is associated with the correct artwork.
+8. All 30 catalog entries remain present.
+9. Legendary contains exactly 2 slots.
+10. Epic contains exactly 4 slots.
+11. Rare contains exactly 5 slots.
+12. Uncommon contains exactly 7 slots.
+13. Common contains exactly 12 slots.
+
+## ANIMATION
+
+Keep the existing visibility-aware animation system.
+
+Owned dumplings should continue their existing subtle idle movement when visible.
+
+When a dumpling scrolls outside the visible viewport:
+
+* its animation should pause/stop as currently implemented.
+
+When it becomes visible again:
+
+* its animation should resume.
+
+Do NOT add blinking.
+
+Do NOT replace the existing animation implementation.
+
+## VALIDATION
+
+After implementing the Collection Room layout:
+
+* Run TypeScript/typecheck.
+* Run Expo Doctor.
+* Verify there are exactly 30 catalog entries.
+* Verify the rarity grouping/counts.
+* Verify Android-sized layout.
+* Verify no horizontal overflow.
+* Verify all owned dumplings use their existing individual PNG assets.
+* Verify locked slots do not reveal the actual artwork.
+* Verify collection persistence.
+* Verify no changes were made to reward/reveal logic.
+
+Before finishing, provide a concise report containing:
+
+1. Collection Room files changed.
+2. Files/assets NOT changed.
+3. Final rarity order.
+4. Slot count for each rarity.
+5. TypeScript result.
+6. Expo Doctor result.
+7. Confirmation that reward/reveal/persistence logic remains unchanged.
