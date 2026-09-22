@@ -1,0 +1,149 @@
+Continue the Mystery Dumpling asset correction from the previous Common and Uncommon asset integration.
+
+I have now uploaded the individual transparent PNG assets for:
+
+* 5 Rare dumplings
+* 4 Epic dumplings
+* 2 Legendary dumplings
+
+Total: 11 assets.
+
+These individual PNGs are now the authoritative artwork for the remaining rarity tiers.
+
+### Naming convention
+
+The filenames follow:
+
+Rare-DumplingName.png
+Epic-DumplingName.png
+Legendary-DumplingName.png
+
+Use the filename to identify the intended dumpling, but cross-check every asset against the existing 30-dumpling catalog.
+
+Do not rename the dumplings in the game.
+
+### CRITICAL SOURCE-IMAGE RULE
+
+Some uploaded PNGs contain the dumpling name underneath the actual artwork.
+
+That embedded text must NOT appear in the game.
+
+Render/use ONLY the actual dumpling artwork.
+
+For every asset:
+
+* remove/ignore the name underneath the artwork
+* preserve the complete dumpling
+* preserve genuine transparency
+* do not display checkerboard transparency backgrounds
+* do not crop any part of the dumpling
+* do not include neighboring artwork
+* do not redraw or regenerate the dumpling
+* do not recolor or stylize the dumpling
+
+The game's own UI already displays the dumpling name, so embedded name text must never be visible.
+
+### Replace the old sprite-sheet rendering
+
+Do not use the old combined rarity PNG sheets for individual dumpling rendering.
+
+The individual PNGs should now be used for:
+
+* reveal
+* collection cards
+* Collection Room
+* owned states
+* locked/collection visuals where appropriate
+
+### Rarity effects
+
+Keep the existing reveal architecture but make the visual intensity progressively stronger:
+
+RARE:
+
+* clearly noticeable glow
+* stronger glitter
+* more exciting reveal
+* moderate movement
+
+EPIC:
+
+* stronger glow
+* more particles/glitter
+* more pronounced reveal energy
+* stronger but still controlled movement
+
+LEGENDARY:
+
+* strongest reveal treatment
+* most noticeable glow
+* richer particle/glitter effect
+* strongest reveal anticipation
+* premium feeling without becoming visually chaotic
+
+Do NOT change the actual reward probabilities.
+
+Do NOT change the existing rarity definitions.
+
+### Dumpling movement
+
+Use the PNG artwork as the actual object and animate it in code.
+
+Do NOT convert these into transparent videos.
+
+The dumplings should feel alive through subtle:
+
+* floating
+* gentle rotation
+* small scale/bounce
+* sparkle/glitter
+* occasional glow pulses
+
+Do NOT add blinking.
+
+The artwork itself must remain unchanged.
+
+### Reveal behavior
+
+The dumpling should appear fully inside the reveal area.
+
+There must be sufficient padding around the dumpling so that:
+
+* no edge is cut off
+* no part of the dumpling is outside the screen
+* no source-image rectangle is visible
+* no embedded name text is visible
+
+Keep the existing reveal UI structure unless a small layout adjustment is required to display the artwork correctly.
+
+### Do not modify unrelated systems
+
+Do not change:
+
+* Word Hunt gameplay
+* puzzle generation
+* scoring
+* timer
+* hints
+* reward generation
+* rarity probabilities
+* persistence
+* duplicate handling
+* navigation
+* collection data
+
+After implementation:
+
+1. Verify all 5 Rare assets.
+2. Verify all 4 Epic assets.
+3. Verify both Legendary assets.
+4. Verify the artwork is clean and complete.
+5. Verify embedded names are not rendered.
+6. Verify no checkerboard/background appears.
+7. Verify no artwork is cut off.
+8. Verify rarity effects remain progressively stronger.
+9. Run TypeScript validation.
+10. Run Expo Doctor.
+11. Report exactly what was changed.
+
+Do not perform unrelated refactoring.
