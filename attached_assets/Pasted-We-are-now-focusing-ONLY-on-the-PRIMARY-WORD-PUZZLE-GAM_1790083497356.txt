@@ -1,0 +1,191 @@
+We are now focusing ONLY on the PRIMARY WORD PUZZLE / GAMEPLAY SYSTEM.
+
+The dumpling reward system, reveal, dumpling artwork, Collection Room, rarity system, animations, reward probabilities, duplicate handling, and collection persistence are currently working correctly.
+
+DO NOT MODIFY ANY OF THOSE SYSTEMS.
+
+There is currently a gameplay bug when progressing to the next level/category: the **Food puzzle is not selecting/detecting the letters correctly**. The player can interact with the puzzle, but the game is not selecting the intended letters/word correctly.
+
+I want you to investigate and fix the ROOT CAUSE rather than creating a Food-specific workaround.
+
+## STEP 1 — REPRODUCE THE BUG
+
+First reproduce the Food puzzle exactly as a player would:
+
+1. Start the game normally.
+2. Complete the previous level/category.
+3. Proceed to the Food puzzle.
+4. Attempt to select the intended word.
+5. Observe exactly what happens when letters are touched/dragged/swiped.
+6. Determine whether the problem is:
+
+   * touch coordinate calculation
+   * grid cell mapping
+   * row/column calculation
+   * gesture start/end detection
+   * selection path calculation
+   * direction calculation
+   * word validation
+   * puzzle data/word coordinates
+   * grid dimensions
+   * screen scaling
+   * Android-specific touch handling
+   * state not resetting between levels
+   * stale state from the previous puzzle
+   * or another shared gameplay issue.
+
+Do not assume the cause.
+
+## STEP 2 — TRACE THE SHARED PUZZLE LOGIC
+
+Inspect the complete path from:
+
+level/category loading
+→ puzzle data
+→ grid generation/rendering
+→ touch/gesture input
+→ touched cell identification
+→ selected-cell path
+→ word matching/validation
+→ found-word state
+→ puzzle completion
+→ next-level transition.
+
+Determine whether Food is exposing a bug in a shared system that could also affect other categories.
+
+IMPORTANT:
+
+If the same code is responsible for selection in all categories, fix the shared selection system rather than adding a Food-specific exception.
+
+If Food has genuinely corrupted/incorrect puzzle data, fix only the affected puzzle data.
+
+## STEP 3 — CHECK LEVEL TRANSITION STATE
+
+Because this happens when moving to the next level, specifically check whether state from the previous puzzle is leaking into Food.
+
+Inspect things such as:
+
+* selected cells
+* current selection
+* gesture state
+* grid dimensions
+* current puzzle
+* found words
+* highlighted cells
+* word coordinates
+* category/level ID
+* puzzle index
+* refs/state that should reset when a new puzzle loads.
+
+Make sure a newly loaded puzzle starts with a completely clean selection state.
+
+## STEP 4 — CHECK ANDROID TOUCH COORDINATES
+
+The game is primarily being tested on a physical Android phone.
+
+Verify that the touch location is converted into the correct grid row/column when:
+
+* the puzzle is centered
+* the screen has different dimensions
+* the device has a different aspect ratio
+* the puzzle is vertically positioned differently
+* the user starts dragging from different cells.
+
+Do not hardcode coordinates for the Food puzzle.
+
+The calculation must be based on the actual rendered grid position and cell dimensions.
+
+Also verify that scrolling, safe-area offsets, container padding, and screen coordinates are not causing an offset between the visible cell and the cell the game thinks was touched.
+
+## STEP 5 — CHECK WORD PATH VALIDATION
+
+Verify that the intended word can be selected correctly in every valid direction supported by the game.
+
+Check:
+
+* horizontal
+* vertical
+* diagonal, if supported
+* forward/reverse direction, if supported
+
+The selected path must correspond exactly to the intended cells.
+
+Do not change the game's intended word-search rules unless the existing implementation is demonstrably incorrect.
+
+## STEP 6 — DO NOT TOUCH DUMPLING SYSTEM
+
+The following must remain unchanged:
+
+* reward logic
+* mystery basket
+* reveal screen
+* dumpling catalog
+* dumpling PNG assets
+* rarity probabilities
+* duplicate handling
+* Collection Room
+* Collection Room layout
+* collection persistence
+* dumpling animations
+* reward/reveal UI
+
+The dumpling system is considered COMPLETE.
+
+Only modify code necessary to fix the primary puzzle/gameplay system.
+
+## STEP 7 — VALIDATE FOOD
+
+After fixing the issue, test the actual Food puzzle.
+
+Verify:
+
+1. Correct cells are selected when touched.
+2. Dragging/swiping selects the intended continuous path.
+3. The visible selected cells match the internally selected cells.
+4. Correct Food words are accepted.
+5. Incorrect selections are rejected.
+6. Already-found words behave correctly.
+7. Puzzle completion triggers only after the required words are found.
+8. The next-level transition still works.
+9. Timer/scoring/hints continue working normally.
+10. No regressions occur in the immediately preceding puzzle.
+
+## STEP 8 — TEST WHETHER THE BUG IS SHARED
+
+After Food is fixed, do NOT immediately redesign or rewrite the entire puzzle engine.
+
+Instead, identify whether the root cause would affect other categories.
+
+Run a focused regression test on:
+
+* the puzzle immediately before Food
+* Food
+* the next available category/puzzle after Food, if accessible.
+
+If the same selection mechanism works correctly across these tests, leave the rest of the puzzle system unchanged.
+
+## VALIDATION
+
+Run:
+
+* TypeScript/typecheck
+* Expo Doctor
+* git diff --check
+
+Also verify that no dumpling/reward/collection files were unnecessarily modified.
+
+At the end, give me a concise report containing:
+
+1. Exact root cause of the Food selection bug.
+2. Exact file(s) changed.
+3. What was changed to fix it.
+4. Whether the problem was Food-specific or a shared puzzle-engine bug.
+5. Whether level-transition state was involved.
+6. Whether Android touch-coordinate mapping was involved.
+7. Food puzzle test result.
+8. Next-level regression test result.
+9. TypeScript result.
+10. Expo Doctor result.
+11. Confirmation that the dumpling/reward/Collection Room systems were not changed.
+
+Do not make unrelated improvements or UI changes while fixing this issue.

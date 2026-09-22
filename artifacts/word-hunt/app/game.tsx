@@ -35,6 +35,7 @@ export default function GameScreen() {
   const [hintCells, setHintCells] = useState<Cell[]>([]);
   const [gridBounds, setGridBounds] = useState({ x: 0, y: 0, width: 0, height: 0 });
   const gridContentRef = useRef<View>(null);
+  const selectedCellsRef = useRef<Cell[]>([]);
   const completionStarted = useRef(false);
   const startTime = useRef(Date.now());
   const foundRef = useRef(foundWords);
@@ -85,19 +86,26 @@ export default function GameScreen() {
   };
 
   const updateSelection = (cell: Cell | null) => {
-    if (!cell || !selectedCells[0]) return;
-    const next = lineCells(selectedCells[0], cell, puzzle.size);
-    if (next.length) setSelectedCells(next);
+    const start = selectedCellsRef.current[0];
+    if (!cell || !start) return;
+    const next = lineCells(start, cell, puzzle.size);
+    if (next.length) {
+      selectedCellsRef.current = next;
+      setSelectedCells(next);
+    }
   };
 
   const endSelection = () => {
-    if (!selectedCells.length || completionStarted.current) { setSelectedCells([]); return; }
-    const selectedWord = lettersFor(puzzle.grid, selectedCells);
+    const selection = selectedCellsRef.current;
+    selectedCellsRef.current = [];
+    setSelectedCells([]);
+    if (!selection.length || completionStarted.current) return;
+    const selectedWord = lettersFor(puzzle.grid, selection);
     const reversed = selectedWord.split('').reverse().join('');
     const target = puzzle.words.find((word) => !foundRef.current.includes(word) && (word === selectedWord || word === reversed));
     if (target) {
       setFoundWords((current) => current.includes(target) ? current : [...current, target]);
-      setFoundPaths((current) => ({ ...current, [target]: [...selectedCells].reverse().map((cell, index) => selectedWord === target ? selectedCells[index] : cell) }));
+      setFoundPaths((current) => ({ ...current, [target]: selectedWord === target ? selection : [...selection].reverse() }));
       setScore((current) => scoreFoundWord(current, true));
       playSound('correct');
       setFeedback('idle');
@@ -110,7 +118,6 @@ export default function GameScreen() {
       playSound('wrong');
       setFeedback('wrong');
     }
-    setSelectedCells([]);
   };
 
   const panResponder = useMemo(() => PanResponder.create({
@@ -118,12 +125,17 @@ export default function GameScreen() {
     onMoveShouldSetPanResponder: () => true,
     onPanResponderGrant: (event) => {
       const cell = cellFromEvent(event);
-      if (cell) { setSelectedCells([cell]); playSound('drag'); }
+      if (cell) {
+        const selection = [cell];
+        selectedCellsRef.current = selection;
+        setSelectedCells(selection);
+        playSound('drag');
+      }
     },
     onPanResponderMove: (event) => updateSelection(cellFromEvent(event)),
     onPanResponderRelease: endSelection,
     onPanResponderTerminate: endSelection,
-  }), [gridBounds, puzzle.size, selectedCells]);
+  }), [bonusWords, gridBounds, puzzle]);
 
   const useHint = () => {
     if (hints <= 0 || foundWords.length === puzzle.words.length) return;

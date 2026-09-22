@@ -1,1 +1,2 @@
 - [Mystery Dumpling visual constraints](mystery-dumpling-visual-constraints.md) — preserve supplied collectible artwork and the single combined collection-room environment exactly.
+- [TypeScript isolated-file checks](typescript-isolated-file-checks.md) — selected-file checks need the app compiler, explicit config bypass, and temporary relative imports.
