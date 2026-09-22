@@ -1,0 +1,16 @@
+uploads = []
+generated = []
+
+[[outputs]]
+id = "3EP_4seec5n0Yhg-NHgPp"
+uri = "file://attached_assets/current-word-hunt-expo-qr.png"
+type = "image"
+title = "Word Hunt — Current Expo Go QR"
+description = "Scan in Expo Go on Android. This QR opens the currently running development server whose latest Android bundle contains the Food puzzle selection fix."
+logical_id = "b7edbb62-cf67-4080-8486-bdc226dc81d1"
+content_hash = "sha256:fca8fe9af2ba457504582e41e8d41a9b11d466739d1fd09f0d2bf247e3983266"
+size = 995
+mtime_ms = 1790096438761
+storage_uri = "gcs://replit-rams-assets-pike/rams/assets/repl:6330ea3b-2615-4284-a9d6-c16d89a9a821/b7edbb62-cf67-4080-8486-bdc226dc81d1/d71ed0b9-e115-40b9-a709-9812b57c272b"
+storage_version_token = "1790096448899181"
+content_type = "image/png"
