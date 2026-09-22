@@ -1,0 +1,166 @@
+We need to STOP making visual changes for the moment.
+
+I tested the Android version after your reported "Final Mystery Dumpling integration pass", and the visual problem is STILL EXACTLY THE SAME.
+
+Therefore, your previous completion report does not match the actual Android result.
+
+Do not assume the implementation is correct because TypeScript, Expo Doctor, or browser testing passed. The problem is specifically what is being rendered on the Android device.
+
+We need to diagnose the actual runtime asset pipeline before making any further changes.
+
+### PRIMARY PROBLEM
+
+The dumpling displayed during the reveal is still appearing incorrectly.
+
+The original problems remain:
+
+* the dumpling artwork is not being displayed as a clean isolated transparent dumpling
+* the source/background appearance is still visible
+* the dumpling is incorrectly cropped/positioned
+* the visual result does not match the supplied individual transparent PNG
+* the same incorrect asset behavior appears in the Collection Room/card rendering
+
+Do NOT redesign the reveal UI.
+
+Do NOT add new animations.
+
+Do NOT modify the reward system.
+
+Do NOT modify the Collection Room design.
+
+### STEP 1 — TRACE THE ACTUAL ANDROID ASSET
+
+Find the exact React Native component responsible for rendering the dumpling during the Mystery Dumpling reveal.
+
+Then identify:
+
+1. The exact image source/path being passed to the Image component.
+2. The exact filename being loaded.
+3. Whether the asset is loaded through require(), a URI, an asset map, Expo Asset, or another mechanism.
+4. Whether the Android build is actually loading the new individual PNG or an old asset.
+5. Whether any image processing, cropping, resizeMode, masking, canvas rendering, sprite-sheet logic, or background container is modifying the image before display.
+6. Whether the displayed dimensions are derived from the full source image dimensions.
+7. Whether the embedded name underneath the dumpling is physically present in the source PNG and therefore needs to be cropped out before runtime.
+8. Whether the Android app is using a stale cached/bundled asset.
+
+Do not make assumptions. Trace the actual runtime path.
+
+### STEP 2 — INSPECT ONE ASSET END-TO-END
+
+Use ONE known asset as a test case:
+
+Common-Green-Garden.png
+
+Trace this exact asset from:
+
+uploaded file
+→ project filesystem
+→ asset mapping
+→ catalog entry
+→ reward result
+→ reveal component
+→ Image source
+→ Android rendering
+
+Report every step.
+
+I want to know exactly which file Android ultimately renders.
+
+### STEP 3 — CHECK THE SOURCE IMAGE ITSELF
+
+Open/inspect Common-Green-Garden.png programmatically.
+
+Determine:
+
+* exact pixel dimensions
+* alpha channel presence
+* bounding box of non-transparent pixels
+* whether the dumpling name exists below the dumpling
+* whether there is any background embedded in the file
+* whether there is excessive transparent space
+* whether the dumpling itself is being clipped inside the PNG
+
+Do NOT alter the file yet.
+
+Report the findings.
+
+### STEP 4 — CHECK THE OTHER 29 ASSETS
+
+Do the same structural validation for all 30 individual PNGs.
+
+We need a table containing:
+
+filename | rarity | dimensions | alpha transparency | embedded label present? | artwork clipped? | usable as-is?
+
+Do not modify any asset during this diagnostic.
+
+### STEP 5 — CHECK FOR OLD ASSET REFERENCES
+
+Search the ENTIRE project, not only active imports, for:
+
+* old rarity sprite sheets
+* old combined dumpling images
+* old Collection Room images
+* collection-room.png
+* previous asset filenames
+* sprite-sheet cropping logic
+* image cropping utilities
+* background-image rendering
+* any fallback asset
+* cached/generated asset maps
+
+Pay particular attention to Android/native asset resolution.
+
+Report every relevant reference you find.
+
+### STEP 6 — CHECK ANDROID VS WEB
+
+Do not assume browser success means Android success.
+
+Determine whether the Android implementation uses a different asset path or rendering component from React Native Web.
+
+Specifically inspect:
+
+* Platform-specific files
+* Platform.OS conditions
+* Android-specific components
+* Image source handling
+* require() asset bundling
+* Expo asset behavior
+* resizeMode
+* image dimensions
+* clipping/masking
+* overflow settings
+* parent container dimensions
+
+If Android is rendering a different source from web, identify it.
+
+### STEP 7 — CHECK FOR CACHING
+
+Determine whether the Android device could still be displaying an older bundled asset.
+
+Do not simply say "clear cache".
+
+Identify whether the current development/build process bundles the PNG assets into the Android app and whether changing/replacing them requires restarting/rebuilding the Expo development bundle.
+
+### IMPORTANT
+
+DO NOT FIX ANYTHING YET.
+
+Do not modify the code or assets during this diagnostic pass.
+
+Do not tell me that the issue is fixed.
+
+Do not give me a generic summary such as "assets are correctly integrated".
+
+I specifically need the technical root cause of why the Android device is STILL displaying the same incorrect dumpling image after the previous implementation.
+
+At the end, provide:
+
+1. Root cause
+2. Exact file/component responsible
+3. Exact asset Android is currently rendering
+4. Why the previous implementation did not change the Android result
+5. What needs to be changed to fix it
+
+Only after we identify the root cause will we implement the fix.
