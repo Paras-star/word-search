@@ -1,0 +1,110 @@
+We are making a focused correction to the existing Mystery Dumpling Phase 2 implementation.
+
+IMPORTANT:
+Do not redesign the Word Hunt gameplay.
+Do not modify the reward-generation logic.
+Do not modify rarity probabilities.
+Do not modify progression, scoring, hints, ads, or the existing Word Hunt system.
+Do not regenerate, redraw, recolor, rename, reinterpret, or AI-generate any dumpling artwork.
+
+I have now manually created 30 separate transparent PNG files, one for every dumpling.
+
+The files are named using this exact convention:
+
+Common-Green-Garden.png
+Uncommon-Double-Joy.png
+Rare-Fire-Dumpling.png
+...and so on for all 30 dumplings.
+
+The filename identifies the exact dumpling and its rarity.
+
+The existing rarity-sheet assets should no longer be used as the source for individual dumplings.
+
+TASK:
+
+1. Locate all 30 new individual dumpling PNG assets in the project assets.
+
+2. Build the dumpling catalog so that each of the 30 files maps to:
+
+   * stable dumpling ID
+   * exact dumpling name
+   * exact rarity
+   * exact asset path
+
+3. The filename must NOT be displayed as part of the artwork.
+
+4. Some of my PNG files contain the dumpling's name underneath the actual dumpling artwork.
+
+This text is NOT part of the game artwork and must NEVER appear when the dumpling is rendered.
+
+Do NOT simply cover the text with another UI element.
+
+Instead, process/crop the source PNG assets as necessary so that the final rendered asset contains ONLY the actual dumpling artwork with its transparent background.
+
+The original dumpling artwork itself must remain unchanged.
+
+Preserve:
+
+* original colors
+* original shape
+* original texture
+* original glitter/details
+* original proportions
+
+Only remove the unwanted name/text area underneath the dumpling.
+
+5. Make sure no dumpling is accidentally cropped on the left, right, top, or bottom.
+
+Every final asset must contain the complete dumpling with sufficient transparent padding around it.
+
+6. Remove dependency on the old combined Common/Uncommon/Rare/Epic/Legendary sprite-sheet images for individual dumpling rendering.
+
+7. The same clean individual asset must be used consistently by:
+
+   * Mystery Reveal
+   * reward result
+   * Collection Room
+   * collection entries/cards
+   * owned state
+
+8. Keep the existing exact 30-dumpling catalog:
+   Common = 12
+   Uncommon = 7
+   Rare = 5
+   Epic = 4
+   Legendary = 2
+
+9. Verify that every filename maps to the correct catalog entry and rarity.
+
+10. Add validation so a missing asset or mismatched filename is detected rather than silently showing the wrong dumpling.
+
+VISUAL REQUIREMENT:
+
+When a dumpling is revealed, the player must see:
+
+[ONLY THE DUMPLING]
+
+There must be:
+
+* no checkerboard
+* no source-image background
+* no filename
+* no printed dumpling name inside the image
+* no other dumplings
+* no accidental crop
+* no sprite-sheet remnants
+
+The dumpling name should continue to be displayed by the GAME UI separately, exactly as it currently is.
+
+Do not change the existing reward/reveal flow beyond replacing the incorrect artwork source.
+
+After implementation:
+
+* run TypeScript validation
+* run Expo Doctor
+* verify all 30 assets resolve correctly
+* verify the old sprite sheets are no longer used for individual dumpling rendering
+* report exactly which files/components were changed
+
+Do not commit to main.
+Stay on the current Mystery Dumpling feature branch.
