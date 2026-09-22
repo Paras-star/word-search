@@ -1,0 +1,126 @@
+We now have the root cause from the diagnostic.
+
+Do NOT make any visual redesigns or animation changes.
+
+We need to prove the Android stale-asset diagnosis with ONE controlled test before changing all 30 assets.
+
+### CONTROLLED TEST — GREEN GARDEN ONLY
+
+Create a new runtime asset identity for the Green Garden dumpling.
+
+Current asset:
+
+`artifacts/word-hunt/assets/images/dumplings/common/green-garden.png`
+
+Do NOT overwrite this file again.
+
+Create a new filename, for example:
+
+`green-garden-v2.png`
+
+Use the CURRENT CLEANED, LABEL-FREE, TRANSPARENT Green Garden artwork as the source.
+
+The new file must retain:
+
+* transparent RGBA background
+* no checkerboard
+* no embedded "Green Garden" text
+* complete dumpling
+* no clipping
+* same artwork
+* no regeneration
+* no recoloring
+* no stylization
+
+### UPDATE THE CATALOG
+
+In:
+
+`artifacts/word-hunt/data/dumplings.ts`
+
+change ONLY the Green Garden asset reference so that the catalog points to the new asset identity:
+
+`green-garden-v2.png`
+
+Keep:
+
+* id = green-garden
+* name = Green Garden
+* rarity = Common
+* all other catalog data unchanged
+
+Do not change the reward system.
+
+### DO NOT CHANGE THE REVEAL COMPONENT
+
+Do not redesign or rewrite `reward.tsx`.
+
+It should continue to resolve:
+
+`reward.dumplingId`
+→ `DUMPLING_BY_ID`
+→ `dumpling.asset`
+
+The purpose of this test is to determine whether changing the Metro asset identity causes Android to load the new file.
+
+### VERIFY THE NEW ANDROID BUNDLE
+
+After changing the asset filename, generate/load a fresh Android bundle.
+
+Confirm that the Android bundle contains the new asset identity.
+
+Report:
+
+* new filename
+* dimensions
+* Metro asset hash
+* Android bundle/manifest confirmation
+
+Do NOT rely only on Web Bundled logs.
+
+We specifically need confirmation that Android requested and received the new bundle.
+
+### DO NOT MODIFY THE OTHER 29 ASSETS
+
+Do not rename or replace:
+
+* the other Common assets
+* Uncommon assets
+* Rare assets
+* Epic assets
+* Legendary assets
+
+This is a single controlled test.
+
+### DO NOT MODIFY ANIMATIONS
+
+Do not change:
+
+* floating
+* rotation
+* scale
+* glow
+* sparkle
+* visibility-based animation
+* Collection Room animation
+
+### DO NOT MODIFY THE COLLECTION ROOM
+
+No Collection Room changes in this task.
+
+### FINAL REPORT
+
+Before declaring this complete, report:
+
+1. Exact new Green Garden filename.
+2. Exact file dimensions.
+3. Whether it has genuine transparency.
+4. Whether the embedded label is absent.
+5. Exact catalog reference.
+6. Confirmation that a fresh Android bundle was generated.
+7. Confirmation that Android's bundle references the NEW filename/hash.
+8. Whether the old `green-garden.png` remains referenced anywhere in active runtime code.
+
+Do not claim the Android problem is fixed merely because the browser works.
+
+Stop after the controlled test is complete.

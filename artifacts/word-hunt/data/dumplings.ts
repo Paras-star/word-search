@@ -13,7 +13,7 @@ export type Dumpling = {
 export const DUMPLINGS: Dumpling[] = [
   { id: 'ivory-classic', name: 'Ivory Classic', rarity: 'Common', asset: require('../assets/images/dumplings/common/ivory-classic.png') },
   { id: 'pink-blossom', name: 'Pink Blossom', rarity: 'Common', asset: require('../assets/images/dumplings/common/pink-blossom.png') },
-  { id: 'green-garden', name: 'Green Garden', rarity: 'Common', asset: require('../assets/images/dumplings/common/green-garden.png') },
+  { id: 'green-garden', name: 'Green Garden', rarity: 'Common', asset: require('../assets/images/dumplings/common/green-garden-v2.png') },
   { id: 'golden-sunny', name: 'Golden Sunny', rarity: 'Common', asset: require('../assets/images/dumplings/common/golden-sunny.png') },
   { id: 'sky-blue', name: 'Sky Blue', rarity: 'Common', asset: require('../assets/images/dumplings/common/sky-blue.png') },
   { id: 'pumpkin-puff', name: 'Pumpkin Puff', rarity: 'Common', asset: require('../assets/images/dumplings/common/pumpkin-puff.png') },
