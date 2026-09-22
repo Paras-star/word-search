@@ -7,174 +7,58 @@ import {
   StyleSheet,
   Text,
   View,
-  type DimensionValue,
-  type LayoutChangeEvent,
-  type NativeScrollEvent,
-  type NativeSyntheticEvent,
+  type ViewToken,
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Header, LoadingScreen, Screen } from '@/components/GameUI';
-import { DUMPLINGS, RARITY_PRESENTATION, type Dumpling } from '@/data/dumplings';
+import { DUMPLINGS, RARITY_PRESENTATION, type Dumpling, type DumplingRarity } from '@/data/dumplings';
 import { useColors } from '@/hooks/useColors';
 import { getCollection } from '@/services/dumplingRewards';
 
-const BAND_HEIGHT = 260;
-const SLOT_VISIBILITY_MARGIN = 70;
-type RoomPosition = { top: number; left: DimensionValue };
+const RARITIES_ORDER: DumplingRarity[] = ['Legendary', 'Epic', 'Rare', 'Uncommon', 'Common'];
 
-const roomStyles = StyleSheet.create({
-  band: { width: '100%', height: BAND_HEIGHT, backgroundColor: '#FFF9F2', overflow: 'hidden' },
-  window: { position: 'absolute', top: 40, left: '20%', width: '60%', height: 120, backgroundColor: '#E2F0F9', borderRadius: 60, borderWidth: 6, borderColor: '#FFFFFF' },
-  windowPane: { position: 'absolute', top: '50%', width: '100%', height: 6, backgroundColor: '#FFFFFF' },
-  windowPaneVert: { position: 'absolute', left: '50%', width: 6, height: '100%', backgroundColor: '#FFFFFF' },
-  shelf: { position: 'absolute', height: 12, backgroundColor: '#A37A5B', borderRadius: 4, shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 4, shadowOffset: { width: 0, height: 4 } },
-  hangingPlantBase: { position: 'absolute', top: -10, left: '30%', width: 40, height: 20, backgroundColor: '#C08A65', borderRadius: 10 },
-  hangingPlantVines: { position: 'absolute', top: 10, left: '25%', width: 50, height: 80, backgroundColor: '#6D9773', borderBottomLeftRadius: 25, borderBottomRightRadius: 25 },
-  pictureFrame: { position: 'absolute', top: 60, left: '60%', width: 50, height: 70, backgroundColor: '#F0E5D8', borderWidth: 4, borderColor: '#7A543B' },
-  bookshelfBase: { position: 'absolute', left: '65%', width: '28%', backgroundColor: '#8E6746', borderWidth: 4, borderColor: '#6B4A30' },
-  lampStand: { position: 'absolute', bottom: 0, left: '25%', width: 8, height: 150, backgroundColor: '#5A5A5A' },
-  lampShade: { position: 'absolute', bottom: 130, left: '15%', width: '28%', height: 40, backgroundColor: '#F7D08A', borderTopLeftRadius: 20, borderTopRightRadius: 20 },
-  wainscoting: { position: 'absolute', bottom: 0, width: '100%', height: 120, backgroundColor: '#F0E6D8', borderTopWidth: 4, borderColor: '#E0D3C1' },
-  wainscotingPanel: { position: 'absolute', top: 15, left: '5%', width: '90%', height: 90, borderWidth: 2, borderColor: '#E0D3C1', borderRadius: 4 },
-  sideTable: { position: 'absolute', bottom: 0, left: '15%', width: '30%', height: 80, backgroundColor: '#A37A5B', borderTopLeftRadius: 8, borderTopRightRadius: 8 },
-  fireplaceTop: { position: 'absolute', bottom: 0, left: '30%', width: '40%', height: 140, backgroundColor: '#D9D9D9', borderTopLeftRadius: 10, borderTopRightRadius: 10 },
-  fireplaceMantel: { position: 'absolute', top: -10, left: '-5%', width: '110%', height: 14, backgroundColor: '#A37A5B', borderRadius: 4 },
-  fireplaceBottom: { position: 'absolute', top: 0, left: '30%', width: '40%', height: 120, backgroundColor: '#D9D9D9' },
-  fireplaceOpening: { position: 'absolute', bottom: 0, left: '20%', width: '60%', height: 90, backgroundColor: '#2C2C2C', borderTopLeftRadius: 40, borderTopRightRadius: 40 },
-  rug: { position: 'absolute', bottom: -20, left: '10%', width: '80%', height: 60, backgroundColor: '#D98973', borderRadius: 100, transform: [{ scaleY: 0.5 }] },
-  cushion: { position: 'absolute', bottom: 20, left: '40%', width: '30%', height: 40, backgroundColor: '#6D9773', borderRadius: 20 },
-  floorPlantPot: { position: 'absolute', bottom: 0, left: '75%', width: 50, height: 60, backgroundColor: '#C08A65', borderTopLeftRadius: 10, borderTopRightRadius: 10 },
-  floorPlantLeaves: { position: 'absolute', bottom: 50, left: '65%', width: 70, height: 90, backgroundColor: '#4A7055', borderRadius: 35 },
-  floorLine: { position: 'absolute', bottom: 0, width: '100%', height: 40, backgroundColor: '#8B6B53', borderTopWidth: 4, borderColor: '#6B4A30' },
-  beanbag: { position: 'absolute', bottom: 20, left: '20%', width: '40%', height: 70, backgroundColor: '#E2A973', borderTopLeftRadius: 40, borderTopRightRadius: 60, borderBottomLeftRadius: 10, borderBottomRightRadius: 10 }
+type RowData =
+  | { type: 'header'; rarity: DumplingRarity; id: string }
+  | { type: 'row'; items: Dumpling[]; id: string; rarity: DumplingRarity };
+
+const flatData: RowData[] = [];
+RARITIES_ORDER.forEach((rarity) => {
+  const items = DUMPLINGS.filter((d) => d.rarity === rarity);
+  if (items.length > 0) {
+    flatData.push({ type: 'header', rarity, id: `header-${rarity}` });
+    for (let i = 0; i < items.length; i += 3) {
+      flatData.push({
+        type: 'row',
+        rarity,
+        items: items.slice(i, i + 3),
+        id: `row-${rarity}-${i}`,
+      });
+    }
+  }
 });
 
-const BAND_CONFIGS: { decor: () => React.JSX.Element; slots: RoomPosition[] }[] = [
-  {
-    decor: () => (
-      <>
-        <View style={roomStyles.window}>
-          <View style={roomStyles.windowPane} />
-          <View style={roomStyles.windowPaneVert} />
-        </View>
-        <View style={[roomStyles.shelf, { top: 170, left: '15%', width: '35%' }]} />
-        <View style={[roomStyles.shelf, { top: 220, left: '65%', width: '25%' }]} />
-      </>
-    ),
-    slots: [{ top: 115, left: '25%' }, { top: 165, left: '70%' }, { top: 60, left: '75%' }]
-  },
-  {
-    decor: () => (
-      <>
-        <View style={roomStyles.hangingPlantBase} />
-        <View style={roomStyles.hangingPlantVines} />
-        <View style={roomStyles.pictureFrame} />
-        <View style={[roomStyles.shelf, { top: 150, left: '45%', width: '45%' }]} />
-      </>
-    ),
-    slots: [{ top: 40, left: '15%' }, { top: 95, left: '65%' }, { top: 160, left: '45%' }]
-  },
-  {
-    decor: () => (
-      <>
-        <View style={[roomStyles.bookshelfBase, { bottom: 0, height: 200 }]} />
-        <View style={[roomStyles.shelf, { bottom: 180, left: '62%', width: '34%' }]} />
-        <View style={[roomStyles.shelf, { bottom: 100, left: '62%', width: '34%' }]} />
-        <View style={[roomStyles.shelf, { top: 110, left: '15%', width: '30%' }]} />
-      </>
-    ),
-    slots: [{ top: 55, left: '25%' }, { top: 60, left: '75%' }, { top: 140, left: '75%' }]
-  },
-  {
-    decor: () => (
-      <>
-        <View style={[roomStyles.bookshelfBase, { top: 0, height: BAND_HEIGHT }]} />
-        <View style={[roomStyles.shelf, { top: 60, left: '62%', width: '34%' }]} />
-        <View style={[roomStyles.shelf, { top: 160, left: '62%', width: '34%' }]} />
-        <View style={[roomStyles.shelf, { top: 100, left: '10%', width: '25%' }]} />
-        <View style={[roomStyles.shelf, { top: 210, left: '15%', width: '35%' }]} />
-      </>
-    ),
-    slots: [{ top: 55, left: '75%' }, { top: 135, left: '75%' }, { top: 175, left: '25%' }]
-  },
-  {
-    decor: () => (
-      <>
-        <View style={[roomStyles.bookshelfBase, { top: 0, height: 160 }]} />
-        <View style={[roomStyles.shelf, { top: 60, left: '62%', width: '34%' }]} />
-        <View style={roomStyles.lampStand} />
-        <View style={roomStyles.lampShade} />
-      </>
-    ),
-    slots: [{ top: 55, left: '75%' }, { top: 75, left: '30%' }, { top: 170, left: '75%' }]
-  },
-  {
-    decor: () => (
-      <>
-        <View style={roomStyles.wainscoting}><View style={roomStyles.wainscotingPanel}/></View>
-        <View style={roomStyles.sideTable} />
-      </>
-    ),
-    slots: [{ top: 50, left: '20%' }, { top: 160, left: '50%' }, { top: 120, left: '80%' }]
-  },
-  {
-    decor: () => (
-      <>
-        <View style={roomStyles.wainscoting}><View style={roomStyles.wainscotingPanel}/></View>
-        <View style={roomStyles.fireplaceTop}>
-          <View style={roomStyles.fireplaceMantel} />
-        </View>
-        <View style={[roomStyles.shelf, { top: 80, left: '8%', width: '22%' }]} />
-      </>
-    ),
-    slots: [{ top: 25, left: '15%' }, { top: 140, left: '45%' }, { top: 70, left: '85%' }]
-  },
-  {
-    decor: () => (
-      <>
-        <View style={roomStyles.wainscoting}><View style={roomStyles.wainscotingPanel}/></View>
-        <View style={roomStyles.rug} />
-        <View style={roomStyles.fireplaceBottom}>
-          <View style={roomStyles.fireplaceOpening} />
-        </View>
-      </>
-    ),
-    slots: [{ top: 80, left: '25%' }, { top: 170, left: '50%' }, { top: 110, left: '75%' }]
-  },
-  {
-    decor: () => (
-      <>
-        <View style={roomStyles.wainscoting}><View style={roomStyles.wainscotingPanel}/></View>
-        <View style={roomStyles.cushion} />
-        <View style={roomStyles.floorPlantLeaves} />
-        <View style={roomStyles.floorPlantPot} />
-      </>
-    ),
-    slots: [{ top: 40, left: '20%' }, { top: 110, left: '50%' }, { top: 170, left: '80%' }]
-  },
-  {
-    decor: () => (
-      <>
-        <View style={roomStyles.wainscoting}><View style={roomStyles.wainscotingPanel}/></View>
-        <View style={roomStyles.floorLine} />
-        <View style={roomStyles.beanbag} />
-      </>
-    ),
-    slots: [{ top: 60, left: '30%' }, { top: 140, left: '45%' }, { top: 120, left: '75%' }]
+const HEADER_HEIGHT = 60;
+const ROW_HEIGHT = 130;
+
+const getItemLayout = (data: ArrayLike<RowData> | null | undefined, index: number) => {
+  if (!data) return { length: 0, offset: 0, index };
+  let offset = 0;
+  for (let i = 0; i < index; i++) {
+    offset += data[i].type === 'header' ? HEADER_HEIGHT : ROW_HEIGHT;
   }
-];
+  const length = data[index].type === 'header' ? HEADER_HEIGHT : ROW_HEIGHT;
+  return { length, offset, index };
+};
 
 function DumplingSlot({
   dumpling,
-  position,
   isOwned,
   isNew,
   isVisible,
 }: {
   dumpling: Dumpling;
-  position: RoomPosition;
   isOwned: boolean;
   isNew: boolean;
   isVisible: boolean;
@@ -279,7 +163,7 @@ function DumplingSlot({
   });
 
   return (
-    <View style={[styles.slot, { left: position.left, top: position.top }]} testID={`slot-${dumpling.id}`}>
+    <View style={styles.slot} testID={`slot-${dumpling.id}`}>
       {isOwned && (
         <Animated.View style={[StyleSheet.absoluteFill, { alignItems: 'center', justifyContent: 'center', opacity: glowAnim, bottom: 20 }]}>
           <View style={[styles.glowBackdrop, { backgroundColor: rarity.glow }]} />
@@ -317,84 +201,85 @@ export default function CollectionScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const params = useLocalSearchParams<{ newDumplingId?: string }>();
-  const newDumplingIndex = params.newDumplingId
-    ? DUMPLINGS.findIndex((dumpling) => dumpling.id === params.newDumplingId)
-    : -1;
-  const initialBandIndex = newDumplingIndex >= 0 ? Math.floor(newDumplingIndex / 3) : 0;
+
+  let initialScrollIndex = 0;
+  if (params.newDumplingId) {
+    const index = flatData.findIndex(
+      (d) => d.type === 'row' && d.items.some((i) => i.id === params.newDumplingId)
+    );
+    if (index >= 0) initialScrollIndex = index;
+  }
+
   const [ownedIds, setOwnedIds] = useState<string[] | null>(null);
   const [visibleDumplingIds, setVisibleDumplingIds] = useState<Set<string>>(new Set());
-  const viewportHeightRef = useRef(0);
-  const scrollOffsetRef = useRef(initialBandIndex * BAND_HEIGHT);
 
   useEffect(() => {
     let active = true;
     getCollection()
-      .then(({ ownedDumplingIds }) => { if (active) setOwnedIds(ownedDumplingIds); })
-      .catch(() => { if (active) setOwnedIds([]); });
-    return () => { active = false; };
+      .then(({ ownedDumplingIds }) => {
+        if (active) setOwnedIds(ownedDumplingIds);
+      })
+      .catch(() => {
+        if (active) setOwnedIds([]);
+      });
+    return () => {
+      active = false;
+    };
   }, []);
 
-  const updateVisibleDumplings = useCallback((scrollOffset: number, viewportHeight: number) => {
-    if (viewportHeight <= 0) return;
+  const viewabilityConfig = useRef({
+    itemVisiblePercentThreshold: 10,
+    minimumViewTime: 50,
+  }).current;
 
-    const viewportTop = scrollOffset;
-    const viewportBottom = scrollOffset + viewportHeight;
+  const onViewableItemsChanged = useCallback(({ viewableItems }: { viewableItems: Array<ViewToken> }) => {
     const nextVisible = new Set<string>();
-
-    BAND_CONFIGS.forEach((band, bandIndex) => {
-      band.slots.forEach((position, slotIndex) => {
-        const dumpling = DUMPLINGS[bandIndex * 3 + slotIndex];
-        if (!dumpling) return;
-
-        const slotCenter = bandIndex * BAND_HEIGHT + position.top;
-        if (
-          slotCenter + SLOT_VISIBILITY_MARGIN >= viewportTop
-          && slotCenter - SLOT_VISIBILITY_MARGIN <= viewportBottom
-        ) {
-          nextVisible.add(dumpling.id);
-        }
-      });
+    viewableItems.forEach((v) => {
+      const item = v.item as RowData;
+      if (item.type === 'row') {
+        item.items.forEach((d) => nextVisible.add(d.id));
+      }
     });
 
     setVisibleDumplingIds((current) => {
-      if (
-        current.size === nextVisible.size
-        && [...current].every((id) => nextVisible.has(id))
-      ) {
+      if (current.size === nextVisible.size && [...current].every((id) => nextVisible.has(id))) {
         return current;
       }
       return nextVisible;
     });
   }, []);
 
-  const handleRoomLayout = useCallback((event: LayoutChangeEvent) => {
-    const viewportHeight = event.nativeEvent.layout.height;
-    viewportHeightRef.current = viewportHeight;
-    updateVisibleDumplings(scrollOffsetRef.current, viewportHeight);
-  }, [updateVisibleDumplings]);
-
-  const handleRoomScroll = useCallback((event: NativeSyntheticEvent<NativeScrollEvent>) => {
-    const scrollOffset = event.nativeEvent.contentOffset.y;
-    scrollOffsetRef.current = scrollOffset;
-    updateVisibleDumplings(scrollOffset, viewportHeightRef.current);
-  }, [updateVisibleDumplings]);
-
   if (ownedIds === null) return <LoadingScreen />;
   const owned = new Set(ownedIds);
   const progress = Math.round((owned.size / DUMPLINGS.length) * 100);
 
-  const renderSection = ({ item, index }: { item: typeof BAND_CONFIGS[0]; index: number }) => {
-    const sectionDumplings = DUMPLINGS.slice(index * 3, (index + 1) * 3);
-    const sectionPositions = item.slots;
+  const renderItem = ({ item }: { item: RowData }) => {
+    if (item.type === 'header') {
+      const rarityPres = RARITY_PRESENTATION[item.rarity];
+      const count = DUMPLINGS.filter((d) => d.rarity === item.rarity).length;
+      const ownedCount = DUMPLINGS.filter((d) => d.rarity === item.rarity && owned.has(d.id)).length;
+
+      return (
+        <View style={[styles.sectionHeader, { borderBottomColor: rarityPres.color }]}>
+          <View style={styles.sectionHeaderTitle}>
+            <Feather name="star" size={16} color={rarityPres.color} />
+            <Text style={[styles.sectionHeaderText, { color: rarityPres.color }]}>
+              {item.rarity.toUpperCase()}
+            </Text>
+          </View>
+          <Text style={styles.sectionHeaderCount}>
+            {ownedCount} / {count}
+          </Text>
+        </View>
+      );
+    }
 
     return (
-      <View style={roomStyles.band}>
-        <item.decor />
-        {sectionDumplings.map((dumpling, idx) => (
+      <View style={styles.row}>
+        {item.items.map((dumpling) => (
           <DumplingSlot
             key={dumpling.id}
             dumpling={dumpling}
-            position={sectionPositions[idx]}
             isOwned={owned.has(dumpling.id)}
             isNew={params.newDumplingId === dumpling.id}
             isVisible={visibleDumplingIds.has(dumpling.id)}
@@ -418,17 +303,16 @@ export default function CollectionScreen() {
           </View>
         </View>
 
-        <View style={[styles.houseContainer, { borderColor: colors.border }]}>
+        <View style={[styles.galleryContainer, { borderColor: colors.border }]}>
           <FlatList
-            data={BAND_CONFIGS}
-            keyExtractor={(_, i) => i.toString()}
-            renderItem={renderSection}
+            data={flatData}
+            keyExtractor={(item) => item.id}
+            renderItem={renderItem}
             showsVerticalScrollIndicator={false}
-            onLayout={handleRoomLayout}
-            onScroll={handleRoomScroll}
-            scrollEventThrottle={64}
-            initialScrollIndex={initialBandIndex}
-            getItemLayout={(_, index) => ({ length: BAND_HEIGHT, offset: BAND_HEIGHT * index, index })}
+            viewabilityConfig={viewabilityConfig}
+            onViewableItemsChanged={onViewableItemsChanged}
+            initialScrollIndex={initialScrollIndex > 0 ? initialScrollIndex : undefined}
+            getItemLayout={getItemLayout}
             contentContainerStyle={{ paddingBottom: 60 }}
           />
         </View>
@@ -443,8 +327,48 @@ const styles = StyleSheet.create({
   progressTitle: { fontFamily: 'Inter_700Bold', fontSize: 19, marginTop: 5 },
   progressCircle: { width: 54, height: 54, borderRadius: 27, alignItems: 'center', justifyContent: 'center' },
   progressPercent: { fontFamily: 'Inter_700Bold', fontSize: 14 },
-  houseContainer: { flex: 1, borderWidth: 2, borderRadius: 22, overflow: 'hidden', backgroundColor: '#FFF9F2', shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 8, shadowOffset: { width: 0, height: 4 } },
-  slot: { position: 'absolute', width: 90, transform: [{ translateX: -45 }, { translateY: -40 }], alignItems: 'center', justifyContent: 'center', zIndex: 10 },
+
+  galleryContainer: { flex: 1, borderWidth: 2, borderRadius: 22, overflow: 'hidden', backgroundColor: '#FFF9F2', shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 8, shadowOffset: { width: 0, height: 4 } },
+
+  sectionHeader: {
+    height: HEADER_HEIGHT,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingTop: 16,
+    paddingBottom: 10,
+    borderBottomWidth: 2,
+    backgroundColor: '#FFF9F2',
+  },
+  sectionHeaderTitle: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  sectionHeaderText: {
+    fontFamily: 'Inter_700Bold',
+    fontSize: 15,
+    letterSpacing: 0.5,
+  },
+  sectionHeaderCount: {
+    fontFamily: 'Inter_600SemiBold',
+    fontSize: 14,
+    color: '#7A8192',
+  },
+  row: {
+    height: ROW_HEIGHT,
+    flexDirection: 'row',
+    paddingHorizontal: 8,
+  },
+
+  slot: {
+    width: '33.33%',
+    height: ROW_HEIGHT,
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 10
+  },
   dumplingImg: { width: 55, height: 55 },
   placeholderShape: { width: 48, height: 42, backgroundColor: '#DFD5C9', borderTopLeftRadius: 24, borderTopRightRadius: 24, borderBottomLeftRadius: 10, borderBottomRightRadius: 10, alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: '#C8BAA8' },
   glowBackdrop: { width: 100, height: 100, borderRadius: 50, opacity: 0.5 },
