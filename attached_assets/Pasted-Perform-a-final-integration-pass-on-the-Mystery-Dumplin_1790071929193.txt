@@ -1,0 +1,166 @@
+Perform a final integration pass on the Mystery Dumpling system using the newly supplied 30 individual transparent dumpling PNGs and the new single-room Collection Room.
+
+Do not redesign the system. This is a cleanup and integration pass.
+
+### Authoritative assets
+
+There are exactly 30 dumplings:
+
+* Common: 12
+* Uncommon: 7
+* Rare: 5
+* Epic: 4
+* Legendary: 2
+
+The individual PNG files are now the authoritative artwork.
+
+Do not use the old combined rarity sheets for individual dumpling rendering.
+
+Do not use the old multi-room Collection Room image.
+
+### Embedded names inside PNGs
+
+Some source PNGs contain the dumpling name underneath the artwork.
+
+That text must NEVER be rendered as part of the dumpling.
+
+The game's own UI is responsible for displaying the name.
+
+Therefore:
+
+* render only the actual dumpling
+* exclude the embedded name
+* maintain clean transparency
+* preserve the complete dumpling
+* never show the checkerboard/source background
+
+### Reveal
+
+Preserve the existing reveal flow:
+
+Puzzle completion
+→ Mystery Basket
+→ anticipation
+→ opening
+→ dumpling reveal
+→ rarity presentation
+→ collect
+
+Use the clean individual PNG.
+
+Make sure the complete dumpling is visible and centered.
+
+Do not allow any part of the dumpling to be clipped.
+
+### Dumpling life animation
+
+Use code-based animation, NOT video assets.
+
+Dumplings can:
+
+* gently float
+* gently rotate
+* slightly scale
+* glitter
+* emit subtle sparkle/glow
+
+Do NOT add blinking.
+
+Do not modify the artwork itself.
+
+### Collection Room
+
+Use one shared room.
+
+Remove the previous multi-room image completely.
+
+The room should be the environment.
+
+The 30 actual dumpling assets are the collectibles placed inside it.
+
+No baked-in dumplings.
+
+No duplicated dumplings.
+
+No random overlay composition.
+
+Owned dumplings should visibly live in the room.
+
+Locked dumplings should use an appropriate locked/silhouette treatment.
+
+### Visibility-aware animation
+
+Only visible dumplings should actively animate.
+
+When a dumpling leaves the visible viewport:
+
+* pause/stop its active animation
+
+When it becomes visible again:
+
+* resume its subtle animation
+
+This should be implemented efficiently and should not create 30 continuously running animation loops when most dumplings are off-screen.
+
+### Newly collected dumpling
+
+When a newly collected dumpling first appears in the Collection Room:
+
+* give it a brief entrance effect
+* add slightly stronger sparkle/glow
+* settle it into its normal idle animation
+
+Afterward, use the normal subtle animation.
+
+### Preserve game systems
+
+Do NOT change:
+
+* Word Hunt gameplay
+* puzzle generation
+* score
+* timer
+* hints
+* reward gateway
+* reward generation
+* rarity probabilities
+* persistence
+* duplicate handling
+* collection data model
+* navigation
+* existing game modes
+
+The goal is to improve the visual asset integration without breaking the working game.
+
+### Final validation
+
+After making changes:
+
+1. Verify all 30 dumplings map correctly to the catalog.
+2. Verify all names and rarities.
+3. Verify no embedded PNG names appear.
+4. Verify no checkerboard backgrounds appear.
+5. Verify no dumpling is clipped.
+6. Verify reveal works.
+7. Verify Common/Uncommon/Rare/Epic/Legendary visual intensity remains hierarchical.
+8. Verify Collection Room uses only the new single room.
+9. Verify no old room image remains in active code.
+10. Verify owned/locked states.
+11. Verify collection progress.
+12. Verify persistence after restart.
+13. Verify duplicate rewards.
+14. Verify visible-only animation behavior.
+15. Verify Android performance.
+16. Run TypeScript validation.
+17. Run Expo Doctor.
+18. Do not modify unrelated files or systems unless required for this integration.
+
+At the end, provide a concise report of:
+
+* assets integrated
+* old assets removed from active use
+* reveal changes
+* Collection Room changes
+* animation changes
+* validation results
+* any remaining issues

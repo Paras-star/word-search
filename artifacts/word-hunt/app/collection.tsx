@@ -8,7 +8,9 @@ import {
   Text,
   View,
   type DimensionValue,
-  type ViewToken,
+  type LayoutChangeEvent,
+  type NativeScrollEvent,
+  type NativeSyntheticEvent,
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -19,6 +21,7 @@ import { useColors } from '@/hooks/useColors';
 import { getCollection } from '@/services/dumplingRewards';
 
 const BAND_HEIGHT = 260;
+const SLOT_VISIBILITY_MARGIN = 70;
 type RoomPosition = { top: number; left: DimensionValue };
 
 const roomStyles = StyleSheet.create({
@@ -314,14 +317,14 @@ export default function CollectionScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const params = useLocalSearchParams<{ newDumplingId?: string }>();
-  const [ownedIds, setOwnedIds] = useState<string[] | null>(null);
-  const [visibleSections, setVisibleSections] = useState<Set<number>>(new Set());
-
-  const viewabilityConfig = useRef({ itemVisiblePercentThreshold: 40 }).current;
   const newDumplingIndex = params.newDumplingId
     ? DUMPLINGS.findIndex((dumpling) => dumpling.id === params.newDumplingId)
     : -1;
   const initialBandIndex = newDumplingIndex >= 0 ? Math.floor(newDumplingIndex / 3) : 0;
+  const [ownedIds, setOwnedIds] = useState<string[] | null>(null);
+  const [visibleDumplingIds, setVisibleDumplingIds] = useState<Set<string>>(new Set());
+  const viewportHeightRef = useRef(0);
+  const scrollOffsetRef = useRef(initialBandIndex * BAND_HEIGHT);
 
   useEffect(() => {
     let active = true;
@@ -331,9 +334,50 @@ export default function CollectionScreen() {
     return () => { active = false; };
   }, []);
 
-  const onViewableItemsChanged = useCallback(({ viewableItems }: { viewableItems: ViewToken[] }) => {
-    setVisibleSections(new Set(viewableItems.map(item => item.index as number)));
+  const updateVisibleDumplings = useCallback((scrollOffset: number, viewportHeight: number) => {
+    if (viewportHeight <= 0) return;
+
+    const viewportTop = scrollOffset;
+    const viewportBottom = scrollOffset + viewportHeight;
+    const nextVisible = new Set<string>();
+
+    BAND_CONFIGS.forEach((band, bandIndex) => {
+      band.slots.forEach((position, slotIndex) => {
+        const dumpling = DUMPLINGS[bandIndex * 3 + slotIndex];
+        if (!dumpling) return;
+
+        const slotCenter = bandIndex * BAND_HEIGHT + position.top;
+        if (
+          slotCenter + SLOT_VISIBILITY_MARGIN >= viewportTop
+          && slotCenter - SLOT_VISIBILITY_MARGIN <= viewportBottom
+        ) {
+          nextVisible.add(dumpling.id);
+        }
+      });
+    });
+
+    setVisibleDumplingIds((current) => {
+      if (
+        current.size === nextVisible.size
+        && [...current].every((id) => nextVisible.has(id))
+      ) {
+        return current;
+      }
+      return nextVisible;
+    });
   }, []);
+
+  const handleRoomLayout = useCallback((event: LayoutChangeEvent) => {
+    const viewportHeight = event.nativeEvent.layout.height;
+    viewportHeightRef.current = viewportHeight;
+    updateVisibleDumplings(scrollOffsetRef.current, viewportHeight);
+  }, [updateVisibleDumplings]);
+
+  const handleRoomScroll = useCallback((event: NativeSyntheticEvent<NativeScrollEvent>) => {
+    const scrollOffset = event.nativeEvent.contentOffset.y;
+    scrollOffsetRef.current = scrollOffset;
+    updateVisibleDumplings(scrollOffset, viewportHeightRef.current);
+  }, [updateVisibleDumplings]);
 
   if (ownedIds === null) return <LoadingScreen />;
   const owned = new Set(ownedIds);
@@ -342,7 +386,6 @@ export default function CollectionScreen() {
   const renderSection = ({ item, index }: { item: typeof BAND_CONFIGS[0]; index: number }) => {
     const sectionDumplings = DUMPLINGS.slice(index * 3, (index + 1) * 3);
     const sectionPositions = item.slots;
-    const isVisible = visibleSections.has(index);
 
     return (
       <View style={roomStyles.band}>
@@ -354,7 +397,7 @@ export default function CollectionScreen() {
             position={sectionPositions[idx]}
             isOwned={owned.has(dumpling.id)}
             isNew={params.newDumplingId === dumpling.id}
-            isVisible={isVisible}
+            isVisible={visibleDumplingIds.has(dumpling.id)}
           />
         ))}
       </View>
@@ -381,8 +424,9 @@ export default function CollectionScreen() {
             keyExtractor={(_, i) => i.toString()}
             renderItem={renderSection}
             showsVerticalScrollIndicator={false}
-            onViewableItemsChanged={onViewableItemsChanged}
-            viewabilityConfig={viewabilityConfig}
+            onLayout={handleRoomLayout}
+            onScroll={handleRoomScroll}
+            scrollEventThrottle={64}
             initialScrollIndex={initialBandIndex}
             getItemLayout={(_, index) => ({ length: BAND_HEIGHT, offset: BAND_HEIGHT * index, index })}
             contentContainerStyle={{ paddingBottom: 60 }}
