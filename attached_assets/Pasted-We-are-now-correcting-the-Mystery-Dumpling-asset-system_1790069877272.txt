@@ -1,0 +1,121 @@
+We are now correcting the Mystery Dumpling asset system.
+
+I have uploaded the individual transparent PNG assets for all COMMON and UNCOMMON dumplings.
+
+IMPORTANT: Do not redesign, regenerate, recolor, redraw, rename, stylize, or otherwise alter the dumpling artwork. These uploaded PNGs are the authoritative artwork.
+
+### Uploaded asset naming convention
+
+The files are named using this structure:
+
+Common-DumplingName.png
+Uncommon-DumplingName.png
+
+Examples:
+
+* Common-Green-Garden.png
+* Uncommon-Double-Joy.png
+* etc.
+
+Use the filename to identify the correct dumpling and rarity, but cross-check against the existing 30-dumpling catalog before modifying the data.
+
+### CRITICAL: The PNG may contain text below the dumpling
+
+Some of these source PNGs contain the dumpling's name written underneath the artwork.
+
+DO NOT display that text as part of the dumpling artwork.
+
+The game already displays the dumpling name separately in the UI, so the name must NOT appear twice.
+
+For every uploaded PNG:
+
+1. Identify the actual dumpling artwork.
+2. Render ONLY the dumpling artwork.
+3. Ignore/remove the name text underneath the dumpling.
+4. Preserve the dumpling itself exactly as supplied.
+5. Preserve genuine transparency around the dumpling.
+6. Do not show any checkerboard/transparency-preview background.
+7. Do not crop any part of the dumpling.
+8. Do not accidentally include neighboring dumplings or artwork from another asset.
+
+If necessary, create/use an appropriately cropped transparent version internally from the uploaded PNG. The final rendered game asset must contain only the complete dumpling with transparent space around it.
+
+### Asset architecture
+
+Do NOT use the old combined rarity sprite sheets for rendering individual dumplings anymore.
+
+The individual uploaded PNGs are now the authoritative assets for:
+
+* Mystery Dumpling reveal
+* collection cards
+* Collection Room
+* owned dumpling display
+* locked/collected visual states where applicable
+
+Keep the existing 30-dumpling catalog, IDs, rarity definitions, reward probabilities, persistence, duplicate handling, and reward gateway intact.
+
+Do not rewrite the reward-generation system.
+
+### Reveal screen
+
+Keep the existing Mystery Dumpling reveal flow and overall UI structure.
+
+Replace the incorrectly rendered dumpling artwork with the correct individual transparent PNG.
+
+The entire dumpling must be visible and properly centered.
+
+Do not display the name embedded in the source PNG.
+
+The name should continue to come from the game's existing data/UI and should appear only in the intended UI locations.
+
+### Common and Uncommon visual behavior
+
+Keep the existing rarity hierarchy.
+
+Common:
+
+* subtle reveal
+* subtle sparkle/glitter
+* gentle movement
+* restrained visual intensity
+
+Uncommon:
+
+* somewhat stronger sparkle/glitter
+* slightly more noticeable reveal
+* still clearly below Rare/Epic/Legendary intensity
+
+Do not make the animations excessive.
+
+### Do not modify unrelated systems
+
+Do not change:
+
+* Word Hunt gameplay
+* puzzle generation
+* grid interaction
+* scoring
+* timer
+* hints
+* reward generation logic
+* rarity probabilities
+* navigation
+* persistence
+* existing collection data
+* other game screens
+
+This task is specifically the correction and integration of the Common and Uncommon individual dumpling assets.
+
+After implementation:
+
+1. Verify all 12 Common assets map to the correct dumplings.
+2. Verify all 7 Uncommon assets map to the correct dumplings.
+3. Verify no embedded name text appears as part of the rendered artwork.
+4. Verify no checkerboard/background is visible.
+5. Verify no dumpling is cut off.
+6. Verify the full dumpling is visible.
+7. Run TypeScript validation.
+8. Run Expo Doctor.
+9. Report exactly which files were changed and whether the existing reward/collection systems remain intact.
+
+Do not perform unrelated refactoring.
