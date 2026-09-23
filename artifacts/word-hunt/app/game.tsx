@@ -3,9 +3,9 @@ import { PanResponder, Pressable, StyleSheet, Text, View, type GestureResponderE
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import { Header, Screen, CoinPill, SoftButton } from '@/components/GameUI';
-import { CATEGORIES, getCategory } from '@/data/categories';
+import { getCategory } from '@/data/categories';
 import { BONUS_WORDS } from '@/data/bonusWords';
-import { generatePuzzle, gridCellFromPoint, lettersFor, lineCells } from '@/game/puzzle';
+import { generatePuzzle, gridCellFromPoint, lettersFor, lineCells, type GridBounds } from '@/game/puzzle';
 import { completionBonus, formatTime, HIGHLIGHT_COLORS, scoreFoundWord } from '@/game/scoring';
 import type { Cell, GameMode } from '@/game/types';
 import { useGame } from '@/context/GameProvider';
@@ -33,7 +33,8 @@ export default function GameScreen() {
   const [selectedCells, setSelectedCells] = useState<Cell[]>([]);
   const [feedback, setFeedback] = useState<'idle' | 'wrong' | 'bonus'>('idle');
   const [hintCells, setHintCells] = useState<Cell[]>([]);
-  const [gridBounds, setGridBounds] = useState({ x: 0, y: 0, width: 0, height: 0 });
+  const gridBoundsRef = useRef<GridBounds | null>(null);
+  const measurementVersion = useRef(0);
   const gridContentRef = useRef<View>(null);
   const selectedCellsRef = useRef<Cell[]>([]);
   const completionStarted = useRef(false);
@@ -76,13 +77,18 @@ export default function GameScreen() {
   useEffect(() => { if (foundWords.length === puzzle.words.length) void finish(); }, [finish, foundWords.length, puzzle.words.length]);
 
   const refreshGridBounds = () => {
+    const version = ++measurementVersion.current;
+    gridBoundsRef.current = null;
     gridContentRef.current?.measureInWindow((x, y, width, height) => {
-      setGridBounds({ x, y, width, height });
+      if (version === measurementVersion.current && width > 0 && height > 0) {
+        gridBoundsRef.current = { x, y, width, height };
+      }
     });
   };
 
   const cellFromEvent = (event: GestureResponderEvent): Cell | null => {
-    return gridCellFromPoint(event.nativeEvent.pageX, event.nativeEvent.pageY, gridBounds, puzzle.size);
+    const bounds = gridBoundsRef.current;
+    return bounds ? gridCellFromPoint(event.nativeEvent.pageX, event.nativeEvent.pageY, bounds, puzzle.size) : null;
   };
 
   const updateSelection = (cell: Cell | null) => {
@@ -135,7 +141,7 @@ export default function GameScreen() {
     onPanResponderMove: (event) => updateSelection(cellFromEvent(event)),
     onPanResponderRelease: endSelection,
     onPanResponderTerminate: endSelection,
-  }), [bonusWords, gridBounds, puzzle]);
+  }), [bonusWords, puzzle]);
 
   const useHint = () => {
     if (hints <= 0 || foundWords.length === puzzle.words.length) return;
@@ -160,7 +166,7 @@ export default function GameScreen() {
   return <Screen style={styles.screen}>
     <Header title={category.name} onBack={() => router.back()} right={<CoinPill coins={coins} />} />
     <View style={styles.metaRow}><View><Text style={[styles.scoreLabel, { color: colors.mutedForeground }]}>SCORE</Text><Text style={[styles.score, { color: colors.foreground }]}>{score}</Text></View><View style={[styles.timerPill, { backgroundColor: mode === 'time' && timeLeft < 30 ? '#ffe4e4' : colors.card, borderColor: mode === 'time' && timeLeft < 30 ? colors.warning : colors.border }]}><Feather name="clock" size={16} color={mode === 'time' && timeLeft < 30 ? colors.warning : colors.primary} /><Text style={[styles.timerText, { color: mode === 'time' && timeLeft < 30 ? colors.warning : colors.foreground }]}>{formatTime(mode === 'time' ? timeLeft : elapsed)}</Text></View><Pressable onPress={useHint} disabled={hints === 0} style={[styles.hintButton, { backgroundColor: hints ? colors.orange : colors.border }]} testID="hint-button"><Feather name="zap" size={16} color="#fff" /><Text style={styles.hintText}>{hints}</Text></Pressable></View>
-    <View style={styles.gridWrap}><View style={[styles.grid, { borderColor: colors.border }]}><View ref={gridContentRef} style={styles.gridContent} onLayout={refreshGridBounds} {...panResponder.panHandlers}>{puzzle.grid.map((row, rowIndex) => row.map((letter, colIndex) => <View key={`${rowIndex}-${colIndex}`} style={[styles.cell, { width: `${100 / puzzle.size}%`, height: `${100 / puzzle.size}%`, borderColor: colors.border }, getCellStyle({ row: rowIndex, col: colIndex })]}><Text style={[styles.letter, { color: colors.foreground }]}>{letter}</Text></View>))}</View></View></View>
+    <View style={styles.gridWrap}><View style={[styles.grid, { borderColor: colors.border }]}><View ref={gridContentRef} style={styles.gridContent} onLayout={refreshGridBounds} {...panResponder.panHandlers}>{puzzle.grid.map((row, rowIndex) => <View key={rowIndex} style={styles.gridRow}>{row.map((letter, colIndex) => <View key={colIndex} style={[styles.cell, { borderColor: colors.border }, getCellStyle({ row: rowIndex, col: colIndex })]}><Text style={[styles.letter, { color: colors.foreground }]}>{letter}</Text></View>)}</View>)}</View></View></View>
     <View style={styles.listHeader}><Text style={[styles.listTitle, { color: colors.foreground }]}>Find these words</Text><Text style={[styles.progress, { color: colors.mutedForeground }]}>{foundWords.length}/{puzzle.words.length}</Text></View>
     <View style={styles.words}>{puzzle.words.map((word) => <View key={word} style={styles.wordItem}><Feather name={foundWords.includes(word) ? 'check' : 'circle'} size={14} color={foundWords.includes(word) ? colors.success : colors.border} /><Text style={[styles.word, { color: foundWords.includes(word) ? colors.foundWord : colors.foreground, textDecorationLine: foundWords.includes(word) ? 'line-through' : 'none' }]}>{word}</Text></View>)}</View>
     {feedback !== 'idle' && <Text style={[styles.feedback, { color: feedback === 'bonus' ? colors.orange : colors.warning }]}>{feedback === 'bonus' ? '+5 bonus word' : 'That word is not on the list'}</Text>}
@@ -177,10 +183,11 @@ const styles = StyleSheet.create({
   timerText: { fontFamily: 'Inter_700Bold', fontSize: 16 },
   hintButton: { minWidth: 50, height: 42, borderRadius: 15, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 },
   hintText: { color: '#fff', fontFamily: 'Inter_700Bold', fontSize: 15 },
-  gridWrap: { width: '100%', aspectRatio: 1, maxHeight: 365, alignSelf: 'center' },
+  gridWrap: { width: '100%', aspectRatio: 1, maxWidth: 365, alignSelf: 'center' },
   grid: { flex: 1, borderWidth: 1, borderRadius: 18, overflow: 'hidden', padding: 3, backgroundColor: '#fff' },
-  gridContent: { flex: 1, flexDirection: 'row', flexWrap: 'wrap' },
-  cell: { alignItems: 'center', justifyContent: 'center', borderWidth: 0.5 },
+  gridContent: { flex: 1 },
+  gridRow: { flex: 1, flexDirection: 'row' },
+  cell: { flex: 1, alignItems: 'center', justifyContent: 'center', borderWidth: 0.5 },
   letter: { fontFamily: 'Inter_700Bold', fontSize: 15 },
   listHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 14, marginBottom: 8 },
   listTitle: { fontFamily: 'Inter_700Bold', fontSize: 17 },

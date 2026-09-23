@@ -1,0 +1,279 @@
+The Food level is STILL broken on the physical Android device.
+
+I want you to focus specifically on what happens when moving from Level 1 (Animals) to Level 2 (Food).
+
+I have tested this sequence:
+
+1. Play Animals — Level 1.
+2. Complete the Animals puzzle.
+3. The game moves to Food — Level 2.
+4. On Food, touching a visible letter selects a DIFFERENT letter.
+5. The Food grid is also visibly positioned incorrectly.
+
+This is important:
+
+Animals Level 1 works correctly.
+
+Food Level 2 is the problem.
+
+Therefore, DO NOT assume this is a generic Android touch problem and DO NOT patch individual Food words.
+
+I want you to investigate the LEVEL TRANSITION + NEW PUZZLE GRID INITIALIZATION.
+
+I have attached the gameplay video showing the Food level.
+
+WHAT I CAN SEE IN THE VIDEO:
+
+- The Food puzzle grid is not positioned/dimensioned correctly.
+- The bottom row is partially cut off. The letters in the bottom row are only partly visible.
+- There is abnormal empty space toward the right side of the grid.
+- The visible letter positions therefore do not appear to correspond to the positions the touch system is using.
+- When I touch one visible letter, another/different letter gets selected.
+- This happens across the Food grid, not just with one particular word.
+- The problem starts when the new Food level is loaded after completing Animals.
+
+IMPORTANT:
+Do not change the dumpling/reward/collection system at all.
+
+Do not change:
+- Mystery Dumplings
+- reward/reveal
+- rarity
+- collection
+- Collection Room
+- dumpling artwork
+- persistence
+- duplicate handling
+
+Only investigate the primary Word Hunt puzzle.
+
+FIRST: REPRODUCE THE EXACT SEQUENCE
+
+Do not test Food by opening Food directly.
+
+Reproduce:
+
+Animals Level 1
+→ complete it
+→ transition to Food Level 2
+→ try touching different letters
+
+Compare the layout of Animals immediately before completion with the layout of Food immediately after transition.
+
+I specifically want you to determine whether the grid's:
+
+- width
+- height
+- x position
+- y position
+- number of rows
+- number of columns
+- cell width
+- cell height
+- padding
+- gap
+- container dimensions
+
+change unexpectedly when Food is initialized.
+
+INVESTIGATE LEVEL TRANSITION STATE
+
+Trace the code that runs when:
+
+- Animals is completed
+- the next level/category is selected
+- Food puzzle data is generated
+- the new grid is stored in state
+- the new grid is rendered
+- the new gesture responder/touch handler is created
+
+Look for stale values being carried over from Animals.
+
+Especially check whether any of these are stored in React state/ref/memo and are not recalculated correctly for the new puzzle:
+
+- grid dimensions
+- board measurements
+- cell dimensions
+- board position
+- row count
+- column count
+- selected cells
+- touch origin
+- gesture state
+- layout measurements
+
+Also check whether a `key`, memoization, `useMemo`, `useCallback`, `useEffect`, or component reuse is causing the Food grid to reuse geometry from the previous puzzle incorrectly.
+
+VERY IMPORTANT:
+
+Do not assume that because the Food puzzle has different generated letters, the geometry should be different.
+
+The board layout must remain consistently aligned for every level unless the puzzle intentionally uses a different grid size.
+
+VISUAL GRID REQUIREMENT
+
+Inspect the actual Food grid.
+
+Verify exactly:
+
+- How many rows are generated?
+- How many columns are generated?
+- How many rows are rendered?
+- How many columns are rendered?
+- Are those numbers identical?
+- Is any row or column being clipped?
+- Is any row or column positioned outside the visible board?
+- Is the first column partially hidden?
+- Is there unused space after the final column?
+- Is the final row partially hidden?
+- Is the grid being translated, shifted, scaled, or clipped after the level transition?
+
+The final rendered grid must have:
+
+- every intended row visible
+- every intended column visible
+- equal cell sizes
+- no hidden first column
+- no abnormal empty final column
+- no clipped bottom row
+
+TOUCH SELECTION REQUIREMENT
+
+Most importantly:
+
+When I physically touch the center of a visible letter, THAT EXACT VISIBLE LETTER must become selected.
+
+For example:
+
+If I touch the visible "A", the selected cell must be that exact A.
+
+It must not select the cell to the left/right/above/below it.
+
+The touch mapping must be based on the ACTUAL rendered Food grid position and cell dimensions.
+
+Do not hard-code an offset just for Food.
+
+Do not move the letters around to compensate for incorrect touch coordinates.
+
+Instead find WHY the rendered grid and touch coordinates disagree after the level transition.
+
+COMPARE ANIMALS VS FOOD
+
+This comparison is critical.
+
+Capture/inspect the actual layout measurements for:
+
+Animals Level 1
+and
+Food Level 2 immediately after transition.
+
+Compare:
+
+board x
+board y
+board width
+board height
+cell width
+cell height
+row count
+column count
+
+If Animals works and Food does not, identify the exact value that changes incorrectly.
+
+If the grid dimensions are supposed to be identical, then prove that they are identical after transition.
+
+If Food legitimately has a different row/column count, make sure the rendering and touch calculation both use the Food dimensions rather than stale Animals dimensions.
+
+DO NOT CHANGE WORD DATA
+
+Do NOT solve this by:
+
+- moving Food words
+- changing Food word positions
+- removing Food words
+- changing Food letters
+- changing the generated seed
+- making words easier to select
+- adding special Food offsets
+- adding Food-specific touch exceptions
+
+The puzzle data is not the problem unless your investigation proves otherwise.
+
+The issue is that the newly generated level is being rendered/positioned incorrectly and/or the touch system is using incorrect geometry.
+
+TEST THE FIX
+
+After fixing the root cause, test the complete transition:
+
+Animals
+→ complete Animals
+→ Food
+→ select letters
+
+Then test several different cells on Food:
+
+- first column
+- middle columns
+- rightmost column
+- first row
+- middle row
+- bottom row
+- corners
+
+For every test:
+
+physical finger position
+=
+visible letter touched
+=
+letter selected by the game
+
+Then continue:
+
+Food
+→ complete Food
+→ next level
+
+Verify that the same problem does NOT appear again on the next generated level.
+
+This is extremely important because I suspect the bug may occur whenever a new puzzle is generated after completing the previous level.
+
+REGRESSION TEST
+
+Also test:
+
+Animals → Food
+Food → next level
+next level → following level
+
+Do not only test Food in isolation.
+
+FINAL REPORT
+
+Before making changes, tell me the actual root cause you found.
+
+After making the fix, report:
+
+1. Why Animals worked.
+2. Why Food became misaligned after the transition.
+3. Whether stale grid measurements/state were being reused.
+4. Whether row/column dimensions changed incorrectly.
+5. Why the bottom row was clipped.
+6. Why the right side had abnormal empty space.
+7. Why touching a visible letter selected another letter.
+8. Which files were changed.
+9. Exact fix implemented.
+10. Confirmation that the fix is shared and will apply to future generated levels.
+11. Animals → Food test result.
+12. Food → next-level test result.
+13. First/middle/last column test result.
+14. First/middle/bottom row test result.
+15. TypeScript result.
+16. Expo Doctor result.
+17. git diff --check result.
+
+Do not declare this fixed merely because the code compiles.
+
+The acceptance criterion is physical Android behavior:
+
+When I touch a visible letter, that exact letter must be selected, and the entire generated grid must be fully visible and correctly positioned.
