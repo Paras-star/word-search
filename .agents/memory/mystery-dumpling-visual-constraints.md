@@ -3,8 +3,8 @@ name: Mystery Dumpling visual constraints
 description: Non-negotiable visual-source rules for future Mystery Dumpling work.
 ---
 
-Use only the supplied 30 dumpling artworks, exact catalog names and five supplied rarity tiers. The individually supplied PNGs for every rarity supersede all old combined sprite sheets. The old combined Collection Room artwork is retired; use one shared code-built environment with no baked-in dumplings or themed room split.
+Use only the supplied 30 dumpling artworks, exact catalog names and five supplied rarity tiers. The individually supplied PNGs for every rarity supersede all old combined sprite sheets. The Collection Room is a rarity-ordered, vertically scrolling gallery, not an illustrated map or shared environmental room.
 
-**Why:** The user explicitly defined the supplied collectible artwork and catalog as authoritative, then replaced the previous room direction with one shared environment populated only by actual owned assets and subtle locked placeholders.
+**Why:** The user explicitly defined the supplied collectible artwork and catalog as authoritative, then replaced the environment with a clean gallery populated only by actual owned assets and locked placeholders.
 
-**How to apply:** Reference or crop the supplied individual assets without altering their designs, and exclude embedded name labels. Effects may surround a dumpling but must not modify it. Keep one room, animate only visible owned dumplings, and never reintroduce the retired room image.
+**How to apply:** Reference the supplied individual assets without altering their designs. Effects may surround a dumpling but must not modify it. Animate only visible owned dumplings; never reintroduce the retired room image or illustrated map.

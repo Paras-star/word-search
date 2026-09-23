@@ -1,0 +1,415 @@
+The puzzle/grid issue is now resolved.
+
+I tested ALL levels on the physical Android device and every level is working correctly.
+
+Do NOT modify the puzzle grid, level generation, word placement, or touch-coordinate fix that was just implemented.
+
+Now I want to improve three remaining user-experience issues:
+
+1. DUMPLING REWARD VARIETY
+2. LETTER-SELECTION SMOOTHNESS
+3. PERSISTENT PLAYER PROGRESS
+
+Please investigate each one carefully before changing code.
+
+--------------------------------------------------
+PART 1 — FIX DUMPLING REWARD REPETITION
+--------------------------------------------------
+
+I tested the game through multiple levels and noticed that I am getting too many duplicate dumplings.
+
+I am repeatedly receiving the same Common and Uncommon dumplings while other Common/Uncommon dumplings remain uncollected.
+
+This makes the collection system feel unrewarding because the player does not feel like they are discovering new items.
+
+I want to change the reward selection system so that:
+
+COMMON:
+- Common dumplings can appear frequently.
+- But the system should strongly prefer Common dumplings that the player has NOT collected yet.
+- Do NOT repeatedly give the same Common dumpling while several other Common dumplings remain uncollected.
+- Ideally, cycle through the available Common collection before allowing repeated Common rewards.
+
+UNCOMMON:
+- Same principle.
+- Uncommon can appear frequently.
+- Prefer uncollected Uncommon dumplings.
+- Do not repeatedly give the same Uncommon dumpling while other Uncommon dumplings remain uncollected.
+
+RARE:
+- Rare should remain less frequent than Common/Uncommon.
+- But when a Rare reward occurs, strongly prefer an uncollected Rare dumpling.
+
+EPIC:
+- Epic should remain appropriately rare.
+- Epic can become more likely on harder levels and timeout-related reward situations, according to the existing reward design.
+- When an Epic reward occurs, prefer an uncollected Epic dumpling.
+
+LEGENDARY:
+- Legendary should remain genuinely rare.
+- I am completely fine with Legendary being much harder to obtain.
+- HOWEVER, an uncollected Legendary must actually be accessible.
+- The player should eventually have a realistic path to collecting the Legendary dumplings rather than the RNG effectively locking them away forever.
+- Once one Legendary is collected, do not keep rewarding that same Legendary while the other Legendary remains uncollected.
+- There are only 2 Legendary dumplings, so both should eventually be obtainable.
+
+IMPORTANT:
+
+Do NOT simply increase the probability of Common/Uncommon/Rare.
+
+The problem is not only rarity probability.
+
+The problem is DUPLICATE SELECTION WITHIN THE SAME RARITY.
+
+For example:
+
+If Common has 12 dumplings and the player owns:
+
+Common #1
+Common #2
+Common #3
+
+and a Common reward is selected, the system should heavily prefer:
+
+Common #4–#12
+
+rather than repeatedly selecting #1, #2, or #3.
+
+Use an appropriate weighted/uncollected-pool system.
+
+A good general principle is:
+
+UNCOLLECTED DUMPLINGS = HIGH PRIORITY
+COLLECTED DUMPLINGS = LOW PRIORITY
+
+And where practical, use a no-repeat pool so that the player sees different dumplings before the system begins repeating them.
+
+Do NOT break the existing rarity distribution just to achieve this.
+
+First inspect the existing rarity/reward logic and preserve its intended rarity behavior.
+
+--------------------------------------------------
+PART 2 — MAKE LETTER SELECTION FEEL MUCH SMOOTHER
+--------------------------------------------------
+
+The puzzle currently works correctly, but the actual letter-selection interaction feels cheap and basic.
+
+I want the selection interaction to feel significantly more polished.
+
+Do NOT change the underlying puzzle correctness.
+
+Improve the FEEL of the interaction.
+
+Investigate the current gesture/selection rendering and improve:
+
+- touch responsiveness
+- selection movement
+- visual transition between selected cells
+- highlighting
+- drag continuity
+- cell-to-cell movement
+- selection animation
+- visual feedback while dragging
+- release behavior
+
+The selection should feel like the user's finger is naturally drawing across the word.
+
+It should NOT feel like:
+
+finger moves
+→ wait
+→ cell changes
+→ jump
+→ next cell
+
+Instead it should feel immediate and fluid.
+
+IMPORTANT:
+
+Do not introduce a large animation delay.
+
+Responsiveness is more important than decorative animation.
+
+The selection should track the finger immediately.
+
+Potential improvements to investigate:
+
+- lightweight interpolation/smoothing
+- smooth selection highlight transitions
+- a continuous selection path/highlight
+- subtle scale or glow feedback for selected cells
+- smooth transition when entering the next cell
+- avoiding unnecessary React re-renders during every touch movement
+- using refs/shared values where appropriate for high-frequency gesture updates
+- ensuring the visual selection follows the actual touch position without lag
+
+Keep the design consistent with the existing game.
+
+Do NOT add excessive effects.
+
+The goal is:
+
+"premium, responsive word puzzle"
+
+rather than:
+
+"lots of animations."
+
+Also verify that improving the visual smoothness does NOT reintroduce the stale-state or coordinate problems we previously fixed.
+
+The selected cell must still be exactly the cell under the finger.
+
+--------------------------------------------------
+PART 3 — PERSIST GAME PROGRESS
+--------------------------------------------------
+
+There is another important issue.
+
+When I close the game and then scan the Replit QR code again, the game starts from the beginning.
+
+Previously completed levels and collected dumplings are not visible.
+
+I understand this is currently an Expo/Replit testing environment, but the game should still persist local player progress if the app is simply closed and reopened.
+
+Please investigate whether the current game state is actually being persisted.
+
+The following information should survive:
+
+- completed levels
+- current/unlocked level
+- completed categories
+- collected dumplings
+- collection progress
+- duplicate reward history if needed for the reward algorithm
+- any reward-pool state necessary to prevent immediate repetition
+
+Use reliable local persistence appropriate for the Expo/React Native environment.
+
+If AsyncStorage or the project's existing persistence mechanism is already being used, inspect why the game state is not being restored correctly.
+
+Do NOT create a second competing persistence system if one already exists.
+
+Use one clear source of truth for persisted player progress.
+
+--------------------------------------------------
+PART 4 — IMPORTANT DISTINCTION: REOPEN VS RESET
+--------------------------------------------------
+
+Test these scenarios separately:
+
+TEST A:
+Complete Animals.
+Close the app.
+Reopen the same app/session.
+Verify Animals remains completed.
+
+TEST B:
+Collect several different dumplings.
+Close the app.
+Reopen.
+Verify the same dumplings remain collected.
+
+TEST C:
+Complete multiple levels.
+Close the app.
+Reopen.
+Verify those levels remain completed/unlocked.
+
+TEST D:
+Reload/restart the app without clearing its storage.
+Verify progress remains.
+
+TEST E:
+If possible, test the behavior when launching through the Expo QR again.
+
+Determine whether scanning the QR is actually creating a fresh application/storage context or whether the application itself is failing to restore persisted state.
+
+Do not simply assume this is normal Expo behavior.
+
+Report exactly what is happening.
+
+If QR rescanning creates a different development environment/storage scope, explain that clearly and determine whether normal app-close/reopen persistence still works.
+
+--------------------------------------------------
+PART 5 — REWARD ALGORITHM TESTING
+--------------------------------------------------
+
+After changing the reward algorithm, run a deterministic/test simulation.
+
+Because there are exactly:
+
+12 Common
+7 Uncommon
+5 Rare
+4 Epic
+2 Legendary
+
+verify that the system can eventually expose the different items within each rarity.
+
+Specifically verify:
+
+- Common rewards do not repeatedly select the same few Common dumplings while others remain uncollected.
+- Uncommon rewards do not repeatedly select the same few Uncommon dumplings.
+- Rare rewards prefer uncollected Rare dumplings.
+- Epic rewards prefer uncollected Epic dumplings.
+- Both Legendary dumplings are actually reachable.
+- Once a dumpling has been collected, the algorithm still allows duplicates eventually, but does not excessively favor them.
+- Once a rarity is fully collected, the system can correctly begin recycling that rarity.
+
+Do not change the 30-dumpling catalog itself.
+
+Do not rename dumplings.
+
+Do not change artwork.
+
+Do not change rarity assignments.
+
+--------------------------------------------------
+PART 6 — PRESERVE EXISTING REWARD CONDITIONS
+--------------------------------------------------
+
+I am okay with:
+
+Common
+Uncommon
+Rare
+
+appearing throughout normal gameplay.
+
+I am also okay with Epic becoming more available on:
+
+- harder levels
+- timeout-related reward situations
+- other existing special reward conditions
+
+Keep Legendary rare.
+
+Do not flatten all rarity probabilities.
+
+The objective is:
+
+RARITY determines HOW SPECIAL the reward is.
+
+THE COLLECTION POOL determines WHICH dumpling within that rarity is selected.
+
+These should be treated as two separate decisions.
+
+Conceptually:
+
+Step 1:
+Determine reward rarity.
+
+Step 2:
+Select a dumpling from that rarity.
+
+Step 3:
+Prefer an uncollected dumpling from that rarity.
+
+This separation is important.
+
+--------------------------------------------------
+PART 7 — DO NOT TOUCH THE NOW-WORKING PUZZLE GRID
+--------------------------------------------------
+
+The latest grid fix works.
+
+I physically tested every level and confirmed the puzzles are working.
+
+Therefore do NOT modify:
+
+- grid renderer
+- row/column layout
+- word generation
+- word placement
+- touch coordinate mapping
+- level transition logic
+
+unless your investigation proves that a change is absolutely necessary for the smoothness improvement.
+
+If the gesture rendering can be improved without changing the underlying coordinate system, do that.
+
+--------------------------------------------------
+PART 8 — TEST THE COMPLETE EXPERIENCE
+--------------------------------------------------
+
+After implementation, test:
+
+1. Animals
+2. Food
+3. Sports
+4. Additional generated levels
+
+Verify:
+
+- letter selection remains correct
+- selection feels smooth
+- words still validate correctly
+- level completion works
+- reward appears correctly
+- reward rarity works
+- different dumplings are being discovered
+- duplicate rewards are reduced
+- collection updates immediately
+- collection remains after app restart
+
+Also verify that the existing Mystery Dumpling reveal animation remains intact.
+
+--------------------------------------------------
+PART 9 — NO BLIND CHANGES
+--------------------------------------------------
+
+Before making changes, inspect the existing:
+
+- reward selection algorithm
+- rarity calculation
+- duplicate handling
+- collection state
+- persistence system
+- gesture rendering
+- selection state updates
+
+Identify the exact reason for:
+
+A) excessive duplicate dumplings
+B) rough selection interaction
+C) progress disappearing after reopening
+
+Then implement the smallest clean architectural fix.
+
+Do not rewrite unrelated systems.
+
+--------------------------------------------------
+FINAL REPORT
+--------------------------------------------------
+
+When finished, report:
+
+1. Root cause of duplicate rewards.
+2. New reward-selection logic.
+3. How the system prioritizes uncollected dumplings.
+4. How Legendary accessibility is handled.
+5. Root cause of the rough selection feeling.
+6. What was changed to make selection smoother.
+7. Confirmation that selection coordinates remain correct.
+8. Root cause of progress not being restored.
+9. Persistence mechanism used.
+10. Exactly what data is persisted.
+11. Whether progress survives normal app close/reopen.
+12. What happens specifically when reopening through the Expo QR.
+13. Files changed.
+14. Confirmation that the 30-dumpling catalog and artwork were not altered.
+15. Confirmation that the working puzzle-grid fix was preserved.
+16. TypeScript result.
+17. Expo Doctor result.
+18. git diff --check result.
+
+Do not declare the task complete merely because the code compiles.
+
+The acceptance criteria are user experience:
+
+- The player should regularly discover NEW dumplings.
+- Common/Uncommon rewards should not feel repetitive.
+- Legendary should remain rare but genuinely obtainable.
+- Letter selection should feel smooth and responsive.
+- Completed levels and collected dumplings should survive normal app reopening.
+- Existing puzzle functionality must remain intact.

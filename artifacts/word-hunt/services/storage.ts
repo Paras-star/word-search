@@ -5,15 +5,17 @@ const KEYS = { coins: '@word-hunt/coins', completed: '@word-hunt/completed-level
 function parseNumber(value: string | null, fallback: number): number {
   if (value === null) return fallback;
   const parsed = Number(value);
-  return Number.isFinite(parsed) && parsed >= 0 ? parsed : fallback;
+  if (!Number.isFinite(parsed) || parsed < 0) throw new Error('Saved coin balance is invalid');
+  return parsed;
 }
 
 function parseLevels(value: string | null): string[] {
-  if (!value) return [];
-  try {
-    const parsed: unknown = JSON.parse(value);
-    return Array.isArray(parsed) ? parsed.filter((item): item is string => typeof item === 'string') : [];
-  } catch { return []; }
+  if (value === null) return [];
+  const parsed: unknown = JSON.parse(value);
+  if (!Array.isArray(parsed) || !parsed.every((item) => typeof item === 'string')) {
+    throw new Error('Saved completed levels are invalid');
+  }
+  return [...new Set(parsed)];
 }
 
 export async function loadProgress(): Promise<{ coins: number; completedLevels: string[] }> {
