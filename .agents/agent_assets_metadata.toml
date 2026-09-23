@@ -14,3 +14,17 @@ mtime_ms = 1790096438761
 storage_uri = "gcs://replit-rams-assets-pike/rams/assets/repl:6330ea3b-2615-4284-a9d6-c16d89a9a821/b7edbb62-cf67-4080-8486-bdc226dc81d1/d71ed0b9-e115-40b9-a709-9812b57c272b"
 storage_version_token = "1790096448899181"
 content_type = "image/png"
+
+[[outputs]]
+id = "bZnD_-J4nnJMMacdcC_rc"
+uri = "file://attached_assets/word-hunt-grid-fix-expo-go-qr-20260923.png"
+type = "image"
+title = "Word Hunt — Latest Android Expo Go QR"
+description = "Fresh QR for the current Expo development server. Android manifest and bundle return HTTP 200; the bundle includes the explicit-row grid renderer and refreshed board measurements."
+logical_id = "09ae23bf-4d60-40c1-a082-2b31cf73f352"
+content_hash = "sha256:f486bec3efa1ce3a1af57a0d0501030b2547919d6f28f273bdc47d3a77813a15"
+size = 1188
+mtime_ms = 1790149803375
+storage_uri = "gcs://replit-rams-assets-pike/rams/assets/repl:6330ea3b-2615-4284-a9d6-c16d89a9a821/09ae23bf-4d60-40c1-a082-2b31cf73f352/70138563-eb26-4e84-9e0b-4101ab4f1bce"
+storage_version_token = "1790149812790870"
+content_type = "image/png"
