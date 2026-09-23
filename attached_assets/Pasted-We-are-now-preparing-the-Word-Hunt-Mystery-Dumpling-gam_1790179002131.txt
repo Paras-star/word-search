@@ -1,0 +1,148 @@
+We are now preparing the Word Hunt / Mystery Dumpling game for Android Play Store release.
+
+I already have AdMob ad units prepared for:
+
+- Banner
+- Interstitial
+- Rewarded
+
+IMPORTANT: Do NOT implement AdMob yet and do NOT modify the code in this step.
+
+I want you to perform a complete technical audit of the current project specifically for AdMob integration and report back before making any changes.
+
+### Audit requirements
+
+1. Inspect the current Expo/React Native architecture and determine:
+   - Expo SDK version
+   - React Native version
+   - Whether this is currently using Expo Go only
+   - Whether a development build/custom dev client is already configured
+   - Whether EAS Build is configured
+   - Whether Android native project files already exist
+   - Whether any AdMob package or advertising SDK is already installed/configured
+
+2. Determine the correct AdMob implementation for this exact project.
+
+Specifically evaluate whether `react-native-google-mobile-ads` or another approach is appropriate.
+
+Do NOT assume Expo Go can support whatever package you choose. Explain whether we will need:
+- Expo development build
+- EAS Build
+- native Android configuration
+- config plugins
+- any other changes
+
+3. Inspect the existing app structure and recommend appropriate locations for:
+   - Banner ads
+   - Interstitial ads
+   - Rewarded ads
+
+The current gameplay must remain the priority.
+
+Ads must NEVER:
+- interfere with letter selection
+- appear while the player is actively dragging/selecting letters
+- interrupt a puzzle in progress
+- interfere with the Mystery Dumpling reveal animation
+- interfere with the Collection Room
+- appear immediately on app launch
+- be shown excessively
+
+4. Specifically inspect the existing reward/dumpling system.
+
+We already have a working Mystery Dumpling system with:
+- 30 total dumplings
+- 12 Common
+- 7 Uncommon
+- 5 Rare
+- 4 Epic
+- 2 Legendary
+
+Do NOT modify this system during the audit.
+
+The rewarded ad must eventually be designed around the existing reward architecture rather than creating a second reward system.
+
+5. Inspect persistence and existing AsyncStorage/reward storage.
+
+Do NOT modify persistence.
+
+We previously verified that:
+- coins persist
+- completed levels persist
+- collected dumplings persist
+- reopening the Android app preserves progress
+
+This must remain unchanged.
+
+6. Inspect the existing browser version as well.
+
+Tell me whether adding native AdMob will affect:
+- the browser build
+- the published Replit web version
+- the existing browser routes
+
+Do not break the browser version.
+
+7. Identify any privacy/consent requirements that we need to account for when using AdMob, especially for:
+- Android
+- EEA/UK users
+- personalized/non-personalized advertising
+- consent management where applicable
+
+Do not implement consent yet. Just identify what will be required.
+
+8. Identify exactly which credentials/configuration values we will need from me.
+
+For example:
+- AdMob Android App ID
+- Banner Ad Unit ID
+- Interstitial Ad Unit ID
+- Rewarded Ad Unit ID
+- anything else required
+
+Do NOT ask me to paste secret credentials into source code.
+
+9. Check whether the current project has any existing environment/secrets/configuration mechanism that should be used for these values.
+
+10. Check whether adding AdMob will require changes to:
+- app.json/app.config
+- AndroidManifest
+- package.json
+- eas.json
+- native Android files
+- Expo config plugins
+- build configuration
+
+### Critical safety requirement
+
+This is an AUDIT ONLY.
+
+Do NOT:
+- install packages
+- modify files
+- modify game logic
+- modify puzzle logic
+- modify dumpling logic
+- modify reward logic
+- modify persistence
+- modify UI
+- commit changes
+- push to GitHub
+- republish the app
+
+The current game is stable and the existing gameplay must remain untouched.
+
+At the end, give me a concise report with:
+
+A. Current architecture
+B. AdMob compatibility
+C. Whether Expo Go will be sufficient
+D. Whether a development build/EAS build will be required
+E. Recommended AdMob package/approach
+F. Recommended placement for each ad type
+G. Privacy/consent requirements
+H. Exact information/IDs I need to provide
+I. Files that would need modification during the implementation phase
+J. Any risks or compatibility issues you found
+
+Do not make any changes until I review your report.
