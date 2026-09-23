@@ -1,2 +1,3 @@
-- [Mystery Dumpling visual constraints](mystery-dumpling-visual-constraints.md) — preserve supplied collectible artwork and the single combined collection-room environment exactly.
+- [Mystery Dumpling visual constraints](mystery-dumpling-visual-constraints.md) — preserve supplied artwork; the collection is now a rarity-ordered gallery, not a room map.
 - [TypeScript isolated-file checks](typescript-isolated-file-checks.md) — selected-file checks need the app compiler, explicit config bypass, and temporary relative imports.
+- [Android puzzle-grid confirmation](android-puzzle-grid-confirmation.md) — explicit-row grid and touch mapping were confirmed working across all levels on a physical Android phone.

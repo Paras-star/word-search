@@ -35,11 +35,14 @@ function isRarity(value: unknown): value is DumplingRarity {
 }
 
 function parseStore(value: string | null): RewardStore {
-  if (!value) return EMPTY_STORE;
+  if (value === null) return EMPTY_STORE;
   try {
     const parsed: unknown = JSON.parse(value);
-    if (!parsed || typeof parsed !== 'object') return EMPTY_STORE;
+    if (!parsed || typeof parsed !== 'object') throw new Error('Invalid reward store');
     const candidate = parsed as Partial<RewardStore>;
+    if (!Array.isArray(candidate.rewards) || !Array.isArray(candidate.ownedDumplingIds)) {
+      throw new Error('Invalid reward collection');
+    }
     const rewards = Array.isArray(candidate.rewards)
       ? candidate.rewards.filter((reward): reward is DumplingReward => Boolean(
           reward
@@ -60,7 +63,7 @@ function parseStore(value: string | null): RewardStore {
       : null;
     return { rewards, ownedDumplingIds: [...new Set(ownedDumplingIds)], pendingRewardId };
   } catch {
-    return EMPTY_STORE;
+    throw new Error('Saved reward collection could not be read');
   }
 }
 
@@ -72,7 +75,7 @@ async function saveStore(store: RewardStore): Promise<void> {
   await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(store));
 }
 
-export function chooseDumpling(randomValue = Math.random()): Dumpling {
+export function chooseDumpling(randomValue = Math.random(), ownedDumplingIds: readonly string[] = [], itemRandomValue = Math.random()): Dumpling {
   const clamped = Math.min(Math.max(randomValue, 0), 0.999999);
   const totalWeight = Object.values(RARITY_WEIGHTS).reduce((sum, weight) => sum + weight, 0);
   let cursor = clamped * totalWeight;
@@ -85,8 +88,11 @@ export function chooseDumpling(randomValue = Math.random()): Dumpling {
     }
   }
   const candidates = DUMPLINGS.filter((dumpling) => dumpling.rarity === chosenRarity);
-  const normalizedWithinTier = (clamped * 997) % 1;
-  return candidates[Math.floor(normalizedWithinTier * candidates.length)] ?? candidates[0] ?? DUMPLINGS[0];
+  const owned = new Set(ownedDumplingIds);
+  const uncollected = candidates.filter((dumpling) => !owned.has(dumpling.id));
+  const pool = uncollected.length ? uncollected : candidates;
+  const index = Math.floor(Math.min(Math.max(itemRandomValue, 0), 0.999999) * pool.length);
+  return pool[index];
 }
 
 function createRewardId(puzzleId: string): string {
@@ -100,7 +106,7 @@ export async function generateAndPersistReward(completion: PuzzleCompletion): Pr
     : undefined;
   if (existingPending) return existingPending;
 
-  const dumpling = chooseDumpling();
+  const dumpling = chooseDumpling(Math.random(), store.ownedDumplingIds);
   const reward: DumplingReward = {
     id: createRewardId(completion.puzzleId),
     dumplingId: dumpling.id,

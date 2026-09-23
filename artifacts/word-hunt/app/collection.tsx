@@ -4,6 +4,7 @@ import {
   Easing,
   FlatList,
   Image,
+  Pressable,
   StyleSheet,
   Text,
   View,
@@ -211,21 +212,19 @@ export default function CollectionScreen() {
   }
 
   const [ownedIds, setOwnedIds] = useState<string[] | null>(null);
+  const [collectionError, setCollectionError] = useState(false);
   const [visibleDumplingIds, setVisibleDumplingIds] = useState<Set<string>>(new Set());
 
-  useEffect(() => {
-    let active = true;
+  const reloadCollection = useCallback(() => {
+    setCollectionError(false);
     getCollection()
-      .then(({ ownedDumplingIds }) => {
-        if (active) setOwnedIds(ownedDumplingIds);
-      })
-      .catch(() => {
-        if (active) setOwnedIds([]);
-      });
-    return () => {
-      active = false;
-    };
+      .then(({ ownedDumplingIds }) => setOwnedIds(ownedDumplingIds))
+      .catch(() => setCollectionError(true));
   }, []);
+
+  useEffect(() => {
+    reloadCollection();
+  }, [reloadCollection]);
 
   const viewabilityConfig = useRef({
     itemVisiblePercentThreshold: 10,
@@ -249,6 +248,17 @@ export default function CollectionScreen() {
     });
   }, []);
 
+  if (collectionError) return (
+    <Screen style={{ paddingTop: insets.top }}>
+      <Header title="Collection Room" onBack={() => router.back()} />
+      <View style={styles.loadError}>
+        <Text style={styles.loadErrorText}>Your collection could not be loaded. It has not been reset.</Text>
+        <Pressable onPress={reloadCollection} style={styles.retryButton}>
+          <Text style={styles.retryText}>RETRY LOADING</Text>
+        </Pressable>
+      </View>
+    </Screen>
+  );
   if (ownedIds === null) return <LoadingScreen />;
   const owned = new Set(ownedIds);
   const progress = Math.round((owned.size / DUMPLINGS.length) * 100);
@@ -322,6 +332,10 @@ export default function CollectionScreen() {
 }
 
 const styles = StyleSheet.create({
+  loadError: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24 },
+  loadErrorText: { fontFamily: 'Inter_600SemiBold', fontSize: 16, textAlign: 'center', marginBottom: 20 },
+  retryButton: { backgroundColor: '#2F80ED', borderRadius: 14, paddingHorizontal: 24, paddingVertical: 14 },
+  retryText: { fontFamily: 'Inter_700Bold', color: '#FFFFFF' },
   progressCard: { borderWidth: 1, borderRadius: 20, padding: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   progressKicker: { fontFamily: 'Inter_700Bold', fontSize: 10, letterSpacing: 1.2 },
   progressTitle: { fontFamily: 'Inter_700Bold', fontSize: 19, marginTop: 5 },

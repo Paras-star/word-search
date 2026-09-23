@@ -14,6 +14,7 @@ import { playSound } from '@/services/audio';
 import { useColors } from '@/hooks/useColors';
 
 function cellKey(cell: Cell) { return `${cell.row}-${cell.col}`; }
+function sameCell(a: Cell, b: Cell) { return a.row === b.row && a.col === b.col; }
 
 export default function GameScreen() {
   const router = useRouter();
@@ -32,12 +33,14 @@ export default function GameScreen() {
   const [foundPaths, setFoundPaths] = useState<Record<string, Cell[]>>({});
   const [selectedCells, setSelectedCells] = useState<Cell[]>([]);
   const [feedback, setFeedback] = useState<'idle' | 'wrong' | 'bonus'>('idle');
+  const [finishError, setFinishError] = useState(false);
   const [hintCells, setHintCells] = useState<Cell[]>([]);
   const gridBoundsRef = useRef<GridBounds | null>(null);
   const measurementVersion = useRef(0);
   const gridContentRef = useRef<View>(null);
   const selectedCellsRef = useRef<Cell[]>([]);
   const completionStarted = useRef(false);
+  const completionStage = useRef(0);
   const startTime = useRef(Date.now());
   const foundRef = useRef(foundWords);
   const hintTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -48,10 +51,23 @@ export default function GameScreen() {
     completionStarted.current = true;
     const finalScore = score + completionBonus(mode, timeLeft);
     const finalTime = mode === 'time' ? 120 - timeLeft : Math.floor((Date.now() - startTime.current) / 1000);
-    await awardCoins(50);
-    await completeLevel(category.id);
-    await rewardGateway.onPuzzleCompleted({ puzzleId: puzzle.id, categoryId: category.id, mode, score: finalScore });
-    router.replace({ pathname: '/reward', params: { categoryId: category.id, mode, score: String(finalScore), time: String(finalTime), puzzleId: puzzle.id } });
+    try {
+      if (completionStage.current < 1) {
+        await awardCoins(50);
+        completionStage.current = 1;
+      }
+      if (completionStage.current < 2) {
+        await completeLevel(category.id);
+        completionStage.current = 2;
+      }
+      if (completionStage.current < 3) {
+        await rewardGateway.onPuzzleCompleted({ puzzleId: puzzle.id, categoryId: category.id, mode, score: finalScore });
+        completionStage.current = 3;
+      }
+      router.replace({ pathname: '/reward', params: { categoryId: category.id, mode, score: String(finalScore), time: String(finalTime), puzzleId: puzzle.id } });
+    } catch {
+      setFinishError(true);
+    }
   }, [awardCoins, category.id, completeLevel, mode, puzzle.id, router, score, timeLeft]);
 
   useEffect(() => {
@@ -92,10 +108,12 @@ export default function GameScreen() {
   };
 
   const updateSelection = (cell: Cell | null) => {
-    const start = selectedCellsRef.current[0];
+    const current = selectedCellsRef.current;
+    const start = current[0];
     if (!cell || !start) return;
+    if (sameCell(current[current.length - 1], cell)) return;
     const next = lineCells(start, cell, puzzle.size);
-    if (next.length) {
+    if (next.length && (next.length !== current.length || next.some((item, index) => !sameCell(item, current[index])))) {
       selectedCellsRef.current = next;
       setSelectedCells(next);
     }
@@ -154,22 +172,35 @@ export default function GameScreen() {
     hintTimeout.current = setTimeout(() => setHintCells([]), 1500);
   };
 
+  const selectedKeys = useMemo(() => new Set(selectedCells.map(cellKey)), [selectedCells]);
+  const hintKeys = useMemo(() => new Set(hintCells.map(cellKey)), [hintCells]);
+  const foundCellColors = useMemo(() => {
+    const indices = new Map<string, number>();
+    Object.values(foundPaths).forEach((cells, index) => {
+      cells.forEach((cell) => {
+        if (!indices.has(cellKey(cell))) indices.set(cellKey(cell), index);
+      });
+    });
+    return indices;
+  }, [foundPaths]);
+
   const getCellStyle = (cell: Cell) => {
     const key = cellKey(cell);
-    const foundIndex = Object.entries(foundPaths).findIndex(([, cells]) => cells.some((item) => cellKey(item) === key));
-    if (selectedCells.some((item) => cellKey(item) === key)) return { backgroundColor: colors.primary };
-    if (hintCells.some((item) => cellKey(item) === key)) return { backgroundColor: '#f6c445' };
-    if (foundIndex >= 0) return { backgroundColor: `${HIGHLIGHT_COLORS[foundIndex % HIGHLIGHT_COLORS.length]}59` };
+    const foundIndex = foundCellColors.get(key);
+    if (selectedKeys.has(key)) return { backgroundColor: colors.primary, borderColor: colors.primary, borderRadius: 4 };
+    if (hintKeys.has(key)) return { backgroundColor: '#f6c445' };
+    if (foundIndex !== undefined) return { backgroundColor: `${HIGHLIGHT_COLORS[foundIndex % HIGHLIGHT_COLORS.length]}59` };
     return { backgroundColor: colors.card };
   };
 
   return <Screen style={styles.screen}>
     <Header title={category.name} onBack={() => router.back()} right={<CoinPill coins={coins} />} />
     <View style={styles.metaRow}><View><Text style={[styles.scoreLabel, { color: colors.mutedForeground }]}>SCORE</Text><Text style={[styles.score, { color: colors.foreground }]}>{score}</Text></View><View style={[styles.timerPill, { backgroundColor: mode === 'time' && timeLeft < 30 ? '#ffe4e4' : colors.card, borderColor: mode === 'time' && timeLeft < 30 ? colors.warning : colors.border }]}><Feather name="clock" size={16} color={mode === 'time' && timeLeft < 30 ? colors.warning : colors.primary} /><Text style={[styles.timerText, { color: mode === 'time' && timeLeft < 30 ? colors.warning : colors.foreground }]}>{formatTime(mode === 'time' ? timeLeft : elapsed)}</Text></View><Pressable onPress={useHint} disabled={hints === 0} style={[styles.hintButton, { backgroundColor: hints ? colors.orange : colors.border }]} testID="hint-button"><Feather name="zap" size={16} color="#fff" /><Text style={styles.hintText}>{hints}</Text></Pressable></View>
-    <View style={styles.gridWrap}><View style={[styles.grid, { borderColor: colors.border }]}><View ref={gridContentRef} style={styles.gridContent} onLayout={refreshGridBounds} {...panResponder.panHandlers}>{puzzle.grid.map((row, rowIndex) => <View key={rowIndex} style={styles.gridRow}>{row.map((letter, colIndex) => <View key={colIndex} style={[styles.cell, { borderColor: colors.border }, getCellStyle({ row: rowIndex, col: colIndex })]}><Text style={[styles.letter, { color: colors.foreground }]}>{letter}</Text></View>)}</View>)}</View></View></View>
+    <View style={styles.gridWrap}><View style={[styles.grid, { borderColor: colors.border }]}><View ref={gridContentRef} style={styles.gridContent} onLayout={refreshGridBounds} {...panResponder.panHandlers}>{puzzle.grid.map((row, rowIndex) => <View key={rowIndex} style={styles.gridRow}>{row.map((letter, colIndex) => <View key={colIndex} style={[styles.cell, { borderColor: colors.border }, getCellStyle({ row: rowIndex, col: colIndex })]}><Text style={[styles.letter, { color: selectedKeys.has(`${rowIndex}-${colIndex}`) ? '#FFFFFF' : colors.foreground }]}>{letter}</Text></View>)}</View>)}</View></View></View>
     <View style={styles.listHeader}><Text style={[styles.listTitle, { color: colors.foreground }]}>Find these words</Text><Text style={[styles.progress, { color: colors.mutedForeground }]}>{foundWords.length}/{puzzle.words.length}</Text></View>
     <View style={styles.words}>{puzzle.words.map((word) => <View key={word} style={styles.wordItem}><Feather name={foundWords.includes(word) ? 'check' : 'circle'} size={14} color={foundWords.includes(word) ? colors.success : colors.border} /><Text style={[styles.word, { color: foundWords.includes(word) ? colors.foundWord : colors.foreground, textDecorationLine: foundWords.includes(word) ? 'line-through' : 'none' }]}>{word}</Text></View>)}</View>
     {feedback !== 'idle' && <Text style={[styles.feedback, { color: feedback === 'bonus' ? colors.orange : colors.warning }]}>{feedback === 'bonus' ? '+5 bonus word' : 'That word is not on the list'}</Text>}
+    {finishError && <SoftButton onPress={() => { setFinishError(false); completionStarted.current = false; void finish(); }}>RETRY SAVING COMPLETED LEVEL</SoftButton>}
     <SoftButton onPress={useHint} disabled={hints === 0} style={styles.hintFooter}>{hints ? `USE HINT  ·  ${hints} LEFT` : 'NO HINTS LEFT'}</SoftButton>
   </Screen>;
 }
