@@ -2,3 +2,4 @@
 - [TypeScript isolated-file checks](typescript-isolated-file-checks.md) — selected-file checks need the app compiler, explicit config bypass, and temporary relative imports.
 - [Android puzzle-grid confirmation](android-puzzle-grid-confirmation.md) — explicit-row grid and touch mapping were confirmed working across all levels on a physical Android phone.
 - [Expo Go progress persistence](expo-go-progress-persistence.md) — on-device testing retained progress after normal reopening and a QR re-scan; don't assume a scan resets it.
+- [Expo build port collision](expo-build-port-collision.md) — local production builds can conflict with the mockup preview server's Metro port; use an isolated port for smoke builds.

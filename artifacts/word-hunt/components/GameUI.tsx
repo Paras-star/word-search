@@ -1,6 +1,7 @@
 import React from 'react';
-import { ActivityIndicator, Pressable, StyleSheet, Text, View, type PressableProps, type StyleProp, type ViewStyle } from 'react-native';
+import { ActivityIndicator, Platform, Pressable, StyleSheet, Text, View, type PressableProps, type StyleProp, type ViewStyle } from 'react-native';
 import { Feather } from '@expo/vector-icons';
+import { usePathname, useRouter } from 'expo-router';
 import { useColors } from '@/hooks/useColors';
 
 export function Screen({ children, style }: { children: React.ReactNode; style?: ViewStyle }) {
@@ -27,7 +28,16 @@ export function CoinPill({ coins }: { coins: number }) {
 
 export function Header({ title, onBack, right }: { title: string; onBack?: () => void; right?: React.ReactNode }) {
   const colors = useColors();
-  return <View style={styles.header}>{onBack ? <Pressable onPress={onBack} hitSlop={12}><Feather name="arrow-left" size={24} color={colors.foreground} /></Pressable> : <View style={{ width: 24 }} />}<Text style={[styles.headerTitle, { color: colors.foreground }]}>{title}</Text><View style={styles.headerRight}>{right}</View></View>;
+  const router = useRouter();
+  const pathname = usePathname();
+  const handleBack = () => {
+    if (Platform.OS === 'web' && !router.canGoBack()) {
+      router.replace(pathname === '/mode' || pathname === '/game' ? '/categories' : '/');
+    } else {
+      onBack?.();
+    }
+  };
+  return <View style={styles.header}>{onBack ? <Pressable onPress={handleBack} hitSlop={12}><Feather name="arrow-left" size={24} color={colors.foreground} /></Pressable> : <View style={{ width: 24 }} />}<Text style={[styles.headerTitle, { color: colors.foreground }]}>{title}</Text><View style={styles.headerRight}>{right}</View></View>;
 }
 
 export function LoadingScreen() {
