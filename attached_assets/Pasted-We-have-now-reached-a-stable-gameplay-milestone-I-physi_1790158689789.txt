@@ -1,0 +1,66 @@
+We have now reached a stable gameplay milestone.
+
+I physically tested the game and confirmed:
+
+- All puzzle levels are working correctly.
+- Animals → Food → subsequent levels work correctly.
+- Letter selection is accurate.
+- Letter-selection smoothness has improved and feels good.
+- Dumpling reward randomness/variety is working correctly.
+- Duplicate rewards are no longer excessively repetitive.
+- Collection progress works.
+- Coins and completed levels persist.
+- Normal app reopening preserves progress.
+- Reopening through the current Expo QR also preserved progress.
+- Mystery Dumpling reveal and Collection Room remain working.
+
+I now want to create a SAFE CHECKPOINT before making any further changes.
+
+DO NOT MODIFY ANY APPLICATION CODE.
+
+First inspect the current Git/GitHub state.
+
+Please verify:
+
+1. Current git status.
+2. Current branch.
+3. Whether all current changes are committed.
+4. Whether the latest commit contains all of the recent stable changes.
+5. Whether the GitHub remote is configured correctly.
+6. Whether the current stable commit has been pushed to GitHub.
+7. Whether the local HEAD matches the GitHub remote branch.
+
+If there are uncommitted changes that belong to the stable version, commit them.
+
+Use a clear commit message such as:
+
+"Stable gameplay checkpoint - puzzle, rewards, selection and persistence"
+
+Then push the commit to the existing GitHub repository.
+
+IMPORTANT:
+
+Do NOT:
+- change application code
+- refactor anything
+- change UI
+- change puzzle logic
+- change reward logic
+- change persistence
+- change dumplings
+- update dependencies
+- make unrelated fixes
+
+This task is ONLY to preserve the current working state.
+
+Afterwards report:
+
+- current branch
+- commit hash
+- commit message
+- whether working tree is clean
+- whether the commit was successfully pushed
+- GitHub remote/branch
+- whether local HEAD matches the pushed GitHub commit
+
+I want this exact working state preserved as our stable checkpoint before we begin the next phase of development.
