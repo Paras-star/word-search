@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { PanResponder, Pressable, StyleSheet, Text, View, type GestureResponderEvent } from 'react-native';
+import { PanResponder, Platform, Pressable, StyleSheet, Text, View, type GestureResponderEvent } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import { Header, Screen, CoinPill, SoftButton } from '@/components/GameUI';
@@ -104,7 +104,15 @@ export default function GameScreen() {
 
   const cellFromEvent = (event: GestureResponderEvent): Cell | null => {
     const bounds = gridBoundsRef.current;
-    return bounds ? gridCellFromPoint(event.nativeEvent.pageX, event.nativeEvent.pageY, bounds, puzzle.size) : null;
+    if (!bounds) return null;
+    const { pageX, pageY } = event.nativeEvent;
+    // RN Web measures in viewport coordinates; DOM page coordinates include scroll.
+    return gridCellFromPoint(
+      Platform.OS === 'web' ? pageX - window.scrollX : pageX,
+      Platform.OS === 'web' ? pageY - window.scrollY : pageY,
+      bounds,
+      puzzle.size,
+    );
   };
 
   const updateSelection = (cell: Cell | null) => {
@@ -196,7 +204,7 @@ export default function GameScreen() {
   return <Screen style={styles.screen}>
     <Header title={category.name} onBack={() => router.back()} right={<CoinPill coins={coins} />} />
     <View style={styles.metaRow}><View><Text style={[styles.scoreLabel, { color: colors.mutedForeground }]}>SCORE</Text><Text style={[styles.score, { color: colors.foreground }]}>{score}</Text></View><View style={[styles.timerPill, { backgroundColor: mode === 'time' && timeLeft < 30 ? '#ffe4e4' : colors.card, borderColor: mode === 'time' && timeLeft < 30 ? colors.warning : colors.border }]}><Feather name="clock" size={16} color={mode === 'time' && timeLeft < 30 ? colors.warning : colors.primary} /><Text style={[styles.timerText, { color: mode === 'time' && timeLeft < 30 ? colors.warning : colors.foreground }]}>{formatTime(mode === 'time' ? timeLeft : elapsed)}</Text></View><Pressable onPress={useHint} disabled={hints === 0} style={[styles.hintButton, { backgroundColor: hints ? colors.orange : colors.border }]} testID="hint-button"><Feather name="zap" size={16} color="#fff" /><Text style={styles.hintText}>{hints}</Text></Pressable></View>
-    <View style={styles.gridWrap}><View style={[styles.grid, { borderColor: colors.border }]}><View ref={gridContentRef} style={styles.gridContent} onLayout={refreshGridBounds} {...panResponder.panHandlers}>{puzzle.grid.map((row, rowIndex) => <View key={rowIndex} style={styles.gridRow}>{row.map((letter, colIndex) => <View key={colIndex} style={[styles.cell, { borderColor: colors.border }, getCellStyle({ row: rowIndex, col: colIndex })]}><Text style={[styles.letter, { color: selectedKeys.has(`${rowIndex}-${colIndex}`) ? '#FFFFFF' : colors.foreground }]}>{letter}</Text></View>)}</View>)}</View></View></View>
+    <View style={styles.gridWrap}><View style={[styles.grid, { borderColor: colors.border }]}><View ref={gridContentRef} style={Platform.OS === 'web' ? [styles.gridContent, styles.webGridContent] : styles.gridContent} onLayout={refreshGridBounds} {...panResponder.panHandlers}>{puzzle.grid.map((row, rowIndex) => <View key={rowIndex} style={styles.gridRow}>{row.map((letter, colIndex) => <View key={colIndex} style={[styles.cell, { borderColor: colors.border }, getCellStyle({ row: rowIndex, col: colIndex })]}><Text style={[styles.letter, { color: selectedKeys.has(`${rowIndex}-${colIndex}`) ? '#FFFFFF' : colors.foreground }]}>{letter}</Text></View>)}</View>)}</View></View></View>
     <View style={styles.listHeader}><Text style={[styles.listTitle, { color: colors.foreground }]}>Find these words</Text><Text style={[styles.progress, { color: colors.mutedForeground }]}>{foundWords.length}/{puzzle.words.length}</Text></View>
     <View style={styles.words}>{puzzle.words.map((word) => <View key={word} style={styles.wordItem}><Feather name={foundWords.includes(word) ? 'check' : 'circle'} size={14} color={foundWords.includes(word) ? colors.success : colors.border} /><Text style={[styles.word, { color: foundWords.includes(word) ? colors.foundWord : colors.foreground, textDecorationLine: foundWords.includes(word) ? 'line-through' : 'none' }]}>{word}</Text></View>)}</View>
     {feedback !== 'idle' && <Text style={[styles.feedback, { color: feedback === 'bonus' ? colors.orange : colors.warning }]}>{feedback === 'bonus' ? '+5 bonus word' : 'That word is not on the list'}</Text>}
@@ -217,6 +225,7 @@ const styles = StyleSheet.create({
   gridWrap: { width: '100%', aspectRatio: 1, maxWidth: 365, alignSelf: 'center' },
   grid: { flex: 1, borderWidth: 1, borderRadius: 18, overflow: 'hidden', padding: 3, backgroundColor: '#fff' },
   gridContent: { flex: 1 },
+  webGridContent: { userSelect: 'none', touchAction: 'none' },
   gridRow: { flex: 1, flexDirection: 'row' },
   cell: { flex: 1, alignItems: 'center', justifyContent: 'center', borderWidth: 0.5 },
   letter: { fontFamily: 'Inter_700Bold', fontSize: 15 },

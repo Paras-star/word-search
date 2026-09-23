@@ -1,10 +1,10 @@
 /**
  * Standalone production server for Expo static builds.
  *
- * Serves the output of build.js (static-build/) with two special routes:
+ * Serves the native and web exports in static-build/:
  * - GET / or /manifest with expo-platform header → platform manifest JSON
- * - GET / without expo-platform → landing page HTML
- * Everything else falls through to static file serving from ./static-build/.
+ * - Browser routes → web index.html (with a fallback for deep links)
+ * - Static files → web export first, native bundles and assets second
  *
  * Zero external dependencies — uses only Node.js built-ins (http, fs, path).
  */
@@ -14,7 +14,8 @@ const fs = require('fs');
 const path = require('path');
 
 const STATIC_ROOT = path.resolve(__dirname, '..', 'static-build');
-const TEMPLATE_PATH = path.resolve(__dirname, 'templates', 'landing-page.html');
+const WEB_ROOT = path.join(STATIC_ROOT, 'web');
+const WEB_INDEX = path.join(WEB_ROOT, 'index.html');
 const basePath = (process.env.BASE_PATH || '/').replace(/\/+$/, '');
 
 const MIME_TYPES = {
@@ -34,34 +35,6 @@ const MIME_TYPES = {
   '.otf': 'font/otf',
   '.map': 'application/json',
 };
-
-function getAppName() {
-  try {
-    const appJsonPath = path.resolve(__dirname, '..', 'app.json');
-    const appJson = JSON.parse(fs.readFileSync(appJsonPath, 'utf-8'));
-    return typeof appJson.expo?.name === 'string'
-      ? appJson.expo.name
-      : 'App Landing Page';
-  } catch {
-    return 'App Landing Page';
-  }
-}
-
-function escapeHtml(value) {
-  return value
-    .replaceAll('&', '&amp;')
-    .replaceAll('<', '&lt;')
-    .replaceAll('>', '&gt;')
-    .replaceAll('"', '&quot;')
-    .replaceAll("'", '&#39;');
-}
-
-function toScriptString(value) {
-  return JSON.stringify(value)
-    .replaceAll('<', '\\u003c')
-    .replaceAll('>', '\\u003e')
-    .replaceAll('&', '\\u0026');
-}
 
 function serveManifest(platform, res) {
   const manifestPath = path.join(STATIC_ROOT, platform, 'manifest.json');
@@ -83,48 +56,38 @@ function serveManifest(platform, res) {
   res.end(manifest);
 }
 
-function serveLandingPage(req, res, landingPageTemplate, appName) {
-  const forwardedProto = req.headers['x-forwarded-proto'];
-  const protocol = forwardedProto || 'https';
-  const host = req.headers['x-forwarded-host'] || req.headers['host'];
-  const baseUrl = `${protocol}://${host}`;
-  const expsUrl = `exps://${host}${basePath}`;
-
-  const html = landingPageTemplate
-    .replace(/BASE_URL_PLACEHOLDER/g, baseUrl)
-    .replace(/EXPS_URL_ATTRIBUTE_PLACEHOLDER/g, escapeHtml(expsUrl))
-    .replace(/EXPS_URL_JSON_PLACEHOLDER/g, toScriptString(expsUrl))
-    .replace(/APP_NAME_PLACEHOLDER/g, escapeHtml(appName));
-
+function serveWebIndex(res) {
+  const html = fs.readFileSync(WEB_INDEX);
   res.writeHead(200, { 'content-type': 'text/html; charset=utf-8' });
   res.end(html);
 }
 
 function serveStaticFile(urlPath, res) {
   const safePath = path.normalize(urlPath).replace(/^(\.\.(\/|\\|$))+/, '');
-  const filePath = path.join(STATIC_ROOT, safePath);
-
-  if (!filePath.startsWith(STATIC_ROOT)) {
+  const webPath = path.join(WEB_ROOT, safePath);
+  const nativePath = path.join(STATIC_ROOT, safePath);
+  if (!webPath.startsWith(WEB_ROOT + path.sep) || !nativePath.startsWith(STATIC_ROOT + path.sep)) {
     res.writeHead(403);
     res.end('Forbidden');
-    return;
+    return true;
   }
 
-  if (!fs.existsSync(filePath) || fs.statSync(filePath).isDirectory()) {
-    res.writeHead(404);
-    res.end('Not Found');
-    return;
-  }
+  const filePath = [webPath, nativePath].find((candidate) =>
+    fs.existsSync(candidate) && fs.statSync(candidate).isFile(),
+  );
+  if (!filePath) return false;
 
   const ext = path.extname(filePath).toLowerCase();
   const contentType = MIME_TYPES[ext] || 'application/octet-stream';
   const content = fs.readFileSync(filePath);
   res.writeHead(200, { 'content-type': contentType });
   res.end(content);
+  return true;
 }
 
-const landingPageTemplate = fs.readFileSync(TEMPLATE_PATH, 'utf-8');
-const appName = getAppName();
+if (!fs.existsSync(WEB_INDEX)) {
+  throw new Error('Web export is missing: build Word Hunt before serving it');
+}
 
 const server = http.createServer((req, res) => {
   const url = new URL(req.url || '/', `http://${req.headers.host}`);
@@ -140,12 +103,15 @@ const server = http.createServer((req, res) => {
       return serveManifest(platform, res);
     }
 
-    if (pathname === '/') {
-      return serveLandingPage(req, res, landingPageTemplate, appName);
-    }
+    if (pathname === '/') return serveWebIndex(res);
   }
 
-  serveStaticFile(pathname, res);
+  if (serveStaticFile(pathname, res)) return;
+  if (pathname !== '/manifest' && !path.extname(pathname) && !pathname.startsWith('/_expo/')) {
+    return serveWebIndex(res);
+  }
+  res.writeHead(404);
+  res.end('Not Found');
 });
 
 const port = parseInt(process.env.PORT || '3000', 10);

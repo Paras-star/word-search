@@ -1,0 +1,267 @@
+We now have a stable Android gameplay version that has been physically tested and verified.
+
+I want the NEXT development step to be creating a proper browser version specifically for external user testing.
+
+IMPORTANT:
+The Android version is stable. Do NOT break or redesign the Android experience.
+
+Do not modify the core puzzle logic, grid renderer, touch mapping, reward algorithm, dumpling system, collection system, or persistence behavior unless a web-specific adaptation is required.
+
+CURRENT PROBLEM:
+
+The existing public URL:
+
+https://word-hunt.replit.app/
+
+currently only shows an Expo Go installation/QR page.
+
+It is NOT a playable browser version.
+
+I want a normal public URL where a person can simply:
+
+OPEN LINK → PLAY WORD HUNT
+
+without:
+
+- installing Expo Go
+- creating an Expo account
+- scanning a QR code
+- logging into Replit
+
+PHASE 1 — INVESTIGATE BEFORE CHANGING CODE
+
+Inspect the existing Expo web support and determine:
+
+1. How the current project is configured for web.
+2. Whether Expo web already builds successfully.
+3. Whether the existing routes can be served correctly on web.
+4. Whether `/categories`, `/game`, `/collection`, and `/reward` can be made available through the web deployment.
+5. Whether the current React Native components already support mouse and touch interaction on web.
+6. Whether any native-only dependency prevents the game from working in a browser.
+7. Whether the existing web build can use the same game logic and assets as Android.
+8. Whether the current Replit deployment configuration is serving the wrong entry point.
+
+Do not change anything until you understand the current web architecture.
+
+PHASE 2 — CREATE A REAL PLAYABLE WEB BUILD
+
+Create/update the web deployment so the public URL opens the actual Word Hunt game rather than the Expo Go landing page.
+
+The browser version should allow a first-time visitor to:
+
+- open the URL
+- start the game
+- play Animals
+- complete Animals
+- continue to Food
+- continue to subsequent levels
+- select words using mouse/touch
+- receive Mystery Dumpling rewards
+- view the collection
+- continue playing
+
+The browser should not require Expo Go.
+
+PHASE 3 — ROUTING
+
+Make sure the browser deployment correctly handles the game's routes.
+
+At minimum verify:
+
+- home/start
+- categories
+- game
+- reward
+- collection
+
+Directly opening or refreshing a route must not produce a 404.
+
+If the app is better served as a single-page web application with client-side routing, configure the deployment accordingly.
+
+Do not create a separate unrelated web game.
+
+The browser version should use the same underlying game code and game data as the Android version wherever possible.
+
+PHASE 4 — WEB WORD SELECTION
+
+This is extremely important.
+
+The Android puzzle selection is now working correctly and feels good.
+
+Do not modify the Android gesture implementation unnecessarily.
+
+For web, verify that:
+
+- mouse drag selects letters correctly
+- touch drag works on touch-enabled browsers where applicable
+- horizontal words work
+- vertical words work
+- diagonal words work
+- reverse words work
+- first/last rows work
+- first/last columns work
+- the entire grid is visible
+- no cells wrap incorrectly
+- no cells are clipped
+- the selected cell corresponds exactly to the cursor/finger position
+
+The previous Android grid bug must NOT be reintroduced.
+
+PHASE 5 — WEB RESPONSIVENESS
+
+Test the browser game at different viewport sizes:
+
+- desktop/laptop
+- normal phone-sized browser
+- tablet-sized browser
+
+Make sure:
+
+- grid remains properly aligned
+- bottom row is visible
+- rightmost column is visible
+- buttons remain accessible
+- reward screen fits
+- collection screen works
+- text does not overflow
+- images/assets load correctly
+
+Do not redesign the game specifically for web unless necessary.
+
+PHASE 6 — GAME FLOW
+
+Verify the complete browser flow:
+
+Fresh user
+→ Animals
+→ complete Animals
+→ Food
+→ complete Food
+→ next level
+→ reward
+→ collection
+
+Also verify that the browser version does not accidentally start with seeded/test progress.
+
+A new browser visitor should experience the game as a new player.
+
+PHASE 7 — WEB PERSISTENCE
+
+Use browser-appropriate local persistence for the web version if the existing persistence architecture already supports it.
+
+Test:
+
+- complete a level
+- collect a dumpling
+- close/reload browser
+- reopen the game
+- verify progress remains
+
+IMPORTANT:
+
+Browser progress is expected to be local to that browser/device.
+
+Do NOT introduce accounts, login, server-side player profiles, or cloud synchronization at this stage.
+
+Android persistence must remain unchanged.
+
+PHASE 8 — REWARD SYSTEM
+
+Verify that the current reward-variety system is present in the web build.
+
+Do not revert to the old reward selection behavior.
+
+The current system should continue to:
+
+- roll rarity first
+- prefer uncollected dumplings within that rarity
+- recycle a rarity only after its items are collected
+- keep Legendary rare
+- allow both Legendary dumplings to eventually be obtained
+
+Use the current stable reward implementation.
+
+PHASE 9 — DUMPLING SYSTEM
+
+The Mystery Dumpling system is considered COMPLETE.
+
+Do not redesign it.
+
+Verify that the existing:
+
+- reveal sequence
+- artwork
+- rarity
+- collection
+- animations
+- duplicate handling
+
+still work on web.
+
+Do not replace the artwork or change the 30-item catalog.
+
+PHASE 10 — DO NOT CHANGE ANDROID BEHAVIOR
+
+This is critical.
+
+Before deployment, establish a clean boundary between:
+
+shared game logic
+and
+web-specific behavior.
+
+Do not modify the working Android puzzle/grid implementation simply to make web work.
+
+If a web-specific adaptation is required, isolate it appropriately.
+
+PHASE 11 — PUBLISH
+
+Once the browser build works locally:
+
+1. Build the production web version.
+2. Deploy/publish it through Replit.
+3. Make sure the public URL opens the actual game.
+4. Verify it does not show the Expo Go QR page.
+5. Verify direct route navigation does not return 404.
+6. Verify a completely new browser can open the game without logging into Replit.
+
+Do not replace or remove the existing stable Android development workflow.
+
+PHASE 12 — FINAL EXTERNAL PLAYTEST CHECK
+
+Before giving me the URL, test the published URL itself, not merely the local development server.
+
+Test:
+
+- fresh browser session
+- desktop browser
+- mobile-sized browser
+- Animals
+- Food
+- next level
+- word selection
+- puzzle completion
+- dumpling reveal
+- collection
+- browser reload/persistence
+
+Then provide:
+
+1. Public playable URL.
+2. Whether it works without Expo Go.
+3. Whether it works without Replit login.
+4. Whether direct routes work.
+5. Whether mouse word selection works.
+6. Whether touch word selection works.
+7. Whether Animals → Food → next level works.
+8. Whether rewards work.
+9. Whether collection works.
+10. Whether browser persistence works.
+11. Any web-specific limitations.
+12. Confirmation that the Android version was not intentionally changed.
+
+Do not declare the browser version ready merely because the web build compiles.
+
+The acceptance criterion is:
+
+A completely new person can receive the URL, open it in a normal browser, immediately understand and play Word Hunt, complete multiple levels, receive dumplings, and explore the collection without installing anything.
