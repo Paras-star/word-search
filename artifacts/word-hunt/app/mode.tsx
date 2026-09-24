@@ -4,12 +4,16 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import { Header, Screen, PrimaryButton, SoftButton } from '@/components/GameUI';
 import { getCategory } from '@/data/categories';
+import { getPuzzleCategory } from '@/game/puzzleConfig';
+import { useGame } from '@/context/GameProvider';
 import { useColors } from '@/hooks/useColors';
 
 export default function ModeScreen() {
   const router = useRouter();
   const { categoryId } = useLocalSearchParams<{ categoryId?: string }>();
   const category = getCategory(categoryId);
+  const { completedLevels } = useGame();
+  const wordCount = getPuzzleCategory(category, completedLevels).words.length;
   const colors = useColors();
   const start = (mode: 'classic' | 'time') => router.replace({ pathname: '/game', params: { categoryId: category.id, mode, seed: `${Date.now()}` } });
   return <Screen>
@@ -17,7 +21,7 @@ export default function ModeScreen() {
     <View style={styles.content}>
       <View style={[styles.categoryIcon, { backgroundColor: colors.accent }]}><Text style={styles.emoji}>{category.emoji}</Text></View>
       <Text style={[styles.title, { color: colors.foreground }]}>Pick your pace</Text>
-      <Text style={[styles.subtitle, { color: colors.mutedForeground }]}>Every hunt uses a fresh grid. Find all {category.words.length} words to clear the category.</Text>
+      <Text style={[styles.subtitle, { color: colors.mutedForeground }]}>Every hunt uses a fresh grid. Find all {wordCount} words to clear the category.</Text>
       <View style={styles.options}>
         <View style={[styles.option, { backgroundColor: colors.card, borderColor: colors.border }]}><View style={[styles.optionIcon, { backgroundColor: '#e7f0ff' }]}><Feather name="compass" size={22} color={colors.primary} /></View><View style={styles.optionCopy}><Text style={[styles.optionTitle, { color: colors.foreground }]}>Classic</Text><Text style={[styles.optionText, { color: colors.mutedForeground }]}>No clock. Take your time.</Text></View></View>
         <View style={[styles.option, { backgroundColor: colors.card, borderColor: colors.border }]}><View style={[styles.optionIcon, { backgroundColor: '#fff0e0' }]}><Feather name="clock" size={22} color={colors.orange} /></View><View style={styles.optionCopy}><Text style={[styles.optionTitle, { color: colors.foreground }]}>Time Mode</Text><Text style={[styles.optionText, { color: colors.mutedForeground }]}>2 minutes. Beat the clock.</Text></View></View>

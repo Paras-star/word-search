@@ -7,6 +7,10 @@ export const DIRECTIONS: Cell[] = [
 ];
 const LETTERS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
 
+function isReverseDirection(direction: Cell): boolean {
+  return direction.col < 0 || (direction.row < 0 && direction.col === 0);
+}
+
 export function getGridSize(words: string[]): number {
   const longest = Math.max(...words.map((word) => word.length));
   if (words.length >= 16 || longest >= 10) return 12;
@@ -61,8 +65,10 @@ export function generatePuzzle(category: Category, seed = `${category.id}:defaul
   for (let restart = 0; restart < 80; restart += 1) {
     const grid = Array.from({ length: size }, () => Array<string>(size).fill(''));
     const placements: Record<string, PlacedWord> = {};
+    const reverseTarget = 2 + Math.floor(random() * 2);
+    let reverseCount = 0;
     let failed = false;
-    for (const word of orderedWords) {
+    for (const [wordIndex, word] of orderedWords.entries()) {
       const candidates: { start: Cell; direction: Cell; cells: Cell[] }[] = [];
       for (let row = 0; row < size; row += 1) {
         for (let col = 0; col < size; col += 1) {
@@ -73,7 +79,12 @@ export function generatePuzzle(category: Category, seed = `${category.id}:defaul
         }
       }
       if (candidates.length === 0) { failed = true; break; }
-      const candidate = candidates[Math.floor(random() * candidates.length)];
+      const remainingWords = orderedWords.length - wordIndex;
+      const preferReverse = random() < Math.max(0, reverseTarget - reverseCount) / remainingWords;
+      const preferred = candidates.filter(({ direction }) => isReverseDirection(direction) === preferReverse);
+      const choices = preferred.length ? preferred : candidates;
+      const candidate = choices[Math.floor(random() * choices.length)];
+      if (isReverseDirection(candidate.direction)) reverseCount += 1;
       placeWord(grid, word, candidate.cells);
       placements[word] = { word, start: candidate.start, end: candidate.cells[candidate.cells.length - 1], cells: candidate.cells };
     }
