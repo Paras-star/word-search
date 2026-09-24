@@ -1,6 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const KEYS = { coins: '@word-hunt/coins', completed: '@word-hunt/completed-levels' } as const;
+export const STARTING_COINS = 50;
 
 function parseNumber(value: string | null, fallback: number): number {
   if (value === null) return fallback;
@@ -20,7 +21,7 @@ function parseLevels(value: string | null): string[] {
 
 export async function loadProgress(): Promise<{ coins: number; completedLevels: string[] }> {
   const [coins, completed] = await AsyncStorage.multiGet([KEYS.coins, KEYS.completed]);
-  return { coins: parseNumber(coins[1], 300), completedLevels: parseLevels(completed[1]) };
+  return { coins: parseNumber(coins[1], STARTING_COINS), completedLevels: parseLevels(completed[1]) };
 }
 
 export async function saveCoins(coins: number) {
