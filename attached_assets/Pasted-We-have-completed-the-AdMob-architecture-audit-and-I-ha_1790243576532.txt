@@ -1,0 +1,438 @@
+We have completed the AdMob architecture audit and I have approved the implementation.
+
+Now implement AdMob carefully in the current Word Hunt / Mystery Dumpling project.
+
+IMPORTANT: The existing game is stable and has already been physically tested. Do NOT modify or refactor the core gameplay unless absolutely required for the native AdMob integration.
+
+The following systems are FROZEN and must remain functionally identical:
+
+* Word puzzle generation
+* Letter selection / touch mapping
+* Grid rendering
+* Word validation
+* All 15 categories and their levels
+* Coins/progression
+* AsyncStorage persistence
+* Mystery Dumpling reward system
+* 30-dumpling catalog
+* Rarity distribution
+* Uncollected-dumpling reward selection
+* Dumpling reveal animation
+* Collection Room
+* Existing browser gameplay
+* Existing Android gameplay
+
+Do not redesign any of those systems.
+
+==================================================
+GOAL
+====
+
+Integrate Google AdMob for Android with:
+
+1. Banner
+2. Interstitial
+3. Rewarded
+
+Also implement the required Google UMP consent flow in a way that is compatible with the Android release.
+
+Use `react-native-google-mobile-ads` or the compatible native SDK approach identified during the audit.
+
+Do NOT use the deprecated `expo-ads-admob`.
+
+Before installing anything, verify the package version is compatible with:
+
+* Expo SDK 57
+* React Native 0.86.3
+
+Choose a compatible version rather than blindly installing the latest version.
+
+==================================================
+EXISTING ADS CONFIGURATION
+==========================
+
+The project already contains AdMob IDs in:
+
+`services/ads.ts`
+
+Inspect the existing values and verify that they are intended for the Android package:
+
+`com.paras.wordhunt`
+
+Do NOT replace existing IDs unless they are clearly invalid or incompatible.
+
+Do NOT expose, log, or print the IDs unnecessarily.
+
+Do NOT create fake IDs.
+
+If something is missing or invalid, stop and report exactly what is missing instead of inventing it.
+
+==================================================
+ANDROID BUILD REQUIREMENT
+=========================
+
+The current app is tested through Expo Go.
+
+Native AdMob cannot run inside standard Expo Go.
+
+Therefore:
+
+* Keep the existing Expo Go workflow intact where possible.
+* Add the required native/config-plugin setup.
+* Prepare the project for a custom Android development build.
+* Do not assume Expo Go can display the ads.
+* Do not remove the existing browser build.
+* Do not break the current Android project workflow.
+
+If EAS configuration is needed, add only the minimum required configuration.
+
+Do not publish anything.
+
+Do not create a production release yet.
+
+==================================================
+BROWSER COMPATIBILITY
+=====================
+
+This project has a working browser version.
+
+AdMob implementation MUST be Android-native only.
+
+The browser build must continue to compile and run.
+
+Use a safe platform abstraction so browser code never attempts to load the native AdMob module.
+
+For web:
+
+* Do not show native AdMob components.
+* Do not crash because the native SDK is unavailable.
+* Do not alter the existing browser gameplay.
+
+The existing web routes and gameplay must remain intact.
+
+==================================================
+BANNER ADS
+==========
+
+Implement a Banner ad in a reserved, non-overlay location.
+
+Preferred initial placement:
+
+* Category selection/results area
+* NOT the active puzzle grid
+* NOT over letters
+* NOT during dragging
+* NOT during word selection
+* NOT during Mystery Dumpling reveal
+* NOT in the Collection Room
+* NOT immediately on initial app launch
+
+The banner must have its own layout space.
+
+Never position it over interactive game content.
+
+If the banner fails to load, the game must continue normally and the empty ad area should not create a broken-looking layout.
+
+Keep the banner implementation isolated so we can move its placement later without touching gameplay.
+
+==================================================
+INTERSTITIAL ADS
+================
+
+Implement interstitial ads only at natural between-level transitions.
+
+Preferred flow:
+
+Complete puzzle
+→ save progress
+→ award coins
+→ process Mystery Dumpling reward
+→ finish reward/reveal flow
+→ player proceeds toward the next level
+→ optionally show interstitial
+
+IMPORTANT:
+
+* Never show an interstitial while the player is solving a puzzle.
+* Never show it during letter selection.
+* Never interrupt the Mystery Dumpling reveal.
+* Never show it immediately on app launch.
+* Never block progression if an ad isn't loaded.
+* Never show an ad if loading failed.
+
+Add sensible frequency control.
+
+Do NOT show an interstitial after every single level.
+
+Use a conservative initial frequency such as after every 3 completed puzzles, or another similarly reasonable threshold.
+
+Make this threshold easy to modify later.
+
+The app should continue normally if no ad is available.
+
+==================================================
+REWARDED ADS
+============
+
+Implement Rewarded Ads as an explicit optional action.
+
+Reward:
+
+WATCH REWARDED AD → RECEIVE COINS
+
+Do NOT:
+
+* reroll Mystery Dumplings
+* modify rarity
+* modify the dumpling catalog
+* create duplicate collection logic
+* bypass puzzle completion
+* automatically show rewarded ads
+* force the user to watch an ad
+
+The player must explicitly choose to watch the ad.
+
+Only grant the coin reward after the SDK confirms that the user earned the reward.
+
+Do not grant the reward merely because the ad opened.
+
+If the player closes the ad without earning the reward:
+
+* grant nothing
+* do not penalize the player
+* allow normal gameplay
+
+Make the rewarded coin amount configurable in one place.
+
+Start with a reasonable value such as:
+
++50 coins
+
+but keep this easy to change later.
+
+The rewarded-ad UI should clearly communicate what the player receives before they choose to watch.
+
+==================================================
+TEST ADS
+========
+
+During development/testing, use Google's official test ad IDs or the SDK's official test configuration.
+
+Do NOT generate invalid/fake production IDs.
+
+Do NOT risk invalid-ad-traffic problems by repeatedly testing against production ads.
+
+Make it easy to switch between test and production IDs for the final release.
+
+Do not hardcode a confusing mixture of test and production IDs.
+
+==================================================
+CONSENT / PRIVACY
+=================
+
+Implement Google UMP consent handling appropriate for AdMob.
+
+Before requesting personalized advertising where required:
+
+* request/update consent information
+* respect the user's consent status
+* only request ads according to the resulting consent state
+* provide a way for the user to revisit privacy choices later
+
+Do not invent your own fake consent dialog if the official UMP mechanism can handle this.
+
+Keep consent handling isolated in a dedicated service/module.
+
+The game must still function if the user:
+
+* denies consent
+* does not provide consent
+* cannot load the consent information
+* is in a region where the consent flow differs
+
+Ads must never prevent gameplay.
+
+Do not implement unnecessary tracking or analytics.
+
+==================================================
+PRIVACY POLICY
+==============
+
+Do NOT write the final privacy policy yet.
+
+First identify exactly what data/privacy behavior is introduced by:
+
+* Google AdMob
+* Google UMP
+* the current application
+* any other existing third-party SDKs
+
+Then report the required privacy-policy disclosures.
+
+We will create the final privacy policy after the implementation is verified.
+
+==================================================
+ARCHITECTURE
+============
+
+Keep advertising isolated.
+
+Prefer something like:
+
+`services/ads.ts`
+
+for ad initialization/loading/showing/reward logic.
+
+If needed, create a separate consent service such as:
+
+`services/consent.ts`
+
+Do not scatter AdMob SDK calls throughout the game's puzzle logic.
+
+Components/screens should call a small application-level ad API instead.
+
+The browser should receive safe no-op behavior.
+
+==================================================
+ERROR HANDLING
+==============
+
+Ads are optional.
+
+Any of these must NOT break gameplay:
+
+* SDK initialization failure
+* banner load failure
+* interstitial load failure
+* rewarded load failure
+* consent information failure
+* user declining consent
+* network unavailable
+* ad unavailable
+* ad closing unexpectedly
+
+Never let an ad promise reject into the main gameplay flow without being safely handled.
+
+Never freeze navigation waiting for an ad.
+
+==================================================
+PERSISTENCE
+===========
+
+Do NOT change the existing persistence architecture.
+
+Do NOT modify the existing:
+
+* coins persistence
+* completed level persistence
+* dumpling collection persistence
+* reward persistence
+
+The rewarded ad's +50 coins must go through the existing coin/progression mechanism so it persists exactly like normal earned coins.
+
+Do not create a second coin store.
+
+==================================================
+DUMPLING SYSTEM
+===============
+
+The Mystery Dumpling system is COMPLETE.
+
+Do not modify:
+
+* 30-item catalog
+* rarity weights
+* uncollected selection
+* duplicate handling
+* reveal sequence
+* collection room
+* artwork
+* animations
+
+An interstitial must never interrupt the dumpling reveal.
+
+Rewarded ads must have absolutely no effect on dumpling rarity or selection.
+
+==================================================
+UI
+==
+
+Keep the current visual design.
+
+Do not redesign screens.
+
+Ad UI should look like a natural part of the current game without covering existing controls.
+
+For rewarded ads, add a simple clear optional action.
+
+Do not add aggressive advertising language.
+
+==================================================
+BUILD / VALIDATION
+==================
+
+After implementation:
+
+1. Run TypeScript checks.
+2. Run Expo Doctor.
+3. Verify the web build still works.
+4. Verify browser routes still compile.
+5. Verify native AdMob imports are platform-safe.
+6. Verify the Android config contains the correct AdMob App ID.
+7. Verify the generated Android manifest/configuration.
+8. Verify there are no duplicate AdMob initialization paths.
+9. Verify there are no changes to puzzle/grid/touch-selection logic.
+10. Verify existing persistence code remains intact.
+11. Verify rewarded coins use the existing coin persistence mechanism.
+12. Verify the dumpling reward system remains unchanged.
+13. Verify production IDs are not accidentally used during development testing.
+14. Verify the app does not crash when ads are unavailable.
+
+Do not claim that ads work on Android Expo Go.
+
+A real native development build must be used to verify native AdMob behavior.
+
+==================================================
+GIT / DEPLOYMENT SAFETY
+=======================
+
+Do NOT:
+
+* push to GitHub
+* merge branches
+* create a pull request
+* publish the Replit web app
+* publish an Android release
+
+Keep all changes local until I review the implementation.
+
+==================================================
+FINAL REPORT
+============
+
+When finished, report:
+
+A. Packages installed and exact versions
+B. Files changed
+C. Android configuration changes
+D. AdMob App ID configuration
+E. Banner implementation/location
+F. Interstitial implementation/frequency
+G. Rewarded implementation/reward amount
+H. UMP consent implementation
+I. Web compatibility approach
+J. Whether Expo Go can still be used for non-AdMob testing
+K. Exact command/process needed to create the Android development build
+L. TypeScript result
+M. Expo Doctor result
+N. Web build result
+O. Any warnings/errors
+P. Anything I need to do manually before we can test ads
+
+Most importantly:
+
+Do not tell me that AdMob is "working" merely because the project compiles.
+
+Native AdMob must ultimately be tested in a native Android development build.
+
+Do not make unrelated improvements while doing this task.

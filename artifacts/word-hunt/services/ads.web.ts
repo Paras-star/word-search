@@ -1,0 +1,14 @@
+export const REWARDED_COINS = 50;
+export const INTERSTITIAL_EVERY_PUZZLES = 3;
+export const subscribeToAds = (_listener: () => void) => () => {};
+export const isAdsSupported = () => false;
+export const isRewardedReady = () => false;
+export const canChangeAdPrivacy = () => false;
+export const adsArePermitted = () => false;
+export const showPrivacyOptions = async () => false;
+export const bannerUnitId = (): string | null => null;
+export const prepareAds = async () => false;
+export const registerCompletedPuzzle = (_puzzleId: string) => {};
+export const showInterstitialAtTransition = async () => {};
+export type RewardedResult = 'earned' | 'closed' | 'unavailable' | 'save-failed' | 'delayed';
+export const watchRewardedForCoins = async (_awardCoins: (amount: number) => Promise<void>): Promise<RewardedResult> => 'unavailable';
