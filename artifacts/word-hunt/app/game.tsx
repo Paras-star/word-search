@@ -6,8 +6,9 @@ import { Header, Screen, CoinPill, SoftButton } from '@/components/GameUI';
 import { getCategory } from '@/data/categories';
 import { BONUS_WORDS } from '@/data/bonusWords';
 import { generatePuzzle, gridCellFromPoint, lettersFor, lineCells, type GridBounds } from '@/game/puzzle';
+import { getPuzzleCategory } from '@/game/puzzleConfig';
 import { completionBonus, formatTime, HIGHLIGHT_COLORS, scoreFoundWord } from '@/game/scoring';
-import type { Cell, GameMode } from '@/game/types';
+import type { Cell, GameMode, Puzzle } from '@/game/types';
 import { useGame } from '@/context/GameProvider';
 import { rewardGateway } from '@/services/rewardGateway';
 import { playSound } from '@/services/audio';
@@ -49,8 +50,18 @@ export default function GameScreen() {
   const { categoryId, mode: rawMode, seed } = useLocalSearchParams<{ categoryId?: string; mode?: GameMode; seed?: string }>();
   const mode: GameMode = rawMode === 'time' ? 'time' : 'classic';
   const category = getCategory(categoryId);
-  const puzzle = useMemo(() => generatePuzzle(category, seed ?? `${category.id}:default`), [category, seed]);
-  const { coins, awardCoins, completeLevel } = useGame();
+  const { coins, awardCoins, completeLevel, completedLevels } = useGame();
+  const puzzleSeed = seed ?? `${category.id}:default`;
+  // Saving the first completion updates progress before navigation; keep this puzzle unchanged.
+  const activePuzzle = useRef<{ categoryId: string; seed: string; puzzle: Puzzle } | null>(null);
+  if (activePuzzle.current?.categoryId !== category.id || activePuzzle.current.seed !== puzzleSeed) {
+    activePuzzle.current = {
+      categoryId: category.id,
+      seed: puzzleSeed,
+      puzzle: generatePuzzle(getPuzzleCategory(category, completedLevels), puzzleSeed),
+    };
+  }
+  const puzzle = activePuzzle.current.puzzle;
   const [score, setScore] = useState(0);
   const [elapsed, setElapsed] = useState(0);
   const [timeLeft, setTimeLeft] = useState(120);
