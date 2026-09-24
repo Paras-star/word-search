@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
-import { useRouter } from 'expo-router';
+import { Redirect, useRouter } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import { Header, Screen, CoinPill, SectionLabel } from '@/components/GameUI';
 import { CATEGORIES } from '@/data/categories';
@@ -13,17 +13,21 @@ import { canChangeAdPrivacy, prepareAds, showPrivacyOptions } from '@/services/a
 export default function CategoriesScreen() {
   const router = useRouter();
   const colors = useColors();
-  const { coins, completedLevels, hydrated } = useGame();
+  const { coins, completedLevels, hydrated, onboardingStep } = useGame();
   const [privacyAvailable, setPrivacyAvailable] = useState(false);
   const [bannerRevision, setBannerRevision] = useState(0);
   useEffect(() => {
+    if (!hydrated || onboardingStep < 6) return;
     let active = true;
     void prepareAds().then(() => {
       if (active) setPrivacyAvailable(canChangeAdPrivacy());
     });
     return () => { active = false; };
-  }, []);
+  }, [hydrated, onboardingStep]);
   if (!hydrated) return null;
+  if (onboardingStep < 6) {
+    return <Redirect href={{ pathname: '/game', params: { onboardingStep: String(onboardingStep) } }} />;
+  }
   return <Screen>
     <Header title="Choose a category" onBack={() => router.back()} right={<CoinPill coins={coins} />} />
     <Text style={[styles.intro, { color: colors.mutedForeground }]}>Complete a hunt to unlock the next world.</Text>

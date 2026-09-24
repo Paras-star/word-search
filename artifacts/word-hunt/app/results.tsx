@@ -1,10 +1,11 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { Redirect, useLocalSearchParams, useRouter } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import { Header, Screen, PrimaryButton, SoftButton } from '@/components/GameUI';
 import { CATEGORIES, getCategory } from '@/data/categories';
 import { nextCategoryId } from '@/game/progression';
+import { getOnboardingStep } from '@/game/onboarding';
 import { formatTime } from '@/game/scoring';
 import { useColors } from '@/hooks/useColors';
 import { useGame } from '@/context/GameProvider';
@@ -16,8 +17,11 @@ import {
 export default function ResultsScreen() {
   const router = useRouter();
   const colors = useColors();
-  const { awardCoins } = useGame();
-  const params = useLocalSearchParams<{ categoryId?: string; mode?: string; score?: string; time?: string; gameOver?: string; puzzleId?: string }>();
+  const { awardCoins, onboardingStep } = useGame();
+  const params = useLocalSearchParams<{ categoryId?: string; mode?: string; score?: string; time?: string; gameOver?: string; puzzleId?: string; onboardingStep?: string }>();
+  const isOnboardingRoute = params.onboardingStep !== undefined;
+  const resultStep = isOnboardingRoute ? Number(params.onboardingStep) : null;
+  const onboarding = resultStep !== null && Number.isInteger(resultStep) ? getOnboardingStep(resultStep) : undefined;
   const category = getCategory(params.categoryId);
   const gameOver = params.gameOver === '1';
   const nextId = nextCategoryId(category.id, CATEGORIES);
@@ -26,12 +30,13 @@ export default function ResultsScreen() {
   const [adMessage, setAdMessage] = useState('');
   const navigating = useRef(false);
   useEffect(() => {
+    if (isOnboardingRoute || onboardingStep < 6) return;
     if (!gameOver && params.puzzleId) registerCompletedPuzzle(params.puzzleId);
     const update = () => setRewardedReady(isRewardedReady());
     const unsubscribe = subscribeToAds(update);
     void prepareAds().then(update);
     return unsubscribe;
-  }, [gameOver, params.puzzleId]);
+  }, [gameOver, isOnboardingRoute, onboardingStep, params.puzzleId]);
 
   const proceed = (destination: '/' | { pathname: '/mode'; params: { categoryId: string } }) => {
     if (navigating.current) return;
@@ -53,6 +58,34 @@ export default function ResultsScreen() {
           : result === 'closed' ? 'No coins earned. You can keep playing.' : 'No ad is available right now.');
     setWatching(false);
   };
+  if (onboardingStep < 6 && !isOnboardingRoute) {
+    return <Redirect href={{ pathname: '/game', params: { onboardingStep: String(onboardingStep) } }} />;
+  }
+  if (isOnboardingRoute) {
+    if (!onboarding || resultStep !== onboardingStep - 1) return <Redirect href="/" />;
+    const next = getOnboardingStep(onboardingStep);
+    return <Screen>
+      <Header title={next ? 'Hunt complete' : 'Animals unlocked'} onBack={() => router.replace('/')} />
+      <ScrollView style={styles.scroll} contentContainerStyle={styles.content}>
+        <View style={[styles.icon, { backgroundColor: '#e4f7ec' }]}><Feather name="check" size={40} color={colors.success} /></View>
+        <Text style={[styles.title, { color: colors.foreground }]}>{next ? 'Nice work' : 'Animals unlocked!'}</Text>
+        <Text style={[styles.copy, { color: colors.mutedForeground }]}>
+          {next ? `Next: ${next.words.length} words. Keep hunting to unlock Animals.` : 'Your first category is ready. The normal Word Hunt begins now!'}
+        </Text>
+        <View style={styles.stats}>
+          <View style={[styles.stat, { backgroundColor: colors.card, borderColor: colors.border }]}><Text style={[styles.label, { color: colors.mutedForeground }]}>SCORE</Text><Text style={[styles.value, { color: colors.foreground }]}>{params.score ?? '0'}</Text></View>
+          <View style={[styles.stat, { backgroundColor: colors.card, borderColor: colors.border }]}><Text style={[styles.label, { color: colors.mutedForeground }]}>TIME</Text><Text style={[styles.value, { color: colors.foreground }]}>{formatTime(Number(params.time ?? 0))}</Text></View>
+          <View style={[styles.stat, { backgroundColor: colors.card, borderColor: colors.border }]}><Text style={[styles.label, { color: colors.mutedForeground }]}>COINS</Text><Text style={[styles.value, { color: colors.orange }]}>+10</Text></View>
+        </View>
+        <PrimaryButton onPress={() => router.replace(next
+          ? { pathname: '/game', params: { onboardingStep: String(onboardingStep) } }
+          : { pathname: '/mode', params: { categoryId: 'animals' } })}>
+          {next ? `NEXT: ${next.words.length} WORDS` : 'PLAY ANIMALS'}
+        </PrimaryButton>
+        <SoftButton onPress={() => router.replace('/')}>HOME</SoftButton>
+      </ScrollView>
+    </Screen>;
+  }
   return <Screen>
     <Header title={gameOver ? 'Time is up' : 'Hunt complete'} onBack={() => proceed('/')} />
     <ScrollView style={styles.scroll} contentContainerStyle={styles.content}>

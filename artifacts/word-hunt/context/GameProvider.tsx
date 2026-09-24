@@ -1,13 +1,15 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { AppState, Pressable, StyleSheet, Text, View } from 'react-native';
-import { loadProgress, saveCoins, saveCompletedLevels, STARTING_COINS } from '@/services/storage';
+import { advanceOnboarding, loadProgress, saveProgress, STARTING_COINS, type GameProgress } from '@/services/storage';
 
 type GameContextValue = {
   coins: number;
   completedLevels: string[];
+  onboardingStep: number;
   hydrated: boolean;
   awardCoins: (amount: number) => Promise<void>;
   completeLevel: (categoryId: string) => Promise<void>;
+  completeOnboardingStep: (step: number) => Promise<boolean>;
 };
 
 const GameContext = createContext<GameContextValue | null>(null);
@@ -15,21 +17,26 @@ const GameContext = createContext<GameContextValue | null>(null);
 export function GameProvider({ children }: { children: React.ReactNode }) {
   const [coins, setCoins] = useState(STARTING_COINS);
   const [completedLevels, setCompletedLevels] = useState<string[]>([]);
+  const [onboardingStep, setOnboardingStep] = useState(0);
   const [hydrated, setHydrated] = useState(false);
   const [storageError, setStorageError] = useState<string | null>(null);
-  const progressRef = useRef({ coins: STARTING_COINS, completedLevels: [] as string[] });
+  const progressRef = useRef<GameProgress>({ coins: STARTING_COINS, completedLevels: [], onboardingStep: 0 });
   const writes = useRef<Promise<void>>(Promise.resolve());
   const loadVersion = useRef(0);
 
   const reload = useCallback(async () => {
     const version = ++loadVersion.current;
+    // Queue the read with writes so a foreground reload cannot install an older
+    // snapshot after a completion has already started saving.
+    const read = writes.current.catch(() => {}).then(loadProgress);
+    writes.current = read.then(() => {});
     try {
-      await writes.current.catch(() => {});
-      const progress = await loadProgress();
+      const progress = await read;
       if (version !== loadVersion.current) return;
       progressRef.current = progress;
       setCoins(progress.coins);
       setCompletedLevels(progress.completedLevels);
+      setOnboardingStep(progress.onboardingStep);
       setHydrated(true);
       setStorageError(null);
     } catch {
@@ -50,30 +57,40 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     };
   }, [reload]);
 
-  const queueSave = useCallback((save: () => Promise<void>) => {
+  const queueSave = useCallback(function enqueue<T>(save: () => Promise<T>): Promise<T> {
     const next = writes.current.catch(() => {}).then(save);
-    writes.current = next;
+    writes.current = next.then(() => {});
     return next;
   }, []);
 
   const value = useMemo<GameContextValue>(() => ({
     coins,
     completedLevels,
+    onboardingStep,
     hydrated,
     awardCoins: (amount) => queueSave(async () => {
-      const next = progressRef.current.coins + amount;
-      await saveCoins(next);
-      progressRef.current = { ...progressRef.current, coins: next };
-      setCoins(next);
+      const next = { ...progressRef.current, coins: progressRef.current.coins + amount };
+      await saveProgress(next);
+      progressRef.current = next;
+      setCoins(next.coins);
     }),
     completeLevel: (categoryId) => queueSave(async () => {
       if (progressRef.current.completedLevels.includes(categoryId)) return;
-      const next = [...progressRef.current.completedLevels, categoryId];
-      await saveCompletedLevels(next);
-      progressRef.current = { ...progressRef.current, completedLevels: next };
-      setCompletedLevels(next);
+      const next = { ...progressRef.current, completedLevels: [...progressRef.current.completedLevels, categoryId] };
+      await saveProgress(next);
+      progressRef.current = next;
+      setCompletedLevels(next.completedLevels);
     }),
-  }), [coins, completedLevels, hydrated, queueSave]);
+    completeOnboardingStep: (step) => queueSave(async () => {
+      const next = advanceOnboarding(progressRef.current, step);
+      if (!next) return false;
+      await saveProgress(next);
+      progressRef.current = next;
+      setCoins(next.coins);
+      setOnboardingStep(next.onboardingStep);
+      return true;
+    }),
+  }), [coins, completedLevels, onboardingStep, hydrated, queueSave]);
 
   if (storageError) {
     return <View style={styles.errorScreen}>
