@@ -1,0 +1,59 @@
+We are starting Phase 1 game improvements on the current `feature/game-improvements` branch.
+
+DO NOT modify any files yet.
+DO NOT commit anything.
+DO NOT change the existing game behavior yet.
+
+Inspect the current implementation and report exactly how these four systems currently work:
+
+1. ANIMAL LEVEL 1 / DIFFICULTY
+
+* Find where Animal levels/puzzles are defined or generated.
+* Identify the exact configuration/data for the first Animal puzzle.
+* Explain what currently determines its difficulty:
+
+  * number of words
+  * grid size
+  * word lengths
+  * directions
+  * any other relevant factors.
+
+2. WORD-DIRECTION GENERATION
+
+* Find the code that chooses/places word directions.
+* List all currently supported directions.
+* Explain how directions are selected.
+* Determine whether reverse directions (right-to-left, bottom-to-top, reverse diagonals) are random, weighted, or unrestricted.
+* Identify the safest place to adjust the distribution so reverse directions are limited to approximately 2–3 per puzzle without breaking valid word placement.
+
+3. GRID SIZE / CELL LAYOUT
+
+* Find the current grid rendering/layout code.
+* Explain how cell size is calculated for different grid sizes such as 10x10 and 12x12.
+* Identify the current horizontal/vertical padding/margins and letter sizing.
+* Identify the safest way to make cells/letters slightly larger while keeping the entire board visible and preserving touch accuracy.
+* Do NOT change the layout yet.
+
+4. LETTER SELECTION SMOOTHNESS
+
+* Find the current touch/gesture selection implementation.
+* Explain how touch coordinates map to grid cells.
+* Identify the current optimization that prevents unnecessary whole-board rerenders.
+* Identify whether there is any remaining obvious source of selection lag/jitter.
+* Do NOT rewrite the gesture architecture.
+
+Also inspect the existing tests/checks related to these systems.
+
+At the end, provide:
+A. Relevant file paths
+B. Relevant functions/components
+C. Current behavior
+D. Recommended minimal change for each of the four Phase 1 goals
+E. Any risks/regressions we should watch for
+
+Important:
+
+* This is an inspection task only.
+* Do not edit package.json, lockfiles, puzzle data, game logic, or UI.
+* Do not run git commit.
+* Leave the working tree exactly as it is.
