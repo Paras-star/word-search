@@ -1,0 +1,78 @@
+Implement ONLY Phase 1 change #2: improve the Word Hunt grid's readability and touch comfort.
+
+Current implementation:
+
+* `app/game.tsx` renders the grid.
+* The board is square with `maxWidth: 365`.
+* The screen currently has 20pt horizontal padding.
+* The grid has a 1pt outer border and 3pt inner padding.
+* Cells divide the board equally.
+* Letters are currently 15pt bold.
+* 10x10 and 12x12 grids are both used.
+* Touch coordinates are mapped from the measured inner grid content using the existing measurement system.
+
+Goal:
+Make the letters/cells slightly easier on the eyes and slightly more comfortable to touch, without breaking the existing responsive layout or touch accuracy.
+
+Requirements:
+
+1. Increase the letter size modestly, NOT dramatically.
+
+   * Start by evaluating approximately 16pt rather than jumping to a large font.
+   * Keep the existing bold weight unless there is a specific technical reason to change it.
+
+2. Evaluate whether the board can safely become slightly larger on available screens.
+
+   * Do NOT simply increase `maxWidth` without checking available vertical space.
+   * The board must remain square.
+   * The word list, score/timer area, hint button, and other controls must remain accessible.
+   * On shorter/narrower phones, the board must shrink rather than overflow.
+
+3. Preserve the existing cell geometry and touch coordinate relationship.
+
+   * Do NOT introduce a separate visual cell size and touch cell size.
+   * Do NOT hard-code touch coordinates.
+   * Keep `measureInWindow` / `refreshGridBounds` / existing coordinate mapping intact.
+   * Touching the center and edges of cells must still select the correct cell.
+
+4. Handle both 10x10 and 12x12 grids.
+
+   * 12x12 is the important readability case because its cells are smaller.
+   * Check that letters remain centered and don't overlap borders.
+   * Check that adjacent letters remain visually distinguishable.
+
+5. Keep the visual style consistent with the current game.
+
+   * Do not redesign the board.
+   * Do not change colors, selection effects, word list, scoring, hints, or animations.
+
+6. Test on representative viewport sizes:
+
+   * 360x800
+   * 402x874
+   * If the existing preview supports it, also test a shorter viewport such as 360x700.
+
+7. Verify:
+
+   * 10x10 grid renders correctly.
+   * 12x12 grid renders correctly.
+   * Board remains fully visible.
+   * No important controls are pushed off-screen.
+   * Letter selection still maps correctly at corners and edges.
+   * Dragging horizontally, vertically, and diagonally still works.
+
+Run the existing Word Hunt TypeScript check and `git diff --check`.
+
+Do NOT commit.
+
+At the end report:
+
+* exact files changed
+* old vs new letter size
+* old vs new board sizing behavior
+* viewport test results
+* touch/selection verification results
+* TypeScript result
+* git diff summary
+
+Do not modify puzzle generation, direction generation, scoring, rewards, progression, persistence, or AdMob.

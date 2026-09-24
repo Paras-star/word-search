@@ -1,0 +1,75 @@
+Implement ONLY Phase 1 change #4: make the FIRST Animal puzzle feel moderate and approachable.
+
+Current implementation:
+
+* Animals is the first category.
+* `data/categories.ts` contains 18 Animal words.
+* `game/puzzle.ts` dynamically generates the puzzle from the category word list.
+* The current 18-word Animals list causes the first Animal puzzle to use a 12x12 grid.
+* Puzzle generation is seeded.
+* The existing direction-balancing change is already implemented.
+* The existing grid readability and selection-smoothness changes are already implemented.
+
+Goal:
+Make the FIRST Animal puzzle moderate rather than overwhelming, while preserving the normal difficulty of later Animal puzzles.
+
+Important:
+Do NOT simply reduce the entire Animals category from 18 words.
+Do NOT permanently remove Animal words.
+Do NOT change the existing category data used by later Animal levels.
+
+Instead, introduce the smallest clean mechanism for a first-Animal-puzzle configuration.
+
+Requirements:
+
+1. Only the first Animal puzzle should use the easier configuration.
+2. Later Animal puzzles must continue using the existing full Animal word pool.
+3. The first Animal puzzle should contain approximately 8–10 words rather than all 18.
+4. Prefer a balanced mix of word lengths:
+
+   * include some short words
+   * include medium words
+   * include at least one longer word
+5. Keep the first Animal puzzle challenging enough to feel like a real puzzle.
+6. Preserve the existing direction-generation system, including the new reverse-direction balancing.
+7. Preserve seeded generation.
+8. Preserve the existing scoring system.
+9. Preserve hints.
+10. Preserve level completion and progression.
+11. Preserve the existing dumpling reward flow.
+12. Do not modify the onboarding/tutorial system yet.
+13. Do not modify coins.
+14. Do not modify AdMob.
+15. Do not modify persistence.
+16. Do not modify the grid UI or gesture system.
+
+Important architectural requirement:
+Use the existing puzzle-generation engine. Do not create a second puzzle-generation implementation specifically for Animals.
+
+The first-Animal identification should be based on the existing progression/level identity, not on `Date.now()` or an arbitrary random condition.
+
+After implementation:
+
+1. Generate the first Animal puzzle across at least 25 different seeds.
+2. Verify that every selected word is placed successfully.
+3. Verify that the first puzzle remains within the intended word count.
+4. Verify that later Animal puzzles still use the normal/full Animal pool.
+5. Verify the reverse-direction distribution remains functional.
+6. Verify no puzzle-generation failures.
+7. Verify completion still awards the normal Mystery Dumpling reward.
+8. Run the Word Hunt TypeScript check.
+9. Run `git diff --check`.
+
+Do NOT commit.
+
+At the end report:
+
+* exact files changed
+* exact first-Animal word configuration
+* how the code identifies the first Animal puzzle
+* confirmation that later Animal puzzles remain unchanged
+* seed validation results
+* TypeScript result
+* diff summary
+
+Do not change anything outside this Phase 1 #4 requirement.

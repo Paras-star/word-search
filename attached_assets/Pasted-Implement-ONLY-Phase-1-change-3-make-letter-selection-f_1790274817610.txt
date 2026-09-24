@@ -1,0 +1,61 @@
+Implement ONLY Phase 1 change #3: make letter selection feel slightly smoother without changing the existing gesture architecture.
+
+Current implementation:
+
+* `app/game.tsx` uses the existing `PanResponder`.
+* Touch coordinates are mapped through the measured inner grid bounds.
+* `updateSelection` already avoids state updates when the finger remains in the same cell or produces the same path.
+* `lineCells` currently requires the selected endpoint to form an exact horizontal, vertical, or diagonal line.
+* The existing coordinate mapping and gesture system have already fixed a previous selection bug and must be preserved.
+
+Goal:
+Make selection feel slightly more forgiving/smooth while keeping the same game rules.
+
+Requirements:
+
+1. DO NOT rewrite PanResponder.
+2. DO NOT replace the existing measureInWindow/grid-coordinate system.
+3. DO NOT change the valid word-selection rules.
+4. DO NOT allow arbitrary curved paths.
+5. DO NOT change scoring or word detection.
+6. DO NOT change the visual design of the selection.
+7. Preserve the existing same-cell/same-path state-update guards.
+
+Investigate the current source of perceived jitter described in the inspection:
+
+* `lineCells` can reject an endpoint when the finger is slightly off the exact row/column/diagonal.
+* The previous valid highlight can therefore remain until the finger reaches the exact geometric line.
+
+Make the smallest safe improvement possible so that normal finger movement within a cell does not feel unnecessarily sensitive to tiny coordinate deviations.
+
+Important:
+
+* A selected path must still resolve to a straight horizontal, vertical, or diagonal line.
+* Do not snap a selection to an unrelated direction.
+* Do not change which cells are ultimately selected for a valid straight-line gesture.
+* Do not make diagonal selection accidentally select horizontal/vertical paths.
+* Preserve reverse selection support.
+
+After implementation:
+
+1. Run TypeScript.
+2. Run git diff --check.
+3. Test horizontal selection.
+4. Test vertical selection.
+5. Test diagonal selection.
+6. Test reverse-direction selection.
+7. Test starting/ending near cell boundaries.
+8. Verify that moving within the same cell does not cause unnecessary updates.
+9. Verify that invalid off-axis movement does not create curved/arbitrary selections.
+
+Do not commit.
+
+At the end report:
+
+* exact file(s) changed
+* exact behavioral change
+* tests performed and results
+* TypeScript result
+* git diff summary
+
+Do not modify puzzle generation, direction distribution, grid sizing, scoring, rewards, progression, persistence, or AdMob.
