@@ -1,0 +1,180 @@
+We are starting **Phase 2: New Player Onboarding & Tutorial** for Word Hunt.
+
+IMPORTANT:
+
+* Do not modify the existing puzzle-generation engine unless absolutely necessary.
+* Do not modify the Mystery Dumpling reward system.
+* Do not modify the existing Animal category difficulty after onboarding.
+* Do not change the current starting balance of **50 coins**.
+* Do not touch AdMob implementation.
+* Do not commit yet.
+* First inspect the existing progression architecture and report what files/functions currently control:
+
+  1. New-player initialization
+  2. Starting coins
+  3. Completed levels/categories
+  4. Category unlocking
+  5. Coin rewards after puzzle completion
+  6. Dumpling rewards after puzzle completion
+  7. Navigation from Home/Mode → puzzle → Results
+  8. The current special "first Animal puzzle" behavior
+  9. AsyncStorage persistence for progression
+
+Then propose the smallest architecture change needed to add the onboarding flow below.
+
+## PHASE 2 TARGET FLOW
+
+A completely fresh player should experience:
+
+### Step 0 — New player
+
+Starting balance:
+
+* 50 coins
+
+### Step 1 — Tutorial Puzzle
+
+A dedicated tutorial puzzle before the normal category system.
+
+Tutorial:
+
+* Exactly 5 words
+* Designed to teach the player how Word Hunt works
+* Should use the existing puzzle engine
+* Should be easier than normal puzzles
+* Prefer mostly horizontal/vertical placements
+* Avoid making it frustrating
+* The tutorial should clearly communicate what the player needs to do
+* Completion reward: **+10 coins**
+* NO Mystery Dumpling reward
+* Tutorial completion must persist
+* Player must NOT be able to replay the tutorial to farm coins
+
+After completion:
+
+* Coins: 60
+
+### Step 2 — Onboarding Puzzle 1
+
+* 5 words
+* +10 coins
+* No dumpling
+
+### Step 3 — Onboarding Puzzle 2
+
+* 7 words
+* +10 coins
+* No dumpling
+
+### Step 4 — Onboarding Puzzle 3
+
+* 9 words
+* +10 coins
+* No dumpling
+
+### Step 5 — Onboarding Puzzle 4
+
+* 12 words
+* +10 coins
+* No dumpling
+
+### Step 6 — Onboarding Puzzle 5
+
+* 15 words
+* +10 coins
+* No dumpling
+
+Difficulty should ramp naturally:
+
+* Puzzle 1: mostly horizontal/vertical
+* Puzzle 2: introduce some diagonals
+* Puzzle 3: mixed directions
+* Puzzle 4: mixed directions + some reverse words
+* Puzzle 5: close to normal gameplay difficulty
+
+After Puzzle 5:
+
+* Total onboarding earnings = +50 coins
+* Player should have **110 coins**
+* Animals category unlocks
+
+## IMPORTANT PROGRESSION RULE
+
+The onboarding sequence is a one-time progression.
+
+A player who completes:
+Tutorial → 5 → 7 → 9 → 12 → 15
+
+must never receive those onboarding coin rewards again.
+
+Closing/reopening the app, restarting it, rescanning the Expo QR, or refreshing the browser must preserve the onboarding state.
+
+Do NOT rely on in-memory state only.
+
+Use the existing persistence architecture where possible.
+
+## ANIMAL CATEGORY
+
+After onboarding is complete:
+
+* Animals becomes available through the existing category flow.
+* The existing normal Animal category should remain intact.
+* Preserve the special existing first-Animal behavior only if it is still needed after onboarding. Since onboarding itself is now the introductory experience, inspect whether the current first-Animal 9-word configuration is redundant.
+* Do NOT delete or alter it yet without explaining exactly why.
+* We should avoid accidentally giving the player two separate tutorials.
+
+## DUMPLING REWARDS
+
+Onboarding puzzles must NOT generate Mystery Dumpling rewards.
+
+The existing Mystery Dumpling system should begin exactly where normal category gameplay begins.
+
+Do not modify rarity probabilities, collection logic, persistence, animation, or the 30-dumpling catalog.
+
+## COIN REWARDS
+
+Each onboarding/tutorial completion gives exactly +10 coins.
+
+The reward must be transaction-safe:
+
+* no double reward from double taps
+* no double reward after app restart
+* no farming by replaying a completed onboarding puzzle
+* failed persistence should not silently consume the reward
+* existing normal puzzle coin behavior must remain unchanged
+
+## UI / NAVIGATION
+
+Before implementing, inspect the current UI and determine the cleanest place to introduce the onboarding flow.
+
+Prefer reusing existing:
+
+* puzzle screen
+* results screen
+* completion logic
+* progress persistence
+
+Do not create a duplicate puzzle screen unless absolutely necessary.
+
+The onboarding should feel like part of the same game, not a separate mini-game.
+
+If a dedicated onboarding/tutorial screen is needed for instructions, keep it lightweight.
+
+## FIRST TASK
+
+Do NOT implement yet.
+
+First return:
+
+1. Current progression architecture
+2. Relevant files
+3. How completed levels are currently stored
+4. How coins are currently awarded
+5. How dumpling rewards are currently triggered
+6. How category unlocking currently works
+7. How the current first-Animal puzzle works
+8. Recommended minimal Phase 2 architecture
+9. Exact persistence keys/state that you propose adding
+10. Any conflicts with the existing Phase 1 implementation
+
+After that inspection, stop and wait for my approval before making changes.
