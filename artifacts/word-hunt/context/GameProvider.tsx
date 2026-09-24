@@ -1,6 +1,6 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { AppState, Pressable, StyleSheet, Text, View } from 'react-native';
-import { loadProgress, saveCoins, saveCompletedLevels } from '@/services/storage';
+import { loadProgress, saveCoins, saveCompletedLevels, STARTING_COINS } from '@/services/storage';
 
 type GameContextValue = {
   coins: number;
@@ -13,11 +13,11 @@ type GameContextValue = {
 const GameContext = createContext<GameContextValue | null>(null);
 
 export function GameProvider({ children }: { children: React.ReactNode }) {
-  const [coins, setCoins] = useState(300);
+  const [coins, setCoins] = useState(STARTING_COINS);
   const [completedLevels, setCompletedLevels] = useState<string[]>([]);
   const [hydrated, setHydrated] = useState(false);
   const [storageError, setStorageError] = useState<string | null>(null);
-  const progressRef = useRef({ coins: 300, completedLevels: [] as string[] });
+  const progressRef = useRef({ coins: STARTING_COINS, completedLevels: [] as string[] });
   const writes = useRef<Promise<void>>(Promise.resolve());
   const loadVersion = useRef(0);
 
