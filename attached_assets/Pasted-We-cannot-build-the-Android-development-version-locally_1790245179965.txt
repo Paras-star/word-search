@@ -1,0 +1,134 @@
+We cannot build the Android development version locally because the development machine is running macOS Catalina 10.15.7 and does not have a compatible Android Studio/Android SDK environment.
+
+We therefore want to use Expo EAS Build as the cloud build service.
+
+IMPORTANT:
+
+This is ONLY a development-build setup task.
+
+Do NOT modify:
+
+* puzzle/gameplay logic
+* letter selection
+* grid rendering
+* touch mapping
+* coins logic
+* persistence
+* Mystery Dumpling system
+* Collection Room
+* reward rarity
+* AdMob implementation
+* UMP implementation
+* browser gameplay
+
+Do NOT publish the app.
+Do NOT create a production build.
+Do NOT enable production AdMob IDs.
+Do NOT push to GitHub.
+Do NOT merge branches.
+Do NOT create a pull request.
+
+### Step 1 — Inspect the current project
+
+Check:
+
+* Expo SDK version
+* `expo-dev-client` installation
+* `app.json`
+* `package.json`
+* existing AdMob config/plugin
+* Android package ID
+* current workspace/package-manager structure
+* whether `eas.json` already exists
+
+The Android package/application ID must remain:
+
+`com.paras.wordhunt`
+
+### Step 2 — Configure EAS development build
+
+If EAS development-build configuration is missing, add the minimum required configuration.
+
+Create/configure `eas.json` with a development profile appropriate for an Android physical device.
+
+The development profile must produce an installable Android APK and include the development client.
+
+Use the existing package manager/workspace structure.
+
+Do not introduce unnecessary build profiles or unrelated configuration.
+
+### Step 3 — Preserve AdMob configuration
+
+The current AdMob implementation is already complete and passed the configuration audit.
+
+Do NOT change it.
+
+The development build must continue to use Google's TEST ad configuration by default.
+
+Production AdMob IDs must remain disabled unless:
+
+`EXPO_PUBLIC_ADMOB_PRODUCTION=true`
+
+is explicitly supplied for a production build.
+
+Do not change this behavior.
+
+### Step 4 — Verify native configuration
+
+Verify that the EAS build will generate the Android native project with:
+
+* application ID `com.paras.wordhunt`
+* `expo-dev-client`
+* `react-native-google-mobile-ads`
+* existing AdMob config plugin
+* existing Android AdMob App ID
+* existing UMP configuration
+
+Do not manually create or commit an Android directory unless the current project architecture requires it.
+
+Use Expo config/CNG correctly.
+
+### Step 5 — Verify web compatibility
+
+The existing browser build must remain unchanged.
+
+Confirm that:
+
+* web does not import the native AdMob SDK
+* web remains buildable
+* browser routes remain functional
+* no native-only dependency crashes the web build
+
+### Step 6 — Validation
+
+Run:
+
+* TypeScript check
+* Expo Doctor
+* web export
+* EAS configuration validation if available
+
+Do NOT start the cloud build yet.
+
+I want to review the configuration first.
+
+### Step 7 — Final report
+
+Report:
+
+1. Whether `eas.json` was created or already existed
+2. Development profile configuration
+3. Whether the profile produces an Android APK
+4. Whether `expo-dev-client` is correctly included
+5. Android package ID
+6. Confirmation that AdMob configuration was NOT changed
+7. Confirmation that test ads remain the default
+8. TypeScript result
+9. Expo Doctor result
+10. Web build result
+11. Any warnings
+12. The exact command I should run to start the EAS Android development build
+
+Do NOT run the EAS cloud build yet.
+
+Do NOT publish anything.
