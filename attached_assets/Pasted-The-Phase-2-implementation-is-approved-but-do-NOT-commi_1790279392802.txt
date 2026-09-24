@@ -1,0 +1,76 @@
+The Phase 2 implementation is approved, but do NOT commit the current automatic checkpoint as-is.
+
+We need a clean Git checkpoint containing ONLY the actual Phase 2 product changes.
+
+## PRODUCT FILES THAT SHOULD BE IN THE PHASE 2 COMMIT
+
+Include the relevant Phase 2 changes to:
+
+* `app/index.tsx`
+* `app/categories.tsx`
+* `app/mode.tsx`
+* `app/game.tsx`
+* `app/results.tsx`
+* `context/GameProvider.tsx`
+* `game/onboarding.ts`
+* `game/puzzle.ts`
+* `services/storage.ts`
+
+Do NOT include:
+
+* `artifacts/word-hunt/tests/onboarding.test.cjs`
+* `.agents/memory/MEMORY.md`
+* `.agents/memory/expo-doctor-package-age.md`
+* the uploaded Phase 2 brief
+* any other uploaded documents/briefs
+* any unrelated files
+
+The test file can remain locally if useful, but it must not be part of the product commit.
+
+## IMPORTANT GIT SAFETY
+
+Before changing history:
+
+1. Show:
+
+   * current branch
+   * current HEAD
+   * remote tracking branch
+   * `git log --oneline --decorate -8`
+   * `git status --short`
+   * `git diff origin/feature/game-improvements..HEAD --stat`
+
+2. Identify exactly which commits are ahead of the remote and what each contains.
+
+3. Do NOT delete, reset, force-push, or rewrite history yet.
+
+4. Do NOT touch the stable `feature/mystery-dumpling` branch.
+
+5. Do NOT modify the remote branch yet.
+
+We want to preserve the actual Phase 2 implementation while removing only the unwanted files from the commit history if necessary.
+
+## TARGET
+
+The eventual remote branch should have a clean Phase 2 checkpoint where:
+
+* all actual Phase 2 product changes are included
+* no uploaded briefs are included
+* no `.agents/memory` files are included
+* no temporary test file is included in the product commit
+* no AdMob changes are introduced
+* no unrelated changes are introduced
+
+If the cleanest solution is to create a new clean commit on top of the current history while leaving old local commits untouched, do that rather than rewriting history.
+
+However, because the current remote is behind by three commits, first inspect the exact commit structure and report the safest approach.
+
+Do not make changes and do not commit yet.
+
+Stop after reporting:
+
+1. current HEAD
+2. remote HEAD
+3. the three commits ahead
+4. files introduced by each
+5. safest way to produce the clean Phase 2 checkpoint
