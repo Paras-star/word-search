@@ -1,0 +1,60 @@
+Implement ONLY Phase 1 change #1: improve the word-direction distribution in the existing puzzle generator.
+
+Relevant implementation is in `game/puzzle.ts`, especially `DIRECTIONS`, candidate collection, and `generatePuzzle`.
+
+Current behavior:
+
+* All 8 straight-line directions are supported.
+* For each word, every legal start/direction candidate is collected and one is randomly selected.
+* Reverse directions are currently unrestricted.
+* The generator uses seeded randomness and must remain deterministic for the same seed.
+
+Goal:
+Make puzzles easier to visually search without removing the challenge.
+
+Treat these as reverse directions:
+
+* left / right-to-left
+* up / bottom-to-top
+* down-left
+* up-left
+* i.e. directions whose natural reading progression is reversed relative to left-to-right/top-to-bottom.
+
+Do NOT remove any of the 8 supported directions.
+
+Implementation requirements:
+
+1. Prefer approximately 2–3 reverse-direction word placements per puzzle.
+2. Do NOT impose a rigid cap that can make generation fail.
+3. When the preferred distribution cannot be satisfied because of grid geometry or existing letter overlaps, gracefully fall back to any legal candidate.
+4. Preserve the existing seeded/randomized behavior.
+5. Preserve word overlap behavior.
+6. Preserve the existing maximum grid sizes and category data.
+7. Do not change the selection/gesture system.
+8. Do not change the UI.
+9. Do not change scoring, hints, rewards, persistence, or progression.
+10. Do not modify package.json or dependencies.
+
+Important:
+The direction preference must be applied during candidate selection/placement, not by changing the `DIRECTIONS` array in a way that removes directions.
+
+After implementation, add a lightweight validation script or temporary validation approach if appropriate that generates many seeded puzzles and reports:
+
+* total words
+* number of reverse-direction placements
+* whether every listed word is still placed
+* whether any puzzle generation fails
+
+Test enough different seeds/categories to demonstrate that the generator remains solvable and that reverse directions generally stay around the intended 2–3 range.
+
+Run the existing Word Hunt TypeScript check.
+
+Do not commit.
+
+At the end report:
+
+* exact files changed
+* exact algorithm used
+* validation results
+* TypeScript result
+* git diff summary
