@@ -1,0 +1,307 @@
+Approved. Proceed with the Phase 2 implementation using the architecture you just proposed.
+
+Lock these decisions:
+
+## COIN ECONOMY
+
+Fresh player starts with:
+
+* 50 coins
+
+Tutorial:
+
+* +10 → 60
+
+Onboarding:
+
+* 5 words → +10 → 70
+* 7 words → +10 → 80
+* 9 words → +10 → 90
+* 12 words → +10 → 100
+* 15 words → +10 → 110
+
+Therefore:
+
+* Tutorial + five onboarding puzzles = **+60 total**
+* Fresh player reaches **110 coins when Animals unlocks**
+
+Do not change the 50-coin starting balance.
+
+## ONBOARDING SEQUENCE
+
+Implement:
+
+Step 0:
+Tutorial — 5 words
+
+Step 1:
+5 words
+
+Step 2:
+7 words
+
+Step 3:
+9 words
+
+Step 4:
+12 words
+
+Step 5:
+15 words
+
+Step 6:
+Onboarding complete / normal category system unlocked
+
+Each completed onboarding step:
+
+* +10 coins
+* exactly once
+* no Mystery Dumpling
+* no `/reward` route
+* no normal +50 reward
+
+## PUZZLE DIFFICULTY
+
+Create an onboarding-only configuration/placement option rather than changing the normal puzzle generator behavior.
+
+Difficulty ramp:
+
+Tutorial:
+
+* very approachable
+* primarily horizontal/vertical
+* designed to teach selection
+
+5-word:
+
+* primarily horizontal/vertical
+* very easy
+
+7-word:
+
+* introduce some diagonal placements
+
+9-word:
+
+* mixed horizontal/vertical/diagonal
+
+12-word:
+
+* mixed directions
+* limited reverse placements
+
+15-word:
+
+* closest to normal gameplay
+* can use the normal 2–3 reverse-placement behavior
+
+Do NOT modify the normal category generator's existing direction behavior.
+
+The onboarding configuration should be deterministic and use stable seeds/word lists so the onboarding experience does not randomly become significantly harder or impossible.
+
+## PERSISTENCE
+
+Implement the proposed:
+
+`@word-hunt/progress-v2`
+
+Record:
+
+{
+coins,
+completedLevels,
+onboardingStep
+}
+
+Where:
+
+* onboardingStep 0 = tutorial not completed
+* 1 = tutorial complete, first onboarding puzzle next
+* 2 = 5-word puzzle complete
+* 3 = 7-word puzzle complete
+* 4 = 9-word puzzle complete
+* 5 = 12-word puzzle complete
+* 6 = 15-word puzzle complete / onboarding finished
+
+Use the existing provider/storage architecture rather than introducing an unrelated persistence system.
+
+The +10 reward and onboardingStep advancement must be committed as one durable operation.
+
+This is important:
+
+A player must never receive the same onboarding +10 reward twice because of:
+
+* double taps
+* navigation race
+* app restart
+* browser refresh
+* Android app close/reopen
+* replaying a completed onboarding puzzle
+* returning to an earlier route
+* pressing back and re-entering the puzzle
+
+If persistence fails:
+
+* do not advance the player as if the reward succeeded
+* do not allow the reward to be silently lost
+* make the operation safely retryable
+
+## MIGRATION
+
+Do NOT reset existing players.
+
+If `@word-hunt/progress-v2` does not exist:
+
+* Read the existing `@word-hunt/coins`
+* Read the existing `@word-hunt/completed-levels`
+
+If either contains existing saved player data:
+
+* preserve it
+* mark onboarding as complete
+* do NOT award onboarding coins
+* do NOT force the player through the tutorial
+
+Only a genuinely fresh player with no existing saved progress should receive:
+
+* 50 starting coins
+* tutorial
+* onboarding sequence
+
+Keep the old keys readable for migration.
+
+Do not modify the dumpling storage key.
+
+## CATEGORY LOCKING
+
+Before onboarding:
+
+* normal category progression must not be bypassable
+* Animals should not be directly playable by manually navigating to `/mode` or `/game`
+
+After onboardingStep reaches 6:
+
+* Animals unlock
+* existing category progression resumes
+
+Make sure direct route access cannot bypass onboarding.
+
+## SHARED GAME FLOW
+
+Reuse the existing `/game` and `/results` infrastructure.
+
+Do NOT create a second puzzle engine.
+
+Onboarding completion should branch cleanly from the existing normal completion path.
+
+Normal puzzle behavior must remain:
+
+* +50 coins
+* category completion
+* Mystery Dumpling reward
+* `/reward`
+* existing results behavior
+* existing AdMob behavior
+
+Onboarding behavior:
+
+* +10 coins
+* persist onboarding progress
+* `/results`
+* no dumpling
+* no `/reward`
+* no normal category completion
+* no normal +50 reward
+* no ad action
+
+The results screen should clearly tell the player what they earned and what comes next.
+
+For example:
+
+* “+10 Coins”
+* “Next: 7 Words”
+* final onboarding: “Animals Unlocked”
+
+Keep the UI consistent with the existing game.
+
+## TUTORIAL
+
+The tutorial should be the player's first actual puzzle.
+
+It should communicate the basic interaction naturally without becoming a long tutorial screen.
+
+Use the existing letter-selection mechanics.
+
+Do not create a completely separate mini-game.
+
+## EXISTING FIRST-ANIMAL CONFIGURATION
+
+Keep the current 9-word first-Animal configuration for now.
+
+Do not delete or alter `puzzleConfig.ts` unless implementation requires a compatibility adjustment.
+
+We will evaluate whether it is redundant after testing the complete onboarding flow.
+
+## VALIDATION REQUIRED
+
+After implementation, run comprehensive checks.
+
+At minimum verify:
+
+1. Fresh state starts at 50 coins.
+2. Tutorial loads with exactly 5 words.
+3. Tutorial completion gives exactly +10.
+4. Tutorial cannot be replayed for another +10.
+5. 5-word puzzle gives exactly +10.
+6. 7-word puzzle gives exactly +10.
+7. 9-word puzzle gives exactly +10.
+8. 12-word puzzle gives exactly +10.
+9. 15-word puzzle gives exactly +10.
+10. Final total is exactly 110 coins for a fresh player.
+11. Animals remains inaccessible before onboarding completion.
+12. Animals unlocks at onboardingStep 6.
+13. Onboarding produces zero dumpling rewards.
+14. Normal Animal gameplay still produces the normal +50 + dumpling flow.
+15. Existing players with saved progress are not reset or awarded onboarding coins.
+16. Browser refresh preserves onboarding progress.
+17. Android/app restart preserves onboarding progress.
+18. Repeated completion attempts cannot duplicate coins.
+19. Direct route navigation cannot bypass onboarding.
+20. TypeScript passes.
+21. Expo Doctor passes.
+22. Web export still passes.
+23. Existing normal puzzle generation remains unchanged outside onboarding.
+
+Also specifically test the transition:
+
+Fresh player
+→ Tutorial
+→ +10
+→ 5
+→ +10
+→ 7
+→ +10
+→ 9
+→ +10
+→ 12
+→ +10
+→ 15
+→ +10
+→ Animals unlocked
+→ normal Animal puzzle
+→ +50 + Mystery Dumpling
+
+Do not commit yet.
+
+When finished, report:
+
+* files changed
+* architecture implemented
+* persistence behavior
+* exact coin progression
+* onboarding direction/difficulty behavior
+* migration behavior
+* validation results
+* any issues discovered
+
+Then stop before committing.

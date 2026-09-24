@@ -7,8 +7,22 @@ export const DIRECTIONS: Cell[] = [
 ];
 const LETTERS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
 
+export type PuzzleDirection = 'horizontal' | 'vertical' | 'diagonal';
+
+export type PuzzleGenerationOptions = {
+  directions?: PuzzleDirection[];
+  allowReverse?: boolean;
+  maxReverseWords?: number;
+};
+
 function isReverseDirection(direction: Cell): boolean {
   return direction.col < 0 || (direction.row < 0 && direction.col === 0);
+}
+
+function directionKind(direction: Cell): PuzzleDirection {
+  if (direction.row === 0) return 'horizontal';
+  if (direction.col === 0) return 'vertical';
+  return 'diagonal';
 }
 
 export function getGridSize(words: string[]): number {
@@ -58,10 +72,17 @@ function placeWord(grid: string[][], word: string, cells: Cell[]) {
   cells.forEach((cell, index) => { grid[cell.row][cell.col] = word[index]; });
 }
 
-export function generatePuzzle(category: Category, seed = `${category.id}:default`): Puzzle {
+export function generatePuzzle(
+  category: Category,
+  seed = `${category.id}:default`,
+  options?: PuzzleGenerationOptions,
+): Puzzle {
   const size = getGridSize(category.words);
   const random = seededRandom(seed);
   const orderedWords = [...category.words].sort((a, b) => b.length - a.length);
+  const directions = options?.directions
+    ? DIRECTIONS.filter((direction) => options.directions?.includes(directionKind(direction)))
+    : DIRECTIONS;
   for (let restart = 0; restart < 80; restart += 1) {
     const grid = Array.from({ length: size }, () => Array<string>(size).fill(''));
     const placements: Record<string, PlacedWord> = {};
@@ -72,7 +93,13 @@ export function generatePuzzle(category: Category, seed = `${category.id}:defaul
       const candidates: { start: Cell; direction: Cell; cells: Cell[] }[] = [];
       for (let row = 0; row < size; row += 1) {
         for (let col = 0; col < size; col += 1) {
-          for (const direction of shuffled(DIRECTIONS, random)) {
+          for (const direction of shuffled(directions, random)) {
+            if (options?.allowReverse === false && isReverseDirection(direction)) continue;
+            if (
+              options?.maxReverseWords !== undefined &&
+              reverseCount >= options.maxReverseWords &&
+              isReverseDirection(direction)
+            ) continue;
             const cells = cellsFor(word, { row, col }, direction);
             if (canPlace(grid, word, cells)) candidates.push({ start: { row, col }, direction, cells });
           }

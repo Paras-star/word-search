@@ -1,12 +1,14 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { PanResponder, Platform, Pressable, StyleSheet, Text, View, useWindowDimensions, type GestureResponderEvent } from 'react-native';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { Redirect, useLocalSearchParams, useRouter } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import { Header, Screen, CoinPill, SoftButton } from '@/components/GameUI';
-import { getCategory } from '@/data/categories';
+import { CATEGORIES, getCategory } from '@/data/categories';
 import { BONUS_WORDS } from '@/data/bonusWords';
 import { generatePuzzle, gridCellFromPoint, lettersFor, lineCells, type GridBounds } from '@/game/puzzle';
 import { getPuzzleCategory } from '@/game/puzzleConfig';
+import { getOnboardingStep } from '@/game/onboarding';
+import { isCategoryUnlocked } from '@/game/progression';
 import { completionBonus, formatTime, HIGHLIGHT_COLORS, scoreFoundWord } from '@/game/scoring';
 import type { Cell, GameMode, Puzzle } from '@/game/types';
 import { useGame } from '@/context/GameProvider';
@@ -41,24 +43,39 @@ const BOARD_MAX_WIDTH = 380;
 // Leave room for the header, status row, word list and hint button on short screens.
 const NON_BOARD_HEIGHT = 350;
 
+type GameParams = { categoryId?: string; mode?: GameMode; seed?: string; onboardingStep?: string };
+
 export default function GameScreen() {
+  const params = useLocalSearchParams<GameParams>();
+  const sessionKey = params.onboardingStep !== undefined
+    ? `onboarding:${params.onboardingStep}`
+    : `category:${params.categoryId ?? ''}:${params.mode ?? ''}:${params.seed ?? ''}`;
+  return <GameSession key={sessionKey} params={params} />;
+}
+
+function GameSession({ params }: { params: GameParams }) {
   const router = useRouter();
   const colors = useColors();
   const { width, height } = useWindowDimensions();
   const { top, bottom } = useSafeAreaInsets();
-  const boardSize = Math.max(0, Math.min(width - GAME_PADDING * 2, BOARD_MAX_WIDTH, height - top - bottom - NON_BOARD_HEIGHT));
-  const { categoryId, mode: rawMode, seed } = useLocalSearchParams<{ categoryId?: string; mode?: GameMode; seed?: string }>();
-  const mode: GameMode = rawMode === 'time' ? 'time' : 'classic';
-  const category = getCategory(categoryId);
-  const { coins, awardCoins, completeLevel, completedLevels } = useGame();
-  const puzzleSeed = seed ?? `${category.id}:default`;
+  const { categoryId, mode: rawMode, seed, onboardingStep: rawOnboardingStep } = params;
+  const requestedStep = rawOnboardingStep === undefined ? null : Number(rawOnboardingStep);
+  const onboarding = requestedStep !== null && Number.isInteger(requestedStep) ? getOnboardingStep(requestedStep) : undefined;
+  const extraWordHeight = onboarding ? Math.max(0, Math.ceil(onboarding.words.length / 3) - 3) * 29 : 0;
+  const boardSize = Math.max(0, Math.min(width - GAME_PADDING * 2, BOARD_MAX_WIDTH, height - top - bottom - NON_BOARD_HEIGHT - (onboarding ? 48 + extraWordHeight : 0)));
+  const mode: GameMode = onboarding ? 'classic' : rawMode === 'time' ? 'time' : 'classic';
+  const category = onboarding
+    ? { id: `onboarding-${requestedStep}`, name: onboarding.label, emoji: '✨', words: onboarding.words }
+    : getCategory(categoryId);
+  const { coins, awardCoins, completeLevel, completeOnboardingStep, completedLevels, onboardingStep } = useGame();
+  const puzzleSeed = onboarding ? onboarding.seed : seed ?? `${category.id}:default`;
   // Saving the first completion updates progress before navigation; keep this puzzle unchanged.
   const activePuzzle = useRef<{ categoryId: string; seed: string; puzzle: Puzzle } | null>(null);
   if (activePuzzle.current?.categoryId !== category.id || activePuzzle.current.seed !== puzzleSeed) {
     activePuzzle.current = {
       categoryId: category.id,
       seed: puzzleSeed,
-      puzzle: generatePuzzle(getPuzzleCategory(category, completedLevels), puzzleSeed),
+      puzzle: generatePuzzle(onboarding ? category : getPuzzleCategory(category, completedLevels), puzzleSeed, onboarding?.options),
     };
   }
   const puzzle = activePuzzle.current.puzzle;
@@ -90,6 +107,18 @@ export default function GameScreen() {
     const finalScore = score + completionBonus(mode, timeLeft);
     const finalTime = mode === 'time' ? 120 - timeLeft : Math.floor((Date.now() - startTime.current) / 1000);
     try {
+      if (onboarding && requestedStep !== null) {
+        if (completionStage.current < 1) {
+          const awarded = await completeOnboardingStep(requestedStep);
+          if (!awarded) {
+            router.replace('/');
+            return;
+          }
+          completionStage.current = 1;
+        }
+        router.replace({ pathname: '/results', params: { onboardingStep: String(requestedStep), score: String(finalScore), time: String(finalTime) } });
+        return;
+      }
       if (completionStage.current < 1) {
         await awardCoins(50);
         completionStage.current = 1;
@@ -106,7 +135,7 @@ export default function GameScreen() {
     } catch {
       setFinishError(true);
     }
-  }, [awardCoins, category.id, completeLevel, mode, puzzle.id, router, score, timeLeft]);
+  }, [awardCoins, category.id, completeLevel, completeOnboardingStep, mode, onboarding, puzzle.id, requestedStep, router, score, timeLeft]);
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -241,12 +270,23 @@ export default function GameScreen() {
     return { backgroundColor: colors.card };
   };
 
+  const finishingPreviousStep = Boolean(onboarding && completionStarted.current && requestedStep === onboardingStep - 1);
+  if (onboardingStep < 6 && (!onboarding || requestedStep !== onboardingStep) && !finishingPreviousStep) {
+    return <Redirect href={{ pathname: '/game', params: { onboardingStep: String(onboardingStep) } }} />;
+  }
+  if (onboardingStep === 6 && rawOnboardingStep !== undefined && !finishingPreviousStep) return <Redirect href="/categories" />;
+  const categoryIndex = CATEGORIES.findIndex((item) => item.id === category.id);
+  if (!onboarding && !isCategoryUnlocked(categoryIndex, completedLevels, CATEGORIES)) return <Redirect href="/categories" />;
+
   return <Screen style={styles.screen}>
-    <Header title={category.name} onBack={() => router.back()} right={<CoinPill coins={coins} />} />
+    <Header title={category.name} onBack={() => onboarding ? router.replace('/') : router.back()} right={<CoinPill coins={coins} />} />
     <View style={styles.metaRow}><View><Text style={[styles.scoreLabel, { color: colors.mutedForeground }]}>SCORE</Text><Text style={[styles.score, { color: colors.foreground }]}>{score}</Text></View><View style={[styles.timerPill, { backgroundColor: mode === 'time' && timeLeft < 30 ? '#ffe4e4' : colors.card, borderColor: mode === 'time' && timeLeft < 30 ? colors.warning : colors.border }]}><Feather name="clock" size={16} color={mode === 'time' && timeLeft < 30 ? colors.warning : colors.primary} /><Text style={[styles.timerText, { color: mode === 'time' && timeLeft < 30 ? colors.warning : colors.foreground }]}>{formatTime(mode === 'time' ? timeLeft : elapsed)}</Text></View><Pressable onPress={useHint} disabled={hints === 0} style={[styles.hintButton, { backgroundColor: hints ? colors.orange : colors.border }]} testID="hint-button"><Feather name="zap" size={16} color="#fff" /><Text style={styles.hintText}>{hints}</Text></Pressable></View>
+    {onboarding && <Text style={[styles.tutorialHelp, { color: colors.mutedForeground }]}>
+      {requestedStep === 0 ? 'Touch the first letter, drag in a straight line through a word below, then release.' : `Find all ${onboarding.words.length} words to earn 10 coins.`}
+    </Text>}
     <View style={[styles.gridWrap, { width: boardSize }]}><View style={[styles.grid, { borderColor: colors.border }]}><View ref={gridContentRef} style={Platform.OS === 'web' ? [styles.gridContent, styles.webGridContent] : styles.gridContent} onLayout={refreshGridBounds} {...panResponder.panHandlers}>{puzzle.grid.map((row, rowIndex) => <View key={rowIndex} style={styles.gridRow}>{row.map((letter, colIndex) => <View key={colIndex} style={[styles.cell, { borderColor: colors.border }, getCellStyle({ row: rowIndex, col: colIndex })]}><Text style={[styles.letter, { color: selectedKeys.has(`${rowIndex}-${colIndex}`) ? '#FFFFFF' : colors.foreground }]}>{letter}</Text></View>)}</View>)}</View></View></View>
     <View style={styles.listHeader}><Text style={[styles.listTitle, { color: colors.foreground }]}>Find these words</Text><Text style={[styles.progress, { color: colors.mutedForeground }]}>{foundWords.length}/{puzzle.words.length}</Text></View>
-    <View style={styles.words}>{puzzle.words.map((word) => <View key={word} style={styles.wordItem}><Feather name={foundWords.includes(word) ? 'check' : 'circle'} size={14} color={foundWords.includes(word) ? colors.success : colors.border} /><Text style={[styles.word, { color: foundWords.includes(word) ? colors.foundWord : colors.foreground, textDecorationLine: foundWords.includes(word) ? 'line-through' : 'none' }]}>{word}</Text></View>)}</View>
+    <View style={[styles.words, onboarding && { maxHeight: Math.ceil(onboarding.words.length / 3) * 29, overflow: 'visible' }]}>{puzzle.words.map((word) => <View key={word} style={styles.wordItem}><Feather name={foundWords.includes(word) ? 'check' : 'circle'} size={14} color={foundWords.includes(word) ? colors.success : colors.border} /><Text style={[styles.word, { color: foundWords.includes(word) ? colors.foundWord : colors.foreground, textDecorationLine: foundWords.includes(word) ? 'line-through' : 'none' }]}>{word}</Text></View>)}</View>
     {feedback !== 'idle' && <Text style={[styles.feedback, { color: feedback === 'bonus' ? colors.orange : colors.warning }]}>{feedback === 'bonus' ? '+5 bonus word' : 'That word is not on the list'}</Text>}
     {finishError && <SoftButton onPress={() => { setFinishError(false); completionStarted.current = false; void finish(); }}>RETRY SAVING COMPLETED LEVEL</SoftButton>}
     <SoftButton onPress={useHint} disabled={hints === 0} style={styles.hintFooter}>{hints ? `USE HINT  ·  ${hints} LEFT` : 'NO HINTS LEFT'}</SoftButton>
@@ -255,6 +295,7 @@ export default function GameScreen() {
 
 const styles = StyleSheet.create({
   screen: { paddingHorizontal: GAME_PADDING, paddingBottom: 14 },
+  tutorialHelp: { fontFamily: 'Inter_500Medium', fontSize: 13, lineHeight: 18, marginBottom: 8 },
   metaRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 },
   scoreLabel: { fontFamily: 'Inter_700Bold', fontSize: 10, letterSpacing: 1 },
   score: { fontFamily: 'Inter_700Bold', fontSize: 27, marginTop: 2 },
