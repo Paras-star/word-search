@@ -11,8 +11,15 @@ export default function HomeScreen() {
   const router = useRouter();
   const colors = useColors();
   const insets = useSafeAreaInsets();
-  const { coins, hydrated } = useGame();
+  const { coins, hydrated, onboardingStep } = useGame();
   if (!hydrated) return null;
+  const play = () => {
+    if (onboardingStep < 6) {
+      router.push({ pathname: '/game', params: { onboardingStep: String(onboardingStep) } });
+      return;
+    }
+    router.push('/categories');
+  };
   return <Screen style={{ paddingTop: insets.top + 12, paddingBottom: insets.bottom + 18 }}>
     <View style={styles.topRow}><View style={styles.brandMark}><Text style={styles.brandLetter}>W</Text></View><CoinPill coins={coins} /></View>
     <View style={styles.hero}>
@@ -22,7 +29,7 @@ export default function HomeScreen() {
       <View style={styles.previewGrid}>{['W', 'O', 'R', 'D', 'H', 'U', 'N', 'T', 'F'].map((letter, index) => <View key={`${letter}-${index}`} style={[styles.previewCell, { backgroundColor: index === 4 ? colors.orange : colors.card, borderColor: index === 4 ? colors.orange : colors.border }]}><Text style={[styles.previewLetter, { color: index === 4 ? '#fff' : colors.foreground }]}>{letter}</Text></View>)}</View>
     </View>
     <View style={styles.actions}>
-      <PrimaryButton onPress={() => router.push('/categories')} testID="play-button">PLAY</PrimaryButton>
+      <PrimaryButton onPress={play} testID="play-button">PLAY</PrimaryButton>
       <SoftButton onPress={() => router.push('/collection')} testID="collection-button"><Feather name="grid" size={17} color={colors.foreground} />  COLLECTION</SoftButton>
     </View>
     <Text style={[styles.footer, { color: colors.mutedForeground }]}>15 categories · 2 ways to play · zero internet required</Text>

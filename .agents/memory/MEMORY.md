@@ -4,3 +4,4 @@
 - [Expo Go progress persistence](expo-go-progress-persistence.md) — on-device testing retained progress after normal reopening and a QR re-scan; don't assume a scan resets it.
 - [Expo build port collision](expo-build-port-collision.md) — local production builds can conflict with the mockup preview server's Metro port; use an isolated port for smoke builds.
 - [Scoped workspace dependencies](scoped-workspace-dependencies.md) — package installer rejects workspace filter flags; scope artifact dependencies explicitly to avoid root pollution.
+- [Expo Doctor package age](expo-doctor-package-age.md) — SDK patch recommendations can precede the package firewall's maturity window; do not bypass it.

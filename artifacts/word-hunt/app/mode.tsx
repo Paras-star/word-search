@@ -1,9 +1,10 @@
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { Redirect, useLocalSearchParams, useRouter } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import { Header, Screen, PrimaryButton, SoftButton } from '@/components/GameUI';
-import { getCategory } from '@/data/categories';
+import { CATEGORIES, getCategory } from '@/data/categories';
+import { isCategoryUnlocked } from '@/game/progression';
 import { getPuzzleCategory } from '@/game/puzzleConfig';
 import { useGame } from '@/context/GameProvider';
 import { useColors } from '@/hooks/useColors';
@@ -12,10 +13,18 @@ export default function ModeScreen() {
   const router = useRouter();
   const { categoryId } = useLocalSearchParams<{ categoryId?: string }>();
   const category = getCategory(categoryId);
-  const { completedLevels } = useGame();
+  const { completedLevels, hydrated, onboardingStep } = useGame();
   const wordCount = getPuzzleCategory(category, completedLevels).words.length;
   const colors = useColors();
   const start = (mode: 'classic' | 'time') => router.replace({ pathname: '/game', params: { categoryId: category.id, mode, seed: `${Date.now()}` } });
+  if (!hydrated) return null;
+  if (onboardingStep < 6) {
+    return <Redirect href={{ pathname: '/game', params: { onboardingStep: String(onboardingStep) } }} />;
+  }
+  const categoryIndex = CATEGORIES.findIndex((item) => item.id === categoryId);
+  if (!isCategoryUnlocked(categoryIndex, completedLevels, CATEGORIES)) {
+    return <Redirect href="/categories" />;
+  }
   return <Screen>
     <Header title={category.name} onBack={() => router.back()} />
     <View style={styles.content}>
