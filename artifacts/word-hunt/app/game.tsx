@@ -16,6 +16,25 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 function cellKey(cell: Cell) { return `${cell.row}-${cell.col}`; }
 function sameCell(a: Cell, b: Cell) { return a.row === b.row && a.col === b.col; }
+function nearCurrentLine(start: Cell, end: Cell, current: Cell[], size: number): Cell[] {
+  if (current.length < 3) return [];
+  const rowStep = current[1].row - start.row;
+  const colStep = current[1].col - start.col;
+  const rowDistance = (end.row - start.row) * rowStep;
+  const colDistance = (end.col - start.col) * colStep;
+  let steps: number;
+  if (rowStep === 0) {
+    if (Math.abs(end.row - start.row) !== 1 || colDistance < 2) return [];
+    steps = colDistance;
+  } else if (colStep === 0) {
+    if (Math.abs(end.col - start.col) !== 1 || rowDistance < 2) return [];
+    steps = rowDistance;
+  } else {
+    if (rowDistance < 2 || colDistance < 2 || Math.abs(rowDistance - colDistance) !== 1) return [];
+    steps = Math.min(rowDistance, colDistance);
+  }
+  return lineCells(start, { row: start.row + rowStep * steps, col: start.col + colStep * steps }, size);
+}
 const GAME_PADDING = 16;
 const BOARD_MAX_WIDTH = 380;
 // Leave room for the header, status row, word list and hint button on short screens.
@@ -128,7 +147,9 @@ export default function GameScreen() {
     const start = current[0];
     if (!cell || !start) return;
     if (sameCell(current[current.length - 1], cell)) return;
-    const next = lineCells(start, cell, puzzle.size);
+    const exact = lineCells(start, cell, puzzle.size);
+    // Only tolerate a one-cell drift after the gesture has established a straight direction.
+    const next = exact.length ? exact : nearCurrentLine(start, cell, current, puzzle.size);
     if (next.length && (next.length !== current.length || next.some((item, index) => !sameCell(item, current[index])))) {
       selectedCellsRef.current = next;
       setSelectedCells(next);
