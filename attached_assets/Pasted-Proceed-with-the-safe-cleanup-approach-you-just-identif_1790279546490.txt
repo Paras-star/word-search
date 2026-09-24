@@ -1,0 +1,121 @@
+Proceed with the safe cleanup approach you just identified.
+
+## STEP 1 — CREATE CLEAN BRANCH
+
+Create a new local branch from the verified remote HEAD:
+
+`origin/feature/game-improvements` (`d154253c902bbd813708bf65abacd7d65a38e1e3`)
+
+Do NOT modify the existing `feature/game-improvements` branch.
+
+Use a clearly named temporary branch such as:
+
+`cleanup/phase-2-clean`
+
+Do not push this temporary branch yet.
+
+## STEP 2 — BRING OVER ONLY PHASE 2 PRODUCT FILES
+
+From Phase 2 implementation commit:
+
+`8cce4528a31f340e06cc8bf23826a7f1d1a49d81`
+
+bring over ONLY these nine product files:
+
+`artifacts/word-hunt/app/index.tsx`
+`artifacts/word-hunt/app/categories.tsx`
+`artifacts/word-hunt/app/mode.tsx`
+`artifacts/word-hunt/app/game.tsx`
+`artifacts/word-hunt/app/results.tsx`
+`artifacts/word-hunt/context/GameProvider.tsx`
+`artifacts/word-hunt/game/onboarding.ts`
+`artifacts/word-hunt/game/puzzle.ts`
+`artifacts/word-hunt/services/storage.ts`
+
+Do not bring over anything else from the automatic commits.
+
+Specifically exclude:
+
+* `tests/onboarding.test.cjs`
+* `.agents/memory/MEMORY.md`
+* `.agents/memory/expo-doctor-package-age.md`
+* `attached_assets/Pasted-We-are-starting-Phase-2-New-Player-Onboarding-Tutorial-_1790277704725.txt`
+* all Phase 1 documentation
+* all other uploaded briefs
+* any unrelated files
+
+The local test file may remain on the original branch, but it must not appear in this clean branch or commit.
+
+## STEP 3 — INSPECT BEFORE COMMITTING
+
+Do NOT commit yet.
+
+Run:
+
+`git status --short`
+
+Then inspect:
+
+`git diff --cached --stat`
+
+and:
+
+`git diff --cached --`
+
+Verify that the staged changes represent exactly the Phase 2 implementation.
+
+Also verify:
+
+`git diff --cached --name-only`
+
+must contain ONLY:
+
+`artifacts/word-hunt/app/index.tsx`
+`artifacts/word-hunt/app/categories.tsx`
+`artifacts/word-hunt/app/mode.tsx`
+`artifacts/word-hunt/app/game.tsx`
+`artifacts/word-hunt/app/results.tsx`
+`artifacts/word-hunt/context/GameProvider.tsx`
+`artifacts/word-hunt/game/onboarding.ts`
+`artifacts/word-hunt/game/puzzle.ts`
+`artifacts/word-hunt/services/storage.ts`
+
+## STEP 4 — VALIDATE THE CLEAN BRANCH
+
+Before committing, run the relevant checks again from this clean branch:
+
+* TypeScript check
+* onboarding persistence tests
+* onboarding puzzle/difficulty tests
+* web export
+* Expo Doctor
+
+Do NOT attempt to fix the existing Expo Doctor patch-version warning.
+
+Do NOT modify package versions.
+
+Do NOT modify AdMob.
+
+Do NOT modify any other feature.
+
+If the tests require the temporary onboarding test file, you may temporarily use it locally for validation, but remove it before staging/committing.
+
+## STEP 5 — FINAL SAFETY CHECK
+
+Before committing, report:
+
+1. branch name
+2. base commit
+3. staged file list
+4. staged diff summary
+5. validation results
+6. confirmation that no documentation, briefs, `.agents/memory`, or test files are staged
+7. confirmation that no AdMob/dumpling/normal reward changes outside the intended Phase 2 changes are present
+
+STOP.
+
+Do NOT commit yet.
+
+Do NOT push yet.
+
+I will approve the clean staged state before the commit.
