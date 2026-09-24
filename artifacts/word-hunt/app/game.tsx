@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { PanResponder, Platform, Pressable, StyleSheet, Text, View, type GestureResponderEvent } from 'react-native';
+import { PanResponder, Platform, Pressable, StyleSheet, Text, View, useWindowDimensions, type GestureResponderEvent } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import { Header, Screen, CoinPill, SoftButton } from '@/components/GameUI';
@@ -12,13 +12,21 @@ import { useGame } from '@/context/GameProvider';
 import { rewardGateway } from '@/services/rewardGateway';
 import { playSound } from '@/services/audio';
 import { useColors } from '@/hooks/useColors';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 function cellKey(cell: Cell) { return `${cell.row}-${cell.col}`; }
 function sameCell(a: Cell, b: Cell) { return a.row === b.row && a.col === b.col; }
+const GAME_PADDING = 16;
+const BOARD_MAX_WIDTH = 380;
+// Leave room for the header, status row, word list and hint button on short screens.
+const NON_BOARD_HEIGHT = 350;
 
 export default function GameScreen() {
   const router = useRouter();
   const colors = useColors();
+  const { width, height } = useWindowDimensions();
+  const { top, bottom } = useSafeAreaInsets();
+  const boardSize = Math.max(0, Math.min(width - GAME_PADDING * 2, BOARD_MAX_WIDTH, height - top - bottom - NON_BOARD_HEIGHT));
   const { categoryId, mode: rawMode, seed } = useLocalSearchParams<{ categoryId?: string; mode?: GameMode; seed?: string }>();
   const mode: GameMode = rawMode === 'time' ? 'time' : 'classic';
   const category = getCategory(categoryId);
@@ -204,7 +212,7 @@ export default function GameScreen() {
   return <Screen style={styles.screen}>
     <Header title={category.name} onBack={() => router.back()} right={<CoinPill coins={coins} />} />
     <View style={styles.metaRow}><View><Text style={[styles.scoreLabel, { color: colors.mutedForeground }]}>SCORE</Text><Text style={[styles.score, { color: colors.foreground }]}>{score}</Text></View><View style={[styles.timerPill, { backgroundColor: mode === 'time' && timeLeft < 30 ? '#ffe4e4' : colors.card, borderColor: mode === 'time' && timeLeft < 30 ? colors.warning : colors.border }]}><Feather name="clock" size={16} color={mode === 'time' && timeLeft < 30 ? colors.warning : colors.primary} /><Text style={[styles.timerText, { color: mode === 'time' && timeLeft < 30 ? colors.warning : colors.foreground }]}>{formatTime(mode === 'time' ? timeLeft : elapsed)}</Text></View><Pressable onPress={useHint} disabled={hints === 0} style={[styles.hintButton, { backgroundColor: hints ? colors.orange : colors.border }]} testID="hint-button"><Feather name="zap" size={16} color="#fff" /><Text style={styles.hintText}>{hints}</Text></Pressable></View>
-    <View style={styles.gridWrap}><View style={[styles.grid, { borderColor: colors.border }]}><View ref={gridContentRef} style={Platform.OS === 'web' ? [styles.gridContent, styles.webGridContent] : styles.gridContent} onLayout={refreshGridBounds} {...panResponder.panHandlers}>{puzzle.grid.map((row, rowIndex) => <View key={rowIndex} style={styles.gridRow}>{row.map((letter, colIndex) => <View key={colIndex} style={[styles.cell, { borderColor: colors.border }, getCellStyle({ row: rowIndex, col: colIndex })]}><Text style={[styles.letter, { color: selectedKeys.has(`${rowIndex}-${colIndex}`) ? '#FFFFFF' : colors.foreground }]}>{letter}</Text></View>)}</View>)}</View></View></View>
+    <View style={[styles.gridWrap, { width: boardSize }]}><View style={[styles.grid, { borderColor: colors.border }]}><View ref={gridContentRef} style={Platform.OS === 'web' ? [styles.gridContent, styles.webGridContent] : styles.gridContent} onLayout={refreshGridBounds} {...panResponder.panHandlers}>{puzzle.grid.map((row, rowIndex) => <View key={rowIndex} style={styles.gridRow}>{row.map((letter, colIndex) => <View key={colIndex} style={[styles.cell, { borderColor: colors.border }, getCellStyle({ row: rowIndex, col: colIndex })]}><Text style={[styles.letter, { color: selectedKeys.has(`${rowIndex}-${colIndex}`) ? '#FFFFFF' : colors.foreground }]}>{letter}</Text></View>)}</View>)}</View></View></View>
     <View style={styles.listHeader}><Text style={[styles.listTitle, { color: colors.foreground }]}>Find these words</Text><Text style={[styles.progress, { color: colors.mutedForeground }]}>{foundWords.length}/{puzzle.words.length}</Text></View>
     <View style={styles.words}>{puzzle.words.map((word) => <View key={word} style={styles.wordItem}><Feather name={foundWords.includes(word) ? 'check' : 'circle'} size={14} color={foundWords.includes(word) ? colors.success : colors.border} /><Text style={[styles.word, { color: foundWords.includes(word) ? colors.foundWord : colors.foreground, textDecorationLine: foundWords.includes(word) ? 'line-through' : 'none' }]}>{word}</Text></View>)}</View>
     {feedback !== 'idle' && <Text style={[styles.feedback, { color: feedback === 'bonus' ? colors.orange : colors.warning }]}>{feedback === 'bonus' ? '+5 bonus word' : 'That word is not on the list'}</Text>}
@@ -214,7 +222,7 @@ export default function GameScreen() {
 }
 
 const styles = StyleSheet.create({
-  screen: { paddingBottom: 14 },
+  screen: { paddingHorizontal: GAME_PADDING, paddingBottom: 14 },
   metaRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 },
   scoreLabel: { fontFamily: 'Inter_700Bold', fontSize: 10, letterSpacing: 1 },
   score: { fontFamily: 'Inter_700Bold', fontSize: 27, marginTop: 2 },
@@ -222,13 +230,13 @@ const styles = StyleSheet.create({
   timerText: { fontFamily: 'Inter_700Bold', fontSize: 16 },
   hintButton: { minWidth: 50, height: 42, borderRadius: 15, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 },
   hintText: { color: '#fff', fontFamily: 'Inter_700Bold', fontSize: 15 },
-  gridWrap: { width: '100%', aspectRatio: 1, maxWidth: 365, alignSelf: 'center' },
+  gridWrap: { aspectRatio: 1, alignSelf: 'center' },
   grid: { flex: 1, borderWidth: 1, borderRadius: 18, overflow: 'hidden', padding: 3, backgroundColor: '#fff' },
   gridContent: { flex: 1 },
   webGridContent: { userSelect: 'none', touchAction: 'none' },
   gridRow: { flex: 1, flexDirection: 'row' },
   cell: { flex: 1, alignItems: 'center', justifyContent: 'center', borderWidth: 0.5 },
-  letter: { fontFamily: 'Inter_700Bold', fontSize: 15 },
+  letter: { fontFamily: 'Inter_700Bold', fontSize: 16 },
   listHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 14, marginBottom: 8 },
   listTitle: { fontFamily: 'Inter_700Bold', fontSize: 17 },
   progress: { fontFamily: 'Inter_600SemiBold', fontSize: 13 },
