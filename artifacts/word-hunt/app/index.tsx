@@ -24,10 +24,10 @@ export default function HomeScreen() {
     <View style={styles.topRow}>
       <View style={styles.brandMark}><Text style={styles.brandLetter}>W</Text></View>
       <View style={styles.topActions}>
-        <Pressable onPress={() => router.push('/daily')} hitSlop={8} accessibilityRole="button" accessibilityLabel="Daily word hunt calendar" testID="daily-calendar-button" style={({ pressed }) => [styles.calendarButton, { backgroundColor: colors.card, borderColor: colors.border, opacity: pressed ? 0.7 : 1 }]}>
-          <Text style={styles.calendarIcon}>📅</Text>
-        </Pressable>
         <CoinPill coins={coins} />
+        <Pressable onPress={() => router.push('/daily')} hitSlop={6} accessibilityRole="button" accessibilityLabel="Daily word hunt calendar" testID="daily-calendar-button" style={({ pressed }) => [styles.calendarButton, { backgroundColor: colors.card, borderColor: colors.border, opacity: pressed ? 0.7 : 1 }]}>
+          <Text style={styles.calendarIcon}>🗓️</Text>
+        </Pressable>
       </View>
     </View>
     <View style={styles.hero}>
@@ -45,10 +45,10 @@ export default function HomeScreen() {
 }
 
 const styles = StyleSheet.create({
-  topRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  topActions: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  calendarButton: { width: 42, height: 42, borderRadius: 14, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
-  calendarIcon: { fontSize: 20 },
+  topRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
+  topActions: { alignItems: 'center', gap: 4 },
+  calendarButton: { width: 42, height: 40, borderRadius: 13, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
+  calendarIcon: { fontSize: 19 },
   brandMark: { width: 42, height: 42, borderRadius: 14, backgroundColor: '#2f80ed', alignItems: 'center', justifyContent: 'center', transform: [{ rotate: '-8deg' }] },
   brandLetter: { color: '#fff', fontFamily: 'Inter_700Bold', fontSize: 22, transform: [{ rotate: '8deg' }] },
   hero: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingBottom: 12 },

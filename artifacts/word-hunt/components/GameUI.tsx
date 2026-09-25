@@ -23,7 +23,10 @@ export function SoftButton({ children, style, disabled, ...props }: ButtonProps)
 
 export function CoinPill({ coins }: { coins: number }) {
   const colors = useColors();
-  return <View style={[styles.coinPill, { backgroundColor: colors.accent }]}><Text style={styles.coinIcon}>🪙</Text><Text style={[styles.coinText, { color: colors.foreground }]}>{coins}</Text></View>;
+  return <View style={[styles.coinPill, { backgroundColor: colors.accent }]} accessible accessibilityLabel={`${coins} coins`}>
+    <View style={styles.coinIcon}><View style={styles.coinFace}><View style={styles.coinShine} /></View></View>
+    <Text style={[styles.coinText, { color: colors.foreground }]}>{coins}</Text>
+  </View>;
 }
 
 export function Header({ title, onBack, right }: { title: string; onBack?: () => void; right?: React.ReactNode }) {
@@ -60,8 +63,10 @@ const styles = StyleSheet.create({
   primaryText: { color: '#fff', fontFamily: 'Inter_700Bold', fontSize: 16 },
   softButton: { minHeight: 52, paddingHorizontal: 22, borderRadius: 16, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
   softText: { fontFamily: 'Inter_600SemiBold', fontSize: 15 },
-  coinPill: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 18 },
-  coinIcon: { fontSize: 16, lineHeight: 19 },
+  coinPill: { flexDirection: 'row', alignItems: 'center', gap: 7, paddingHorizontal: 11, paddingVertical: 7, borderRadius: 18 },
+  coinIcon: { width: 22, height: 22, borderRadius: 11, borderWidth: 1, borderColor: '#B77B18', backgroundColor: '#ECAA2D', alignItems: 'center', justifyContent: 'center' },
+  coinFace: { width: 17, height: 17, borderRadius: 9, borderWidth: 1, borderColor: '#FFF0AF', backgroundColor: '#F6C445' },
+  coinShine: { position: 'absolute', top: 3, left: 3, width: 5, height: 3, borderRadius: 3, backgroundColor: '#FFF6D2', transform: [{ rotate: '-25deg' }] },
   coinText: { fontFamily: 'Inter_700Bold', fontSize: 14 },
   sectionLabel: { fontFamily: 'Inter_700Bold', fontSize: 12, letterSpacing: 1, textTransform: 'uppercase' },
 });
