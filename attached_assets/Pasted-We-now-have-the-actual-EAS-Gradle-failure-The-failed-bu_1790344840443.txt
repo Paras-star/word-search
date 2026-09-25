@@ -1,0 +1,115 @@
+We now have the actual EAS Gradle failure.
+
+The failed build reached Expo/Android configuration successfully:
+
+* compileSdk: 36
+* targetSdk: 36
+* Expo SDK 57
+* React Native 0.86.3
+
+The failure occurs specifically while evaluating:
+
+`react-native-google-mobile-ads@17.1.0`
+
+The relevant errors are:
+
+`Cannot get property 'googleMobileAdsJson' on extra properties extension as it does not exist`
+
+and:
+
+`Android Gradle Plugin: project ':react-native-google-mobile-ads' does not specify compileSdk in build.gradle`
+
+I want you to diagnose this AdMob configuration issue now.
+
+### IMPORTANT: READ-ONLY DIAGNOSTIC TASK
+
+Do NOT modify any files.
+
+Do NOT:
+
+* update react-native-google-mobile-ads
+* downgrade react-native-google-mobile-ads
+* change Expo SDK
+* change React Native
+* change Gradle
+* change Android SDK
+* change AdMob IDs
+* change the consent implementation
+* change package.json
+* change eas.json
+* commit
+* push
+* start another EAS build
+
+### Inspect
+
+Compare the installed `react-native-google-mobile-ads@17.1.0` package's expected Android/Expo configuration with our current project configuration.
+
+Specifically inspect:
+
+1. The package's `android/build.gradle`, especially around line 115 where `googleMobileAdsJson` is accessed.
+
+2. The package's Expo config/plugin documentation or installed config-plugin implementation, if available.
+
+3. Our current Expo configuration and all react-native-google-mobile-ads plugin configuration.
+
+4. Whether the required AdMob app configuration is supposed to be supplied through:
+
+   * Expo config
+   * app.json/app.config.*
+   * the package's config plugin
+   * AndroidManifest metadata
+   * a generated `google-services`/AdMob JSON file
+   * Gradle `ext` properties
+   * environment variables
+   * another mechanism
+
+5. Determine exactly why `googleMobileAdsJson` is missing during Gradle evaluation.
+
+6. Determine why the module does not receive `compileSdk` in the way the Android Gradle Plugin expects.
+
+7. Check whether `react-native-google-mobile-ads@17.1.0` is officially compatible with:
+
+   * Expo SDK 57
+   * React Native 0.86.3
+   * the Android Gradle/SDK versions being used by Expo SDK 57.
+
+8. Check whether our current AdMob configuration is missing a required Expo config-plugin entry or property.
+
+### Critical distinction
+
+Do not assume that the missing `googleMobileAdsJson` means our AdMob IDs themselves are wrong.
+
+I want you to identify whether this is:
+
+A. Missing Expo config-plugin configuration
+
+B. Incorrect Expo configuration syntax
+
+C. A package-version compatibility issue
+
+D. A problem caused by the package's Gradle implementation
+
+E. A problem with the generated native Android project
+
+F. Something else
+
+### Final response
+
+Give me:
+
+**1. Exact root cause**
+
+**2. Evidence from the installed package/configuration**
+
+**3. What configuration is currently missing or incorrect**
+
+**4. The safest fix you recommend**
+
+**5. Whether the fix would affect our existing AdMob consent, banner, interstitial, or rewarded-ad behavior**
+
+**6. Whether the fix should be made in Expo configuration, dependency versions, or native Android configuration**
+
+Do not make the fix yet.
+
+We will review your diagnosis before changing anything.
