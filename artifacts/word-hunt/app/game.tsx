@@ -9,6 +9,7 @@ import { generatePuzzle, gridCellFromPoint, lettersFor, lineCells, type GridBoun
 import { getPuzzleCategory } from '@/game/puzzleConfig';
 import { getOnboardingStep } from '@/game/onboarding';
 import { dailyCategory, dailySeed, isDailyDatePlayable, parseLocalDateKey } from '@/game/daily';
+import { getDailyPuzzle } from '@/game/dailyPuzzle';
 import { isCategoryUnlocked } from '@/game/progression';
 import { completionBonus, formatTime, HIGHLIGHT_COLORS, scoreFoundWord } from '@/game/scoring';
 import type { Cell, GameMode, Puzzle } from '@/game/types';
@@ -80,7 +81,7 @@ function GameSession({ params }: { params: GameParams }) {
     activePuzzle.current = {
       categoryId: category.id,
       seed: puzzleSeed,
-      puzzle: generatePuzzle(onboarding || daily ? category : getPuzzleCategory(category, completedLevels), puzzleSeed, onboarding?.options),
+      puzzle: daily ? getDailyPuzzle(rawDailyDate!) : generatePuzzle(onboarding ? category : getPuzzleCategory(category, completedLevels), puzzleSeed, onboarding?.options),
     };
   }
   const puzzle = activePuzzle.current.puzzle;
@@ -126,13 +127,15 @@ function GameSession({ params }: { params: GameParams }) {
       }
       if (rawDailyDate !== undefined) {
         if (!daily || !isDailyDatePlayable(rawDailyDate)) {
-          router.replace('/daily');
+          if (router.canGoBack()) router.back();
+          else router.replace('/daily');
           return;
         }
         if (completionStage.current < 1) {
           const awarded = await completeDailyPuzzle(rawDailyDate);
           if (!awarded) {
-            router.replace('/daily');
+            if (router.canGoBack()) router.back();
+            else router.replace('/daily');
             return;
           }
           completionStage.current = 1;
@@ -304,7 +307,7 @@ function GameSession({ params }: { params: GameParams }) {
   if (!onboarding && !daily && !isCategoryUnlocked(categoryIndex, completedLevels, CATEGORIES)) return <Redirect href="/categories" />;
 
   return <Screen style={styles.screen}>
-    <Header title={category.name} onBack={() => daily ? router.replace('/daily') : onboarding ? router.replace('/') : router.back()} right={<CoinPill coins={coins} />} />
+    <Header title={category.name} onBack={() => daily ? (router.canGoBack() ? router.back() : router.replace('/daily')) : onboarding ? router.replace('/') : router.back()} right={<CoinPill coins={coins} />} />
     <View style={styles.metaRow}><View><Text style={[styles.scoreLabel, { color: colors.mutedForeground }]}>SCORE</Text><Text style={[styles.score, { color: colors.foreground }]}>{score}</Text></View><View style={[styles.timerPill, { backgroundColor: mode === 'time' && timeLeft < 30 ? '#ffe4e4' : colors.card, borderColor: mode === 'time' && timeLeft < 30 ? colors.warning : colors.border }]}><Feather name="clock" size={16} color={mode === 'time' && timeLeft < 30 ? colors.warning : colors.primary} /><Text style={[styles.timerText, { color: mode === 'time' && timeLeft < 30 ? colors.warning : colors.foreground }]}>{formatTime(mode === 'time' ? timeLeft : elapsed)}</Text></View><Pressable onPress={useHint} disabled={hints === 0} style={[styles.hintButton, { backgroundColor: hints ? colors.orange : colors.border }]} testID="hint-button"><Feather name="zap" size={16} color="#fff" /><Text style={styles.hintText}>{hints}</Text></Pressable></View>
     {onboarding && <Text style={[styles.tutorialHelp, { color: colors.mutedForeground }]}>
       {requestedStep === 0 ? 'Touch the first letter, drag in a straight line through a word below, then release.' : `Find all ${onboarding.words.length} words to earn 10 coins.`}

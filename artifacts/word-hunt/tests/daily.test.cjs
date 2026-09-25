@@ -135,6 +135,30 @@ test('a daily puzzle is deterministic for the same local date and differs on ano
   );
 });
 
+test('reopening a Daily date uses its cached grid while a second date keeps its own grid', () => {
+  const daily = loadDaily();
+  const puzzle = loadTypeScript('game/puzzle.ts');
+  let generations = 0;
+  const { getDailyPuzzle } = loadTypeScript('game/dailyPuzzle.ts', (name) => {
+    if (name === './daily') return daily;
+    if (name === './puzzle') return {
+      generatePuzzle: (...args) => {
+        generations += 1;
+        return puzzle.generatePuzzle(...args);
+      },
+    };
+    throw new Error(`Unexpected Daily puzzle import: ${name}`);
+  });
+  const first = getDailyPuzzle('2026-09-25');
+  const second = getDailyPuzzle('2026-09-24');
+  assert.equal(generations, 2);
+  assert.strictEqual(getDailyPuzzle('2026-09-25'), first);
+  assert.strictEqual(getDailyPuzzle('2026-09-24'), second);
+  assert.equal(generations, 2);
+  assert.deepEqual(first, puzzle.generatePuzzle(daily.dailyCategory('2026-09-25'), daily.dailySeed('2026-09-25')));
+  assert.notDeepEqual(first, second);
+});
+
 test('curated target pools are unique and pairwise disjoint', () => {
   const categoryWords = loadTypeScript('data/categories.ts').CATEGORIES.flatMap((category) => category.words);
   const onboarding = loadTypeScript('game/onboarding.ts').ONBOARDING_STEPS.flatMap((step) => step.words);

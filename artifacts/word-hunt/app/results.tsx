@@ -93,7 +93,7 @@ export default function ResultsScreen() {
       return <Redirect href="/daily" />;
     }
     return <Screen>
-      <Header title="Daily Puzzle" onBack={() => router.replace('/daily')} />
+      <Header title="Daily Puzzle" onBack={() => router.canGoBack() ? router.back() : router.replace('/daily')} />
       <ScrollView style={styles.scroll} contentContainerStyle={styles.content}>
         <View style={[styles.icon, { backgroundColor: '#e4f7ec' }]}><Text style={{ fontSize: 38 }}>👑</Text></View>
         <Text style={[styles.title, { color: colors.foreground }]}>Daily Puzzle Complete!</Text>
@@ -103,7 +103,7 @@ export default function ResultsScreen() {
           <View style={[styles.stat, { backgroundColor: colors.card, borderColor: colors.border }]}><Text style={[styles.label, { color: colors.mutedForeground }]}>TIME</Text><Text style={[styles.value, { color: colors.foreground }]}>{formatTime(Number(params.time ?? 0))}</Text></View>
           <View style={[styles.stat, { backgroundColor: colors.card, borderColor: colors.border }]}><Text style={[styles.label, { color: colors.mutedForeground }]}>COINS</Text><Text style={[styles.value, { color: colors.orange }]}>+20</Text></View>
         </View>
-        <PrimaryButton onPress={() => router.replace('/daily')}>BACK TO CALENDAR</PrimaryButton>
+        <PrimaryButton onPress={() => router.canGoBack() ? router.back() : router.replace('/daily')}>BACK TO CALENDAR</PrimaryButton>
         <SoftButton onPress={() => router.replace('/')}>HOME</SoftButton>
       </ScrollView>
     </Screen>;

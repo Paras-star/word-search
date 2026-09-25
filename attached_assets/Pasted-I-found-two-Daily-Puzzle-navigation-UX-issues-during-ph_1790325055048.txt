@@ -1,0 +1,178 @@
+I found two Daily Puzzle navigation/UX issues during physical testing.
+
+Please fix ONLY these issues. Do not change the Daily Puzzle content, word pools, rewards, calendar rules, onboarding, category progression, Mystery Dumpling, or AdMob.
+
+Do NOT commit yet.
+
+## ISSUE 1 — DELAY WHEN OPENING DAILY PUZZLE
+
+Current behavior:
+
+`Calendar → tap date → noticeable delay → Daily Puzzle`
+
+Then:
+
+`Daily Puzzle → Back → Calendar → tap another date → noticeable delay → Daily Puzzle`
+
+Every time I select a Daily Puzzle date, there is a noticeable loading delay before the puzzle appears.
+
+The Daily Puzzle is deterministic and uses the existing local puzzle generator.
+
+Please inspect why the Daily route is taking time to open.
+
+Look for things such as:
+
+* unnecessary route remounting
+* repeated puzzle generation
+* repeated AsyncStorage reads
+* unnecessary progress hydration
+* waiting for unrelated state
+* rebuilding/recalculating the puzzle more than once
+* loading logic that runs every time the Daily screen mounts
+
+### Desired behavior
+
+When I tap an available date:
+
+`Calendar → Date → Daily Puzzle`
+
+the Daily Puzzle should appear as quickly as possible, ideally immediately with no visible loading delay.
+
+Do NOT sacrifice correctness for speed.
+
+The selected date must still produce:
+
+* the correct deterministic Daily words
+* the correct deterministic puzzle
+* the same puzzle when reopening that date
+* the existing +20 reward behavior
+* the existing completion state
+
+Do not use fake loading or simply hide the delay with an animation.
+
+Find and remove the actual unnecessary work causing the delay.
+
+Also test:
+
+`Calendar → Date A → Back → Calendar → Date B → Puzzle`
+
+Date B should open just as quickly as Date A.
+
+## ISSUE 2 — CALENDAR BACK NAVIGATION
+
+Current navigation:
+
+`Menu → Calendar → Date → Puzzle`
+
+Then:
+
+`Puzzle → Back → Calendar`
+
+This part is correct.
+
+But currently:
+
+`Calendar → Back`
+
+does NOT return to the Menu.
+
+Instead it remains on the Calendar and requires another Back press:
+
+`Calendar → Back → Calendar → Back → Menu`
+
+This is incorrect.
+
+### Desired behavior
+
+The navigation stack should behave exactly like:
+
+`Menu`
+↓
+`Calendar`
+↓
+`Daily Puzzle`
+
+Back from Daily Puzzle:
+
+`Daily Puzzle → Calendar`
+
+Back from Calendar:
+
+`Calendar → Menu`
+
+Therefore the player should NEVER need to press Back twice while already on the Calendar.
+
+## IMPORTANT NAVIGATION REQUIREMENT
+
+Please inspect the actual Expo Router navigation stack and determine why the Calendar is remaining in the stack twice or why the first Back action is being consumed incorrectly.
+
+Do NOT blindly add another `router.back()`.
+
+Do NOT create a navigation loop.
+
+Do NOT replace the calendar with a modal unless there is a strong architectural reason.
+
+The desired stack should contain only one Calendar screen in this flow.
+
+Also test:
+
+### Flow A
+
+Menu → Calendar → Back → Menu
+
+### Flow B
+
+Menu → Calendar → Date A → Puzzle → Back → Calendar → Back → Menu
+
+### Flow C
+
+Menu → Calendar → Date A → Puzzle → Back → Calendar → Date B → Puzzle → Back → Calendar → Back → Menu
+
+All three should work with exactly the expected number of Back presses.
+
+## PRESERVE
+
+Do NOT change:
+
+* Daily word pool
+* onboarding word pool
+* category word pool
+* Daily date window
+* Daily deterministic seed
+* +20 reward
+* completed-date persistence
+* crown display
+* calendar UI design
+* onboarding
+* normal category progression
+* Mystery Dumpling
+* AdMob
+
+## VALIDATION
+
+After fixing:
+
+1. TypeScript
+2. Existing Daily tests
+3. Existing onboarding tests
+4. Web export
+5. Test Calendar → Date A → Puzzle
+6. Test Back → Calendar
+7. Test Calendar → Back → Menu
+8. Test Date A → Back → Date B
+9. Confirm Date B opens without the previous delay
+10. Test the full three flows described above
+
+Also compare the Daily route timing before/after the fix if possible and identify what was causing the delay.
+
+Do NOT commit.
+
+At the end report:
+
+* root cause of the Daily opening delay
+* what was changed
+* navigation-stack fix
+* validation results
+* files changed
+
+Stop before committing.
