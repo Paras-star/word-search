@@ -2,6 +2,7 @@
   "expo": {
     "name": "Word Hunt : Mystery Dumpling",
     "slug": "word-hunt",
+    "owner": "paraschuri",
     "version": "2.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
@@ -35,6 +36,11 @@
         }
       ]
     ],
+    "extra": {
+      "eas": {
+        "projectId": "d4543fbe-700c-4062-9cad-e669820eaab8"
+      }
+    },
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
