@@ -1,4 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { isDailyDatePlayable, parseLocalDateKey } from '@/game/daily';
 
 const KEYS = {
   progress: '@word-hunt/progress-v2',
@@ -7,7 +8,12 @@ const KEYS = {
 } as const;
 export const STARTING_COINS = 50;
 
-export type GameProgress = { coins: number; completedLevels: string[]; onboardingStep: number };
+export type GameProgress = {
+  coins: number;
+  completedLevels: string[];
+  onboardingStep: number;
+  completedDailyPuzzles?: string[];
+};
 
 function parseNumber(value: string | null, fallback: number): number {
   if (value === null) return fallback;
@@ -32,13 +38,18 @@ function parseProgress(raw: string): GameProgress {
   if (typeof progress.coins !== 'number' || !Number.isFinite(progress.coins) || progress.coins < 0
     || !Number.isInteger(progress.onboardingStep) || progress.onboardingStep! < 0 || progress.onboardingStep! > 6
     || !Array.isArray(progress.completedLevels)
-    || !progress.completedLevels.every((id) => typeof id === 'string')) {
+    || !progress.completedLevels.every((id) => typeof id === 'string')
+    || (progress.completedDailyPuzzles !== undefined
+      && (!Array.isArray(progress.completedDailyPuzzles)
+        || !progress.completedDailyPuzzles.every((key) => typeof key === 'string' && parseLocalDateKey(key))))) {
     throw new Error('Saved progress is invalid');
   }
   return {
     coins: progress.coins,
     completedLevels: [...new Set(progress.completedLevels)],
     onboardingStep: progress.onboardingStep!,
+    ...(progress.completedDailyPuzzles === undefined
+      ? {} : { completedDailyPuzzles: [...new Set(progress.completedDailyPuzzles)] }),
   };
 }
 
@@ -62,6 +73,18 @@ export function advanceOnboarding(progress: GameProgress, step: number): GamePro
     throw new Error('Onboarding step is not available');
   }
   return { ...progress, coins: progress.coins + 10, onboardingStep: step + 1 };
+}
+
+export function awardDailyPuzzle(progress: GameProgress, dateKey: string, now: Date = new Date()): GameProgress | null {
+  if (progress.onboardingStep < 6 || !isDailyDatePlayable(dateKey, now)) {
+    throw new Error('Daily puzzle is not available');
+  }
+  if (progress.completedDailyPuzzles?.includes(dateKey)) return null;
+  return {
+    ...progress,
+    coins: progress.coins + 20,
+    completedDailyPuzzles: [...(progress.completedDailyPuzzles ?? []), dateKey],
+  };
 }
 
 export async function saveProgress(progress: GameProgress): Promise<void> {

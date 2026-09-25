@@ -27,6 +27,7 @@ function RootLayoutNav() {
       <Stack.Screen name="categories" />
       <Stack.Screen name="mode" />
       <Stack.Screen name="game" />
+      <Stack.Screen name="daily" />
       <Stack.Screen name="reward" />
       <Stack.Screen name="collection" />
       <Stack.Screen name="results" />

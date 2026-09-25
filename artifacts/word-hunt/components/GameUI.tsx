@@ -23,7 +23,7 @@ export function SoftButton({ children, style, disabled, ...props }: ButtonProps)
 
 export function CoinPill({ coins }: { coins: number }) {
   const colors = useColors();
-  return <View style={[styles.coinPill, { backgroundColor: colors.accent }]}><Feather name="circle" size={16} color={colors.orange} /><Text style={[styles.coinText, { color: colors.foreground }]}>{coins}</Text></View>;
+  return <View style={[styles.coinPill, { backgroundColor: colors.accent }]}><Text style={styles.coinIcon}>🪙</Text><Text style={[styles.coinText, { color: colors.foreground }]}>{coins}</Text></View>;
 }
 
 export function Header({ title, onBack, right }: { title: string; onBack?: () => void; right?: React.ReactNode }) {
@@ -61,6 +61,7 @@ const styles = StyleSheet.create({
   softButton: { minHeight: 52, paddingHorizontal: 22, borderRadius: 16, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
   softText: { fontFamily: 'Inter_600SemiBold', fontSize: 15 },
   coinPill: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 18 },
+  coinIcon: { fontSize: 16, lineHeight: 19 },
   coinText: { fontFamily: 'Inter_700Bold', fontSize: 14 },
   sectionLabel: { fontFamily: 'Inter_700Bold', fontSize: 12, letterSpacing: 1, textTransform: 'uppercase' },
 });
