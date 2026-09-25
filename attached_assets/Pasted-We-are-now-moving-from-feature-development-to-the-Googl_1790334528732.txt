@@ -1,0 +1,230 @@
+We are now moving from feature development to the **Google Play Store publishing phase**.
+
+Do NOT add any new game features.
+
+I want a complete **production-readiness audit only**. Do not modify code, assets, configuration, Git history, or dependencies during this task.
+
+The current approved game state is the clean checkpoint containing:
+
+* Phase 2 onboarding
+* Daily Puzzle/calendar
+* Current home-page branding
+* Current splash/loading logo
+* Existing Mystery Dumpling collection/reward system
+* Existing gameplay and progression
+* Existing AdMob implementation
+
+The official game name is:
+
+**Word Hunt : Mystery Dumpling**
+
+### Audit the following areas
+
+#### 1. Core gameplay
+
+Verify that:
+
+* All 15 categories are present and accessible.
+* Existing puzzle levels/configurations are valid.
+* Letter selection works correctly.
+* Scoring works correctly.
+* Hints work correctly.
+* Reverse-word behavior works correctly.
+* Puzzle completion works correctly.
+* Results flow works correctly.
+* No obvious development/debug UI remains.
+
+#### 2. Onboarding
+
+Verify:
+
+* Fresh-player onboarding works.
+* Starting coins are correct.
+* Tutorial/onboarding progression works.
+* Exactly-once coin rewards work.
+* Animals unlock correctly after onboarding.
+* Existing players are not accidentally reset.
+* Onboarding does not interfere with normal category progression.
+
+#### 3. Daily Puzzle
+
+Verify:
+
+* Calendar opens correctly.
+* Current date and previous playable dates behave correctly.
+* Future/locked dates remain locked.
+* Completed dates show correctly.
+* Daily rewards are exactly once.
+* Daily completion does not accidentally award normal category rewards or dumplings.
+* Daily Puzzle does not interfere with normal progress.
+* Daily word pool remains separate from category/onboarding pools.
+
+#### 4. Mystery Dumpling system
+
+Verify:
+
+* All 30 dumpling assets are correctly referenced.
+* Rarity distribution is intact.
+* Locked/owned states work.
+* Collection Room works.
+* Reward reveal works.
+* Dumpling persistence works.
+* No old sprite-sheet or obsolete collection-room assets are still being used.
+* No broken asset references exist.
+
+#### 5. Persistence
+
+Audit all relevant AsyncStorage/progress keys and verify:
+
+* Coins persist.
+* Completed levels persist.
+* Onboarding state persists.
+* Daily completion persists.
+* Owned dumplings persist.
+* Reloading/restarting the app does not reset progress.
+* Failed saves cannot silently overwrite valid progress.
+
+Do not change any storage implementation.
+
+#### 6. Navigation/UI
+
+Check:
+
+* Home screen
+* Play
+* Category selection
+* Game screen
+* Results
+* Daily Puzzle
+* Calendar
+* Collection Room
+* Back navigation
+* Android physical-screen layouts
+
+Pay particular attention to accidental navigation loops or screens being duplicated on the navigation stack.
+
+The current unresolved top-left home-page text:
+
+**“A LITTLE HUNT EVERY DAY”**
+
+is intentionally being left alone for now. Do not modify it.
+
+#### 7. Branding
+
+Verify:
+
+* Official name is **Word Hunt : Mystery Dumpling** wherever the app's name is configured.
+* Current home-page branding is intact.
+* Current splash/loading logo configuration is intact.
+* Splash has no text underneath the logo.
+* No obsolete logo references remain.
+
+#### 8. AdMob
+
+Audit the existing AdMob implementation without changing it.
+
+Verify:
+
+* Banner placement is correct.
+* Interstitial logic is correct.
+* Rewarded-ad logic is correct.
+* Ads do not appear in prohibited/undesired game states.
+* UMP consent flow exists.
+* Privacy options entry point exists where required.
+* Test vs production AdMob configuration is clearly separated.
+* No AdMob test IDs would accidentally be shipped in production when production mode is enabled.
+* Browser/web behavior remains free of native AdMob.
+
+Do not attempt to build the native app yet.
+
+#### 9. Offline behavior
+
+Verify that the game does not depend on a backend/server for normal gameplay.
+
+Confirm:
+
+* Normal puzzles work offline.
+* Daily Puzzle generation/data works offline.
+* Progress works offline.
+* Collection works offline.
+* No required authentication exists.
+
+#### 10. Expo / Android production configuration
+
+Audit:
+
+* Expo SDK/configuration
+* Android package ID
+* App name
+* Android version/versionCode
+* app icon
+* splash configuration
+* native permissions
+* AdMob native configuration
+* EAS configuration
+* production environment variables
+* any configuration that could block an Android AAB build
+
+Do NOT change anything.
+
+#### 11. Dependencies and build risks
+
+Identify:
+
+* outdated/incompatible packages
+* known Expo SDK mismatches
+* native packages that could cause EAS/Gradle failures
+* configuration issues that could prevent a production Android build
+
+Remember that previous EAS Android builds failed during the native Gradle/build process. **Do not attempt to fix the failure yet.** Just identify likely causes based on the current project state.
+
+#### 12. Store-readiness items
+
+Identify everything we will need before publishing, including:
+
+* privacy policy URL
+* Data Safety information
+* content rating
+* target audience
+* ads declaration
+* store screenshots
+* feature graphic
+* app icon requirements
+* store description
+* contact/support information
+* any other Google Play requirements that are relevant to this app
+
+Do not create these yet. Just list what is missing.
+
+### IMPORTANT — NO CHANGES
+
+This is an AUDIT.
+
+Do not:
+
+* modify source code
+* modify package.json
+* modify Expo config
+* modify assets
+* update dependencies
+* change AdMob
+* change navigation
+* fix bugs
+* commit
+* push
+
+### Final report
+
+Give me a concise but complete report divided into:
+
+**A. PASS — already production-ready**
+
+**B. WARNINGS — works, but should be reviewed before release**
+
+**C. BLOCKERS — must be fixed before production build**
+
+**D. PLAY STORE ITEMS — things we still need to prepare**
+
+**E. NATIVE BUILD RISKS — specifically anything that could explain our previous EAS Android build failures**
+
+Do not make any changes. I want the audit results first so we can address only genuine blockers.
