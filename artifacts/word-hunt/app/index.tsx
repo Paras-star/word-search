@@ -37,7 +37,6 @@ export default function HomeScreen() {
   };
   return <Screen style={{ paddingTop: insets.top + 10, paddingBottom: insets.bottom + 8, backgroundColor: homeColors.background }}>
     <View style={styles.topRow}>
-      <Text style={styles.topKicker}>A LITTLE HUNT{'\n'}EVERY DAY</Text>
       <View style={styles.topActions}>
         <CoinPill coins={coins} />
         <Pressable onPress={() => router.push('/daily')} hitSlop={6} accessibilityRole="button" accessibilityLabel="Daily word hunt calendar" testID="daily-calendar-button" style={({ pressed }) => [styles.calendarButton, { opacity: pressed ? 0.7 : 1 }]}>
@@ -60,8 +59,7 @@ export default function HomeScreen() {
 }
 
 const styles = StyleSheet.create({
-  topRow: { minHeight: 84, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
-  topKicker: { marginTop: 8, fontFamily: 'Inter_700Bold', fontSize: 11, letterSpacing: 1.2, lineHeight: 17, color: homeColors.teal },
+  topRow: { minHeight: 84, flexDirection: 'row', justifyContent: 'flex-end', alignItems: 'flex-start' },
   topActions: { alignItems: 'center', gap: 4 },
   calendarButton: { width: 42, height: 40, borderRadius: 13, borderWidth: 1, borderColor: homeColors.tileBorder, backgroundColor: homeColors.tile, alignItems: 'center', justifyContent: 'center' },
   calendarIcon: { fontSize: 19 },
