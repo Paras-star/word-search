@@ -1,0 +1,132 @@
+We are preparing **Word Hunt : Mystery Dumpling** for Google Play publishing.
+
+Before making any production-build changes, I want you to diagnose the **previous failed EAS Android builds**.
+
+This is a READ-ONLY diagnostic task.
+
+### DO NOT CHANGE ANYTHING
+
+Do not:
+
+* modify source code
+* modify package.json
+* modify eas.json
+* modify Expo configuration
+* update dependencies
+* change AdMob configuration
+* change Android configuration
+* create a new build
+* commit
+* push
+
+I only want you to investigate and report the actual cause of the previous failures.
+
+### Investigate
+
+Look for the previous EAS Android build records/logs available from the project/environment.
+
+We previously had at least these failed builds:
+
+* First failed build: `b070b010...`
+* Second failed build: `2ad237d4...`
+
+Find the complete build IDs if available and inspect their logs, especially the Gradle failure section.
+
+For each failed build, determine:
+
+1. Exact failure stage.
+2. Exact Gradle task that failed.
+3. The actual error message.
+4. Whether the failure happened during:
+
+   * dependency installation
+   * Expo prebuild/configuration
+   * native Android compilation
+   * Kotlin/Java compilation
+   * CMake/NDK
+   * resource processing
+   * manifest processing
+   * signing
+   * packaging
+   * another stage
+5. Which package/module caused the failure, if identifiable.
+6. Whether the two failures have the same root cause or different causes.
+7. Whether the first failure was related to pnpm/esbuild build scripts.
+8. Whether the second failure occurred after the pnpm version fix and therefore represents a separate issue.
+9. Whether the failure is related to:
+
+   * Expo SDK 57
+   * React Native 0.86
+   * react-native-google-mobile-ads
+   * Reanimated/Worklets
+   * another native dependency
+   * Android Gradle Plugin
+   * Gradle version
+   * Java version
+   * Android SDK/API level
+   * EAS environment
+   * package-manager configuration
+   * something else
+
+### Important
+
+Do NOT infer the cause merely from the project's current dependencies.
+
+I want the diagnosis based on the **actual failed EAS logs** whenever those logs are available.
+
+If the old build logs are no longer accessible, explicitly say that rather than guessing.
+
+### Also inspect current build configuration READ-ONLY
+
+After inspecting the historical failures, compare them against the current approved checkpoint:
+
+`d3e1700`
+
+Check:
+
+* `eas.json`
+* `package.json`
+* Expo configuration
+* Android package ID
+* Expo SDK version
+* React Native version
+* native dependencies
+* pnpm/package-manager configuration
+* existing AdMob config
+
+Only report relevant differences between the failed builds and the current state.
+
+### Final response
+
+Give me:
+
+**A. BUILD 1 — actual failure**
+
+* build ID
+* failure stage
+* exact root cause
+* relevant error
+
+**B. BUILD 2 — actual failure**
+
+* build ID
+* failure stage
+* exact root cause
+* relevant error
+
+**C. CURRENT PROJECT**
+
+* what has already been fixed
+* what remains unresolved
+
+**D. ROOT CAUSE**
+State whether the evidence shows:
+
+* one common cause,
+* two separate causes,
+* or insufficient evidence.
+
+**E. NEXT ACTION**
+Give me the single most appropriate next action based on the evidence.
+
+Do not make any changes or start another build.
