@@ -1,0 +1,51 @@
+Do NOT change any files and do NOT start another build.
+
+We need to verify exactly what source code EAS build `66ec4237-bb8a-4228-93c2-185cd6b9990b` actually received.
+
+The previous investigation found:
+
+* `react-native-google-mobile-ads@17.1.0` has a Gradle property mismatch:
+
+  * one path defines `rootProject.ext.googleAdsJson`
+  * `android/build.gradle` reads `googleMobileAdsJson`
+* The current local `artifacts/word-hunt/app.json` contains the approved top-level:
+  `"react-native-google-mobile-ads": { "android_app_id": "<existing Android App ID>" }`
+* However, the EAS build still failed with:
+  `Cannot get property 'googleMobileAdsJson' on extra properties extension as it does not exist`
+
+Before considering ANY workaround, determine whether EAS actually built the current source.
+
+For EAS build:
+`66ec4237-bb8a-4228-93c2-185cd6b9990b`
+
+Inspect all available build metadata/source information and determine:
+
+1. Exact Git commit/revision associated with the EAS build, if available.
+2. Whether the build source archive can be inspected or its contents verified.
+3. Whether `artifacts/word-hunt/app.json` in the uploaded source contained the top-level `react-native-google-mobile-ads` object.
+4. Whether the uploaded source contained:
+   `"android_app_id"` with the existing Android App ID.
+5. Whether EAS was building the same `artifacts/word-hunt` application directory we inspected locally.
+6. Whether the build archive contained another `app.json` that could have been discovered first by `android/app-json.gradle`.
+7. Compare the exact source state used by EAS against local commit `0488321` and its parent.
+
+Use read-only inspection only.
+
+Do NOT:
+
+* modify app.json,
+* modify the Expo plugin,
+* add `androidSdk: "classic"`,
+* edit node_modules,
+* change dependencies,
+* change Gradle,
+* change compileSdk,
+* start another EAS build,
+* commit,
+* push.
+
+If the EAS build definitely used the current source containing the top-level AdMob key, report that clearly.
+
+If the EAS build used older/different source, identify exactly what source it used and why.
+
+Report the evidence, not an assumption.
