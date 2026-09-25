@@ -21,8 +21,10 @@ function loadTypeScript(relativePath, mockRequire = () => {
 
 function loadDaily() {
   const categories = loadTypeScript('data/categories.ts');
+  const dailyWords = loadTypeScript('data/dailyWords.ts');
   return loadTypeScript('game/daily.ts', (name) => {
     if (name === '@/data/categories' || name === '../data/categories') return categories;
+    if (name === '@/data/dailyWords' || name === '../data/dailyWords') return dailyWords;
     throw new Error(`Unexpected daily runtime import: ${name}`);
   });
 }
@@ -117,7 +119,7 @@ test('invalid date keys are rejected rather than normalized to another day', () 
 test('a daily puzzle is deterministic for the same local date and differs on another date', () => {
   const daily = loadDaily();
   const { generatePuzzle } = loadTypeScript('game/puzzle.ts');
-  const key = '2025-09-25';
+  const key = '2026-09-25';
   const category = daily.dailyCategory(key);
   const first = generatePuzzle(category, daily.dailySeed(key));
   const reopened = generatePuzzle(daily.dailyCategory(key), daily.dailySeed(key));
@@ -125,11 +127,74 @@ test('a daily puzzle is deterministic for the same local date and differs on ano
   assert.equal(category.id, daily.dailyCategory(key).id);
   assert.deepEqual(reopened, first);
   assert.equal(daily.dailySeed(key), daily.dailySeed(key));
-  assert.notEqual(daily.dailySeed('2025-09-26'), daily.dailySeed(key));
+  assert.notEqual(daily.dailySeed('2026-09-26'), daily.dailySeed(key));
+  assert.ok(category.words.every((word) => !daily.dailyCategory('2026-09-26').words.includes(word)));
   assert.notDeepEqual(
-    generatePuzzle(daily.dailyCategory('2025-09-26'), daily.dailySeed('2025-09-26')),
+    generatePuzzle(daily.dailyCategory('2026-09-26'), daily.dailySeed('2026-09-26')),
     first,
   );
+});
+
+test('curated target pools are unique and pairwise disjoint', () => {
+  const categoryWords = loadTypeScript('data/categories.ts').CATEGORIES.flatMap((category) => category.words);
+  const onboarding = loadTypeScript('game/onboarding.ts').ONBOARDING_STEPS.flatMap((step) => step.words);
+  const dailyWords = loadTypeScript('data/dailyWords.ts').DAILY_WORDS;
+  const categorySet = new Set(categoryWords);
+  const onboardingSet = new Set(onboarding);
+  assert.equal(onboarding.length, 53);
+  assert.equal(onboardingSet.size, onboarding.length);
+  assert.equal(dailyWords.length, 432);
+  assert.equal(new Set(dailyWords).size, dailyWords.length);
+  assert.ok(onboarding.every((word) => !categorySet.has(word)));
+  assert.ok(dailyWords.every((word) => !categorySet.has(word) && !onboardingSet.has(word)));
+  assert.ok(dailyWords.every((word) => /^[A-Z]{3,9}$/.test(word)));
+});
+
+test('Daily target sets stay disjoint across nearby dates and generate with the existing engine', () => {
+  const daily = loadDaily();
+  const { generatePuzzle } = loadTypeScript('game/puzzle.ts');
+  const cutoverWindow = Array.from({ length: 11 }, (_, index) =>
+    new Date(Date.UTC(2026, 8, 20 + index)).toISOString().slice(0, 10));
+  for (let index = 0; index < cutoverWindow.length; index++) {
+    const words = new Set(daily.dailyCategory(cutoverWindow[index]).words);
+    for (let other = index + 1; other < Math.min(index + 6, cutoverWindow.length); other++) {
+      assert.ok(daily.dailyCategory(cutoverWindow[other]).words.every((word) => !words.has(word)),
+        `${cutoverWindow[index]} overlaps ${cutoverWindow[other]}`);
+    }
+  }
+  const keys = Array.from({ length: 365 }, (_, index) =>
+    new Date(Date.UTC(2026, 8, 25 + index)).toISOString().slice(0, 10));
+  const sets = keys.map((key) => {
+    const category = daily.dailyCategory(key);
+    assert.equal(category.words.length, 9, key);
+    assert.equal(new Set(category.words).size, 9, key);
+    const puzzle = generatePuzzle(category, daily.dailySeed(key));
+    assert.equal(Object.keys(puzzle.placements).length, 9, key);
+    assert.deepEqual(daily.dailyCategory(key).words, category.words, key);
+    return new Set(category.words);
+  });
+  for (const length of [30, 90, 365]) {
+    let adjacentRepeatedWords = 0;
+    let maxSixDayOverlap = 0;
+    let maxSixDayRepeatedWords = 0;
+    for (let index = 0; index < length; index++) {
+      const window = sets.slice(index, Math.min(index + 6, length));
+      const unique = new Set(window.flatMap((words) => [...words]));
+      maxSixDayRepeatedWords = Math.max(maxSixDayRepeatedWords, window.length * 9 - unique.size);
+      for (let other = index + 1; other < Math.min(index + 6, length); other++) {
+        const overlap = [...sets[index]].filter((word) => sets[other].has(word)).length;
+        maxSixDayOverlap = Math.max(maxSixDayOverlap, overlap);
+        if (other === index + 1) adjacentRepeatedWords += overlap;
+      }
+    }
+    const completeRepeatedSets = length - new Set(sets.slice(0, length).map((words) =>
+      [...words].sort().join(','))).size;
+    console.log(`${length} Daily dates: adjacent repeated words=${adjacentRepeatedWords}, maximum pair overlap within six days=${maxSixDayOverlap}, maximum repeated words in six days=${maxSixDayRepeatedWords}, complete repeated sets=${completeRepeatedSets}`);
+    assert.equal(adjacentRepeatedWords, 0);
+    assert.equal(maxSixDayOverlap, 0);
+    assert.equal(maxSixDayRepeatedWords, 0);
+    assert.equal(completeRepeatedSets, 0);
+  }
 });
 
 test('daily completion adds 20 coins once without changing level or onboarding progress', async () => {
