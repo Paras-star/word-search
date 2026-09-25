@@ -6,6 +6,7 @@ import { Header, Screen, PrimaryButton, SoftButton } from '@/components/GameUI';
 import { CATEGORIES, getCategory } from '@/data/categories';
 import { nextCategoryId } from '@/game/progression';
 import { getOnboardingStep } from '@/game/onboarding';
+import { parseLocalDateKey } from '@/game/daily';
 import { formatTime } from '@/game/scoring';
 import { useColors } from '@/hooks/useColors';
 import { useGame } from '@/context/GameProvider';
@@ -17,9 +18,10 @@ import {
 export default function ResultsScreen() {
   const router = useRouter();
   const colors = useColors();
-  const { awardCoins, onboardingStep } = useGame();
-  const params = useLocalSearchParams<{ categoryId?: string; mode?: string; score?: string; time?: string; gameOver?: string; puzzleId?: string; onboardingStep?: string }>();
+  const { awardCoins, completedDailyPuzzles, onboardingStep } = useGame();
+  const params = useLocalSearchParams<{ categoryId?: string; mode?: string; score?: string; time?: string; gameOver?: string; puzzleId?: string; onboardingStep?: string; dailyDate?: string }>();
   const isOnboardingRoute = params.onboardingStep !== undefined;
+  const isDailyRoute = params.dailyDate !== undefined;
   const resultStep = isOnboardingRoute ? Number(params.onboardingStep) : null;
   const onboarding = resultStep !== null && Number.isInteger(resultStep) ? getOnboardingStep(resultStep) : undefined;
   const category = getCategory(params.categoryId);
@@ -30,13 +32,13 @@ export default function ResultsScreen() {
   const [adMessage, setAdMessage] = useState('');
   const navigating = useRef(false);
   useEffect(() => {
-    if (isOnboardingRoute || onboardingStep < 6) return;
+    if (isOnboardingRoute || isDailyRoute || onboardingStep < 6) return;
     if (!gameOver && params.puzzleId) registerCompletedPuzzle(params.puzzleId);
     const update = () => setRewardedReady(isRewardedReady());
     const unsubscribe = subscribeToAds(update);
     void prepareAds().then(update);
     return unsubscribe;
-  }, [gameOver, isOnboardingRoute, onboardingStep, params.puzzleId]);
+  }, [gameOver, isOnboardingRoute, isDailyRoute, onboardingStep, params.puzzleId]);
 
   const proceed = (destination: '/' | { pathname: '/mode'; params: { categoryId: string } }) => {
     if (navigating.current) return;
@@ -82,6 +84,26 @@ export default function ResultsScreen() {
           : { pathname: '/mode', params: { categoryId: 'animals' } })}>
           {next ? `NEXT: ${next.words.length} WORDS` : 'PLAY ANIMALS'}
         </PrimaryButton>
+        <SoftButton onPress={() => router.replace('/')}>HOME</SoftButton>
+      </ScrollView>
+    </Screen>;
+  }
+  if (isDailyRoute) {
+    if (!params.dailyDate || !parseLocalDateKey(params.dailyDate) || !completedDailyPuzzles.includes(params.dailyDate)) {
+      return <Redirect href="/daily" />;
+    }
+    return <Screen>
+      <Header title="Daily Puzzle" onBack={() => router.replace('/daily')} />
+      <ScrollView style={styles.scroll} contentContainerStyle={styles.content}>
+        <View style={[styles.icon, { backgroundColor: '#e4f7ec' }]}><Text style={{ fontSize: 38 }}>👑</Text></View>
+        <Text style={[styles.title, { color: colors.foreground }]}>Daily Puzzle Complete!</Text>
+        <Text style={[styles.copy, { color: colors.mutedForeground }]}>{params.dailyDate} is complete. Your crown is waiting on the calendar.</Text>
+        <View style={styles.stats}>
+          <View style={[styles.stat, { backgroundColor: colors.card, borderColor: colors.border }]}><Text style={[styles.label, { color: colors.mutedForeground }]}>SCORE</Text><Text style={[styles.value, { color: colors.foreground }]}>{params.score ?? '0'}</Text></View>
+          <View style={[styles.stat, { backgroundColor: colors.card, borderColor: colors.border }]}><Text style={[styles.label, { color: colors.mutedForeground }]}>TIME</Text><Text style={[styles.value, { color: colors.foreground }]}>{formatTime(Number(params.time ?? 0))}</Text></View>
+          <View style={[styles.stat, { backgroundColor: colors.card, borderColor: colors.border }]}><Text style={[styles.label, { color: colors.mutedForeground }]}>COINS</Text><Text style={[styles.value, { color: colors.orange }]}>+20</Text></View>
+        </View>
+        <PrimaryButton onPress={() => router.replace('/daily')}>BACK TO CALENDAR</PrimaryButton>
         <SoftButton onPress={() => router.replace('/')}>HOME</SoftButton>
       </ScrollView>
     </Screen>;

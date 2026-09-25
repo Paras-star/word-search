@@ -1,0 +1,347 @@
+We are moving to the next feature: **Daily Puzzle + Calendar**.
+
+IMPORTANT:
+
+* Do not modify the existing onboarding flow.
+* Do not modify normal category progression.
+* Do not modify Mystery Dumpling rarity/reward logic.
+* Do not modify AdMob.
+* Do not change the existing normal +50 coin reward.
+* Do not change the 50 starting coins.
+* Reuse the existing puzzle engine and game/results infrastructure where possible.
+* Do not create a second puzzle engine.
+* Do not commit yet.
+* First inspect the current architecture, then implement this feature cleanly.
+
+# FEATURE 1 — DAILY PUZZLE
+
+Add a small **calendar icon (📅)** near the top-right of the main game UI, directly below/around the existing coin display.
+
+The player taps the calendar icon to open a dedicated Daily Puzzle calendar screen.
+
+## CALENDAR SCREEN
+
+Show:
+
+* Current month
+* Dates arranged in a normal calendar layout
+* A clear indication of today's date
+* Completed dates should display a **crown (👑)** or crown-style completion indicator
+* Available dates should look playable
+* Future dates should look locked/unavailable
+* Dates older than the allowed window should look locked/unavailable
+
+Keep the design consistent with the existing Word Hunt visual style. Do not make the calendar oversized or visually dominant.
+
+## DAILY PUZZLE AVAILABILITY WINDOW
+
+The player can play:
+
+* today's Daily Puzzle
+* plus the previous **5 calendar days**
+
+Therefore there are always up to **6 playable dates**.
+
+Example:
+
+If today is **September 25**:
+
+PLAYABLE:
+
+* September 20
+* September 21
+* September 22
+* September 23
+* September 24
+* September 25
+
+NOT PLAYABLE:
+
+* September 19 and earlier
+* September 26 and later
+
+This must be a rolling window based on the current local calendar date.
+
+Do NOT interpret "past 5 days" as only five total dates. The example above explicitly means **today + previous 5 days = 6 dates**.
+
+When the date changes to September 26, the playable window should automatically become:
+
+* September 21
+* September 22
+* September 23
+* September 24
+* September 25
+* September 26
+
+September 20 should then become unavailable.
+
+## DATE HANDLING
+
+Use the player's local calendar date consistently.
+
+Do not depend on a server clock for this feature.
+
+Avoid UTC date conversion bugs where late-night users could accidentally see the wrong Daily Puzzle date.
+
+Create a stable date key such as:
+
+`YYYY-MM-DD`
+
+and use that key consistently for:
+
+* puzzle seed
+* completion persistence
+* determining the playable window
+
+## DAILY PUZZLE DETERMINISM
+
+Each date must have its own deterministic Daily Puzzle.
+
+For example:
+
+`2026-09-25` always generates the same Daily Puzzle.
+
+If the player:
+
+* closes the app
+* reopens it
+* returns later
+* plays from the calendar again
+
+the puzzle for that date must remain the same.
+
+Use the existing puzzle generation engine with a deterministic seed derived from the date.
+
+Do NOT use Date.now() as the Daily Puzzle seed.
+
+Different dates should produce different puzzles.
+
+## DAILY PUZZLE COMPLETION
+
+When the player completes a Daily Puzzle:
+
+* award exactly **+20 coins**
+* mark that date as completed
+* show the completion state in the calendar using a crown (👑)
+* prevent the player from receiving another +20 for the same date
+
+Completion must persist across:
+
+* app restart
+* browser refresh
+* Android app close/reopen
+* navigation away and back
+
+The reward must be exactly-once.
+
+Double tapping, replaying, or reopening the completed Daily Puzzle must never award another +20.
+
+Use the existing persistence architecture rather than relying on in-memory state.
+
+Store completed daily dates separately from normal `completedLevels`.
+
+For example, use a dedicated persisted collection of date keys.
+
+Do NOT treat a Daily Puzzle as completing a normal category level.
+
+## DAILY PUZZLE REPLAY
+
+If a date is within the current 6-day window and has already been completed:
+
+* the player may open/view that Daily Puzzle if appropriate
+* but it must not award another 20 coins
+* the calendar must continue showing that date as completed
+
+If the cleaner UX is to prevent replay entirely after completion, that is acceptable, but do not allow another reward under any circumstance.
+
+## DAILY PUZZLE REWARD FLOW
+
+Daily Puzzle should have its own clear completion result:
+
+`Daily Puzzle Complete!`
+
+`+20 Coins`
+
+Then allow the player to return to the calendar/game.
+
+Do not accidentally trigger:
+
+* normal +50 coins
+* category completion
+* onboarding progression
+* normal category unlock
+* normal completion reward logic
+
+The Daily Puzzle is its own mode.
+
+IMPORTANT:
+Do not invent a Mystery Dumpling reward for Daily Puzzle unless the existing architecture makes that unavoidable. The explicitly requested Daily Puzzle reward is **20 coins** and the Daily Puzzle must not interfere with the normal progression/reward system.
+
+# CALENDAR NAVIGATION
+
+The desired flow is:
+
+Main screen
+→ tap 📅
+→ Calendar
+→ choose an available date
+→ Daily Puzzle
+→ complete
+→ +20 coins
+→ return to Calendar/results
+→ completed date displays 👑
+
+The player should be able to easily return from the calendar to the normal game.
+
+The calendar should not replace the existing category system.
+
+## CALENDAR MONTH NAVIGATION
+
+The initial calendar should open to the current month.
+
+Allow viewing other months if useful, but the availability rules must remain strict:
+
+* only the current date and previous 5 dates are playable
+* future dates cannot be played
+* dates older than the rolling 6-day window cannot be played
+
+If month navigation is implemented, make unavailable dates visibly locked rather than allowing them to launch a puzzle.
+
+Do not over-engineer this feature.
+
+# FEATURE 2 — COIN DISPLAY
+
+The current coin indicator at the top of the game is a simple golden circle.
+
+Replace/improve the visual so it includes a **gold coin emoji: 🪙**
+
+The coin display should still clearly show the current coin balance.
+
+For example:
+
+`🪙 110`
+
+or an equivalent compact design consistent with the current UI.
+
+Keep it small and clean.
+
+Do not replace the actual coin balance/state logic.
+
+Only change the visual representation.
+
+# CALENDAR ICON PLACEMENT
+
+Add the calendar emoji:
+
+`📅`
+
+near the top-right area underneath/around the coin display as requested.
+
+It should be:
+
+* clearly tappable
+* small
+* visually consistent
+* not cover gameplay
+* not interfere with existing navigation or controls
+
+Use an appropriate touch target even if the visible emoji itself is small.
+
+# PERSISTENCE / EXACTLY-ONCE REWARD
+
+Daily completion should use a safe persisted operation.
+
+For example:
+
+`completedDailyPuzzles: ["2026-09-20", "2026-09-25"]`
+
+The implementation must check whether the date is already completed before awarding +20.
+
+The coin reward and completion state should be persisted safely enough that:
+
+* a double tap cannot produce two rewards
+* reopening cannot produce another reward
+* replaying cannot produce another reward
+
+Use the existing serialized storage/provider approach where possible.
+
+Do not create a separate unrelated state-management system.
+
+# IMPORTANT INTERACTION WITH ONBOARDING
+
+Daily Puzzle should coexist with onboarding.
+
+Do not allow Daily Puzzle to bypass the onboarding progression in a way that breaks the intended new-player experience.
+
+Inspect the current route guards.
+
+If the existing design intentionally forces a brand-new player through onboarding before accessing the normal game, preserve that behavior.
+
+Once onboarding is complete, Daily Puzzle should be available normally.
+
+Do not give onboarding credit for Daily Puzzle completion.
+
+# RESPONSIVE UI
+
+Check the calendar and top controls at:
+
+* 360x700
+* 360x800
+* 402x874
+
+The calendar must remain readable and usable.
+
+Do not allow the calendar to push the existing UI off-screen.
+
+# VALIDATION
+
+After implementation, test:
+
+1. Calendar icon appears.
+2. Coin display includes 🪙.
+3. Calendar opens correctly.
+4. Current date is identified.
+5. Previous 5 dates are playable.
+6. Today's date is playable.
+7. Sixth older date is locked.
+8. Future dates are locked.
+9. September 25 example produces playable dates September 20–25.
+10. September 19 is locked.
+11. September 26 is locked.
+12. Daily puzzle has a deterministic date-based seed.
+13. Reopening the same date produces the same puzzle.
+14. Completing a Daily Puzzle gives exactly +20.
+15. Completed date receives 👑 in calendar.
+16. Completing the same date again gives 0 additional coins.
+17. Completion survives app restart/refresh.
+18. Daily Puzzle does not affect `completedLevels`.
+19. Daily Puzzle does not unlock categories.
+20. Daily Puzzle does not trigger onboarding rewards.
+21. Daily Puzzle does not trigger the normal +50 reward.
+22. Daily Puzzle does not accidentally trigger the normal category completion/dumpling flow.
+23. Existing onboarding remains unchanged.
+24. Existing normal category gameplay remains unchanged.
+25. Existing Mystery Dumpling system remains unchanged.
+26. Existing AdMob implementation remains unchanged.
+27. TypeScript passes.
+28. Expo Doctor is checked but do not modify package versions just to resolve the existing known patch-version warning.
+29. Web export passes.
+
+Before implementing, inspect the current architecture and identify the exact files that need to change.
+
+Then implement the feature.
+
+Do not commit yet.
+
+At the end report:
+
+* files changed
+* persistence design
+* date-window implementation
+* deterministic puzzle implementation
+* reward protection
+* UI changes
+* validation results
+* any issues or design decisions
+
+Stop before committing.

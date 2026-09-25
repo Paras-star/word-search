@@ -1,28 +1,46 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
-import { AppState, Pressable, StyleSheet, Text, View } from 'react-native';
-import { advanceOnboarding, loadProgress, saveProgress, STARTING_COINS, type GameProgress } from '@/services/storage';
+import { AppState, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import { advanceOnboarding, awardDailyPuzzle, loadProgress, saveProgress, STARTING_COINS, type GameProgress } from '@/services/storage';
 
 type GameContextValue = {
   coins: number;
   completedLevels: string[];
+  completedDailyPuzzles: string[];
   onboardingStep: number;
   hydrated: boolean;
   awardCoins: (amount: number) => Promise<void>;
   completeLevel: (categoryId: string) => Promise<void>;
   completeOnboardingStep: (step: number) => Promise<boolean>;
+  completeDailyPuzzle: (dateKey: string) => Promise<boolean>;
 };
 
 const GameContext = createContext<GameContextValue | null>(null);
 
+async function withProgressLock<T>(operation: () => Promise<T>): Promise<T> {
+  // A provider's promise queue handles repeated taps. Browser tabs need a
+  // shared lock as well so their read/modify/write cycles cannot interleave.
+  if (Platform.OS === 'web' && typeof navigator !== 'undefined' && navigator.locks) {
+    return navigator.locks.request('word-hunt-progress-v2', operation);
+  }
+  return operation();
+}
+
 export function GameProvider({ children }: { children: React.ReactNode }) {
   const [coins, setCoins] = useState(STARTING_COINS);
   const [completedLevels, setCompletedLevels] = useState<string[]>([]);
+  const [completedDailyPuzzles, setCompletedDailyPuzzles] = useState<string[]>([]);
   const [onboardingStep, setOnboardingStep] = useState(0);
   const [hydrated, setHydrated] = useState(false);
   const [storageError, setStorageError] = useState<string | null>(null);
-  const progressRef = useRef<GameProgress>({ coins: STARTING_COINS, completedLevels: [], onboardingStep: 0 });
   const writes = useRef<Promise<void>>(Promise.resolve());
   const loadVersion = useRef(0);
+
+  const installProgress = useCallback((progress: GameProgress) => {
+    setCoins(progress.coins);
+    setCompletedLevels(progress.completedLevels);
+    setCompletedDailyPuzzles(progress.completedDailyPuzzles ?? []);
+    setOnboardingStep(progress.onboardingStep);
+  }, []);
 
   const reload = useCallback(async () => {
     const version = ++loadVersion.current;
@@ -33,10 +51,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     try {
       const progress = await read;
       if (version !== loadVersion.current) return;
-      progressRef.current = progress;
-      setCoins(progress.coins);
-      setCompletedLevels(progress.completedLevels);
-      setOnboardingStep(progress.onboardingStep);
+      installProgress(progress);
       setHydrated(true);
       setStorageError(null);
     } catch {
@@ -44,7 +59,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       setStorageError('Saved progress could not be loaded. Your data has not been reset.');
       setHydrated(false);
     }
-  }, []);
+  }, [installProgress]);
 
   useEffect(() => {
     void reload();
@@ -58,7 +73,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
   }, [reload]);
 
   const queueSave = useCallback(function enqueue<T>(save: () => Promise<T>): Promise<T> {
-    const next = writes.current.catch(() => {}).then(save);
+    const next = writes.current.catch(() => {}).then(() => withProgressLock(save));
     writes.current = next.then(() => {});
     return next;
   }, []);
@@ -66,31 +81,50 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
   const value = useMemo<GameContextValue>(() => ({
     coins,
     completedLevels,
+    completedDailyPuzzles,
     onboardingStep,
     hydrated,
     awardCoins: (amount) => queueSave(async () => {
-      const next = { ...progressRef.current, coins: progressRef.current.coins + amount };
+      const saved = await loadProgress();
+      const next = { ...saved, coins: saved.coins + amount };
       await saveProgress(next);
-      progressRef.current = next;
-      setCoins(next.coins);
+      installProgress(next);
     }),
     completeLevel: (categoryId) => queueSave(async () => {
-      if (progressRef.current.completedLevels.includes(categoryId)) return;
-      const next = { ...progressRef.current, completedLevels: [...progressRef.current.completedLevels, categoryId] };
+      const saved = await loadProgress();
+      if (saved.completedLevels.includes(categoryId)) {
+        installProgress(saved);
+        return;
+      }
+      const next = { ...saved, completedLevels: [...saved.completedLevels, categoryId] };
       await saveProgress(next);
-      progressRef.current = next;
-      setCompletedLevels(next.completedLevels);
+      installProgress(next);
     }),
     completeOnboardingStep: (step) => queueSave(async () => {
-      const next = advanceOnboarding(progressRef.current, step);
-      if (!next) return false;
+      const saved = await loadProgress();
+      const next = advanceOnboarding(saved, step);
+      if (!next) {
+        installProgress(saved);
+        return false;
+      }
       await saveProgress(next);
-      progressRef.current = next;
-      setCoins(next.coins);
-      setOnboardingStep(next.onboardingStep);
+      installProgress(next);
       return true;
     }),
-  }), [coins, completedLevels, onboardingStep, hydrated, queueSave]);
+    completeDailyPuzzle: (dateKey) => queueSave(async () => {
+      // Read inside the serialized queue: if storage committed but lost its
+      // acknowledgment, retrying must not award the date a second time.
+      const saved = await loadProgress();
+      const next = awardDailyPuzzle(saved, dateKey);
+      if (!next) {
+        installProgress(saved);
+        return false;
+      }
+      await saveProgress(next);
+      installProgress(next);
+      return true;
+    }),
+  }), [coins, completedLevels, completedDailyPuzzles, onboardingStep, hydrated, queueSave, installProgress]);
 
   if (storageError) {
     return <View style={styles.errorScreen}>

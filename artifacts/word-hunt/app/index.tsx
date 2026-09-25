@@ -21,7 +21,15 @@ export default function HomeScreen() {
     router.push('/categories');
   };
   return <Screen style={{ paddingTop: insets.top + 12, paddingBottom: insets.bottom + 18 }}>
-    <View style={styles.topRow}><View style={styles.brandMark}><Text style={styles.brandLetter}>W</Text></View><CoinPill coins={coins} /></View>
+    <View style={styles.topRow}>
+      <View style={styles.brandMark}><Text style={styles.brandLetter}>W</Text></View>
+      <View style={styles.topActions}>
+        <Pressable onPress={() => router.push('/daily')} hitSlop={8} accessibilityRole="button" accessibilityLabel="Daily word hunt calendar" testID="daily-calendar-button" style={({ pressed }) => [styles.calendarButton, { backgroundColor: colors.card, borderColor: colors.border, opacity: pressed ? 0.7 : 1 }]}>
+          <Text style={styles.calendarIcon}>📅</Text>
+        </Pressable>
+        <CoinPill coins={coins} />
+      </View>
+    </View>
     <View style={styles.hero}>
       <View style={[styles.badge, { backgroundColor: colors.accent }]}><Text style={[styles.badgeText, { color: colors.orange }]}>FIND YOUR FOCUS</Text></View>
       <Text style={[styles.title, { color: colors.foreground }]}>Word{'\n'}Hunt</Text>
@@ -38,6 +46,9 @@ export default function HomeScreen() {
 
 const styles = StyleSheet.create({
   topRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  topActions: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  calendarButton: { width: 42, height: 42, borderRadius: 14, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
+  calendarIcon: { fontSize: 20 },
   brandMark: { width: 42, height: 42, borderRadius: 14, backgroundColor: '#2f80ed', alignItems: 'center', justifyContent: 'center', transform: [{ rotate: '-8deg' }] },
   brandLetter: { color: '#fff', fontFamily: 'Inter_700Bold', fontSize: 22, transform: [{ rotate: '8deg' }] },
   hero: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingBottom: 12 },
