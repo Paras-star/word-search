@@ -1,0 +1,190 @@
+The audit is clear. Do NOT push the current `feature/game-improvements` branch and do NOT rewrite its history.
+
+We want the same clean-checkpoint approach used for Phase 2.
+
+Create a new temporary local branch/worktree based directly on the LIVE remote Phase 2 commit:
+
+`88948a0d9fcaef693e51a6053542e91f6a08718e`
+
+Do NOT modify the existing `feature/game-improvements` branch.
+
+## GOAL
+
+Create a clean Daily Puzzle checkpoint on top of the already-clean Phase 2 remote.
+
+The eventual history should be:
+
+Phase 1
+→ starting coins
+→ clean Phase 2 onboarding
+→ clean Daily Puzzle checkpoint
+
+## IMPORTANT
+
+Do NOT simply copy the entire local `4fb1ad9` tree.
+
+The local history contains:
+
+* Phase 1 documentation
+* Phase 2 documentation
+* automatic checkpoints
+* memory files
+* uploaded briefs
+* Daily implementation
+
+We only want the actual Daily/product changes.
+
+## DAILY CHANGES TO PRESERVE
+
+Bring over the actual Daily feature implementation that has already been physically tested:
+
+### Daily feature
+
+* Daily calendar
+* rolling 6-day availability window
+* today + previous 5 local calendar dates
+* completed-date crowns
+* +20 coins
+* exactly-once Daily reward
+* persisted Daily completion dates
+* deterministic date-based Daily puzzle
+* dedicated Daily word pool
+* 432 unique Daily words
+* zero overlap with category/onboarding target words
+* Daily-to-Daily repetition prevention
+* Daily grid preparation/caching
+* fast Daily puzzle opening
+* corrected Calendar → Daily Puzzle → Calendar navigation
+* corrected Calendar → Back → Menu navigation
+* 🗓️ calendar UI
+* improved coin display
+
+### Content separation
+
+Preserve:
+
+* 53 unique onboarding target words
+* 432 unique Daily words
+* 0 category/onboarding overlap
+* 0 category/Daily overlap
+* 0 onboarding/Daily overlap
+
+### Files likely involved
+
+Inspect these files carefully:
+
+* `artifacts/word-hunt/app/_layout.tsx`
+* `artifacts/word-hunt/app/daily.tsx`
+* `artifacts/word-hunt/app/game.tsx`
+* `artifacts/word-hunt/app/index.tsx`
+* `artifacts/word-hunt/app/results.tsx`
+* `artifacts/word-hunt/components/GameUI.tsx`
+* `artifacts/word-hunt/context/GameProvider.tsx`
+* `artifacts/word-hunt/data/dailyWords.ts`
+* `artifacts/word-hunt/game/daily.ts`
+* `artifacts/word-hunt/game/dailyPuzzle.ts`
+* `artifacts/word-hunt/game/onboarding.ts`
+* `artifacts/word-hunt/game/puzzle.ts`
+* `artifacts/word-hunt/services/storage.ts`
+
+Some of these already contain Phase 2 changes in `88948a0`.
+
+Therefore:
+
+**Do not replace these files wholesale.**
+
+Compare the clean remote versions against the tested local versions and bring over only the Daily-related changes/hunks.
+
+For example:
+
+* preserve the existing Phase 2 onboarding logic
+* preserve the existing normal category logic
+* add the Daily logic on top
+* preserve the Phase 2 puzzle-generator changes
+* add only the Daily-specific content changes
+
+## DO NOT INCLUDE
+
+Absolutely do NOT bring over:
+
+* `.agents/memory/*`
+* `attached_assets/*`
+* uploaded briefs
+* implementation notes
+* cleanup notes
+* temporary documentation
+* unrelated test artifacts
+
+Tests can be used for validation, but do NOT include test files in the final product commit unless we explicitly decide they belong there.
+
+## PROTECTED AREAS
+
+Verify these remain unchanged from `88948a0` unless a Daily integration genuinely requires a change:
+
+* `data/categories.ts`
+* `data/bonusWords.ts`
+* Mystery Dumpling system
+* AdMob service/configuration
+* normal category progression
+* normal +50 reward
+* onboarding +10 rewards
+* 50 starting coins
+* normal puzzle-generator defaults
+
+## BEFORE STAGING
+
+Do not commit yet.
+
+First compare the resulting clean worktree against `88948a0`.
+
+Run:
+
+`git status --short`
+
+`git diff --stat`
+
+`git diff --name-only`
+
+Then inspect the complete diff.
+
+The clean branch should contain only the actual Daily/product changes.
+
+## VALIDATION
+
+Once the clean Daily changes are assembled:
+
+Run:
+
+* TypeScript
+* all existing Daily tests
+* onboarding tests
+* word-pool overlap tests
+* deterministic Daily tests
+* 365-day Daily generation validation
+* web export
+
+Also verify:
+
+* Daily calendar works
+* Daily +20 works
+* Daily persistence works
+* Daily navigation works
+* onboarding still works
+* normal category gameplay still works
+* Mystery Dumpling still works
+
+Do NOT modify package versions for the existing Expo Doctor patch warning.
+
+Do NOT commit yet.
+
+At the end report:
+
+1. clean branch name
+2. base commit
+3. files changed
+4. exact Daily changes brought over
+5. anything intentionally excluded
+6. validation results
+7. whether the diff is ready for a clean Daily commit
+
+STOP before committing or pushing.
