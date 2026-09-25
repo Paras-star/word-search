@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "Word Hunt",
+    "name": "Word Hunt : Mystery Dumpling",
     "slug": "word-hunt",
     "version": "2.0.0",
     "orientation": "portrait",
@@ -19,6 +19,15 @@
     },
     "plugins": [
       "expo-router",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/images/splash-logo.png",
+          "imageWidth": 220,
+          "resizeMode": "contain",
+          "backgroundColor": "#FFFFFF"
+        }
+      ],
       [
         "react-native-google-mobile-ads",
         {
