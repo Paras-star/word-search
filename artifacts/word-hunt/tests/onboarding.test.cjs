@@ -34,8 +34,8 @@ function storageHarness(initial = {}) {
     if (name === '@react-native-async-storage/async-storage') return { __esModule: true, default: storage };
     if (name === '@/game/daily') {
       return loadTypeScript('game/daily.ts', (dependency) => {
-        assert.equal(dependency, '@/data/categories');
-        return loadTypeScript('data/categories.ts');
+        if (dependency === '@/data/dailyWords') return loadTypeScript('data/dailyWords.ts');
+        throw new Error(`Unexpected daily runtime import: ${dependency}`);
       });
     }
     throw new Error(`Unexpected runtime import: ${name}`);

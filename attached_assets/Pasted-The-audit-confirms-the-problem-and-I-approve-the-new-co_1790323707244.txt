@@ -1,0 +1,292 @@
+The audit confirms the problem, and I approve the new content architecture.
+
+Proceed with the implementation, with these decisions locked:
+
+## 1. NORMAL CATEGORY WORDS
+
+Keep the existing category vocabulary exactly as it is.
+
+Do NOT modify:
+
+`data/categories.ts`
+
+The current category words are part of the game's identity and should remain unchanged.
+
+## 2. ONBOARDING WORDS
+
+Create a dedicated onboarding vocabulary.
+
+The existing onboarding progression must remain exactly:
+
+* Tutorial: 5
+* Step 1: 5
+* Step 2: 7
+* Step 3: 9
+* Step 4: 12
+* Step 5: 15
+
+Keep the existing difficulty progression, seeds, rewards, persistence, and UI.
+
+But replace any onboarding target words that overlap with normal category words or the new Daily vocabulary.
+
+Goal:
+
+* approximately 52–53 curated unique onboarding words
+* zero intentional overlap with category targets
+* zero intentional overlap with Daily targets
+
+Do not change the number of words in any onboarding step.
+
+## 3. NEW DAILY WORD POOL
+
+Create:
+
+`data/dailyWords.ts`
+
+Use approximately **400–450 curated unique Daily words** if practical.
+
+The exact number can be slightly lower if generation/quality requires it, but aim for ~400+.
+
+Daily words should be:
+
+* common and recognizable
+* interesting to discover
+* suitable for word-search grids
+* mostly short/medium length
+* not obscure dictionary filler
+* not offensive or inappropriate
+* not simply copied from the category datasets
+
+Most importantly:
+
+**Daily target words must not intentionally overlap with category target words or onboarding target words.**
+
+## 4. DAILY PUZZLE STRUCTURE
+
+Keep:
+
+* 9 target words per Daily Puzzle
+* deterministic date-based selection
+* existing puzzle generator
+* existing Daily Puzzle grid behavior
+* existing calendar
+* existing +20 reward
+* existing completion persistence
+* existing crown/completion behavior
+
+Only change the target-word source/selection.
+
+Do NOT create a separate puzzle engine.
+
+## 5. DAILY-TO-DAILY REPETITION
+
+This is extremely important.
+
+Different Daily dates should use different target words.
+
+For example:
+
+September 25:
+WORD A
+WORD B
+...
+WORD I
+
+September 26:
+different words
+
+September 27:
+different words again
+
+The goal is:
+
+* 0 overlap between nearby Daily sets whenever possible
+* 1 repeated word occasionally is acceptable
+* never intentionally repeat several words
+* never intentionally repeat an entire 9-word set within the recent rolling window
+
+With ~400+ words, prioritize disjoint sets for nearby dates.
+
+Do NOT simply shuffle the same 9-word sets.
+
+## 6. DATE DETERMINISM
+
+Keep Daily Puzzle determinism.
+
+For a given date:
+
+`YYYY-MM-DD → deterministic Daily word set + deterministic puzzle seed`
+
+Therefore:
+
+September 25, 2026 must always produce the same Daily Puzzle.
+
+September 26, 2026 produces a different deterministic puzzle.
+
+Closing/reopening the app must not change the puzzle.
+
+Do not use Date.now() for Daily puzzle selection.
+
+## 7. CUTOVER DATE
+
+Because the game is still in development and the Daily Puzzle has not been publicly established as a historical archive, we can cleanly establish:
+
+**September 25, 2026 = first date using the new dedicated Daily vocabulary.**
+
+Do not preserve the old category-derived Daily target selection for future dates.
+
+If the current September 25 puzzle changes because of this implementation, that is acceptable at this development stage.
+
+From September 25 onward, Daily Puzzles should use the new dedicated Daily pool.
+
+Do NOT create unnecessary legacy compatibility logic unless the existing code genuinely requires it for saved completion data.
+
+Existing completion dates should still remain persisted correctly.
+
+## 8. BONUS WORD DICTIONARY
+
+Leave the existing bonus dictionary unchanged.
+
+Do not modify:
+
+`data/bonusWords.ts`
+
+The problem we are solving is target-word repetition, not incidental bonus words.
+
+## 9. CONTENT VALIDATION
+
+Before integrating the new pools, programmatically validate:
+
+### Category vs Onboarding
+
+No overlap.
+
+### Category vs Daily
+
+No overlap.
+
+### Onboarding vs Daily
+
+No overlap.
+
+### Onboarding internally
+
+No duplicate target words.
+
+### Daily internally
+
+No duplicate target words.
+
+### Daily vs Daily
+
+Generate/inspect a representative sequence of dates and measure overlap.
+
+At minimum test:
+
+* 30 consecutive dates
+* 90 consecutive dates
+* 365 consecutive dates
+
+Report:
+
+* number of repeated target words between adjacent dates
+* number of repeated complete sets
+* maximum overlap within any rolling 6-day window
+
+The target should be near-zero overlap between adjacent Daily puzzles.
+
+## 10. IMPORTANT: CURATION QUALITY
+
+Do not blindly generate 400 random words.
+
+Before adding them, validate that the words are:
+
+* recognizable
+* suitable for a casual word-search game
+* not duplicates
+* not category-specific vocabulary that obviously belongs to one of the existing categories
+* not excessively obscure
+
+If possible, organize the Daily pool internally into broad themes or semantic variety, but the player does NOT need to see a theme.
+
+The goal is for Daily Puzzles to feel fresh.
+
+## 11. PUZZLE GENERATION VALIDATION
+
+Every selected Daily 9-word set must successfully generate using the existing puzzle engine.
+
+If a set fails:
+
+* replace/reselect words
+* do not weaken the normal puzzle engine globally
+
+Do not modify `game/puzzle.ts` unless absolutely necessary.
+
+## 12. EXISTING DAILY FUNCTIONALITY
+
+Do not break:
+
+* 📅 calendar
+* playable rolling 6-day window
+* 👑 completed dates
+* +20 coins
+* exactly-once reward
+* persistence
+* Daily result screen
+
+Do not modify the existing Daily UI unless required by the new word-pool architecture.
+
+## 13. FILES
+
+Expected changes should be limited to:
+
+* `game/onboarding.ts`
+* new `data/dailyWords.ts`
+* `game/daily.ts`
+* relevant Daily/onboarding tests
+
+Do NOT modify:
+
+* `data/categories.ts`
+* `data/bonusWords.ts`
+* `game/puzzle.ts` unless absolutely necessary
+* GameProvider reward logic unless absolutely necessary
+* calendar UI
+* AdMob
+* Mystery Dumpling system
+
+If additional files are genuinely required, report why before modifying them.
+
+## 14. TESTING
+
+After implementation run:
+
+* TypeScript
+* onboarding tests
+* Daily tests
+* word-pool overlap tests
+* deterministic date tests
+* 30/90/365-day Daily repetition analysis
+* puzzle generation validation
+* web export
+* Expo Doctor
+
+Do not change package versions to fix the known Expo Doctor patch-version warning.
+
+Then report:
+
+1. final onboarding word count
+2. final Daily word count
+3. category/onboarding overlap
+4. category/Daily overlap
+5. onboarding/Daily overlap
+6. Daily adjacent-date overlap
+7. rolling 6-day maximum overlap
+8. complete repeated Daily sets
+9. number of generation failures
+10. files changed
+11. validation results
+
+Do NOT commit yet.
+
+Stop after reporting the results.

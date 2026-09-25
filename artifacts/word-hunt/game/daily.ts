@@ -1,4 +1,17 @@
-import { CATEGORIES, type Category } from '@/data/categories';
+import type { Category } from '@/data/categories';
+import { DAILY_WORDS } from '@/data/dailyWords';
+
+const WORDS_PER_DAY = 9;
+const DAY_MS = 24 * 60 * 60 * 1000;
+const DAILY_EPOCH = Date.UTC(2026, 8, 25) / DAY_MS;
+// Different lanes shift at each deck boundary, so the nine-word combination
+// changes without repeating words in consecutive six-day windows.
+const LANE_OFFSETS = [0, 5, 10, 15, 20, 25, 30, 35, 40];
+const LANE_SHIFTS = [8, 9, 10, 11, 12, 13, 14, 15, 16];
+
+function wrap(index: number, length: number): number {
+  return ((index % length) + length) % length;
+}
 
 export function localDateKey(date: Date): string {
   const year = String(date.getFullYear()).padStart(4, '0');
@@ -34,17 +47,19 @@ export function dailySeed(key: string): string {
 }
 
 export function dailyCategory(key: string): Category {
-  if (!parseLocalDateKey(key)) throw new Error('Invalid daily puzzle date');
-  let hash = 2166136261;
-  for (const character of key) {
-    hash ^= character.charCodeAt(0);
-    hash = Math.imul(hash, 16777619);
-  }
-  const theme = CATEGORIES[(hash >>> 0) % CATEGORIES.length];
+  const date = parseLocalDateKey(key);
+  if (!date) throw new Error('Invalid daily puzzle date');
+  const laneLength = DAILY_WORDS.length / WORDS_PER_DAY;
+  if (!Number.isInteger(laneLength) || laneLength < 16) throw new Error('Invalid Daily word pool');
+  const dayIndex = Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()) / DAY_MS - DAILY_EPOCH;
+  const block = Math.floor(dayIndex / laneLength);
+  const slot = wrap(dayIndex, laneLength);
+  const words = LANE_OFFSETS.map((offset, lane) =>
+    DAILY_WORDS[wrap(slot + offset + block * LANE_SHIFTS[lane], laneLength) * WORDS_PER_DAY + lane]);
   return {
     id: `daily-${key}`,
     name: 'Daily Puzzle',
-    emoji: theme.emoji,
-    words: theme.words.slice(0, 9),
+    emoji: '🗓️',
+    words,
   };
 }
