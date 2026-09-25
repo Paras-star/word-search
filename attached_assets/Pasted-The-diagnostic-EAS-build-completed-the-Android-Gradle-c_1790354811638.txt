@@ -1,0 +1,74 @@
+The diagnostic EAS build completed the Android Gradle configuration stage and reproduced the EXACT same failure:
+
+`react-native-google-mobile-ads/android/build.gradle` line 115:
+
+`Cannot get property 'googleMobileAdsJson' on extra properties extension as it does not exist`
+
+The second error:
+
+`Android Gradle Plugin: project ':react-native-google-mobile-ads' does not specify compileSdk`
+
+appears after the first configuration failure and should be treated as potentially downstream. The main issue is still `googleMobileAdsJson`.
+
+Our previous workaround added this top-level object to the Expo app.json:
+
+`"react-native-google-mobile-ads": { "android_app_id": "<existing Android App ID>" }`
+
+while preserving the Expo plugin configuration.
+
+That workaround did NOT resolve the error.
+
+DO NOT make any changes yet. This is an investigation only.
+
+Inspect the ACTUAL package and generated Android project used by EAS and determine precisely why `googleMobileAdsJson` is missing.
+
+Specifically inspect:
+
+1. `node_modules/react-native-google-mobile-ads/android/build.gradle` around line 115.
+2. `node_modules/react-native-google-mobile-ads/android/app-json.gradle` or any related Gradle configuration script.
+3. The package's `package.json`, including its Expo config/plugin implementation.
+4. The exact Expo app config generated from `artifacts/word-hunt/app.json`.
+5. The generated Android project/configuration that EAS receives.
+6. Determine whether the package expects the AdMob configuration:
+
+   * in raw top-level `app.json`,
+   * in Expo `plugins`,
+   * through `project.ext`,
+   * through `googleAdsJson`,
+   * through `googleMobileAdsJson`,
+   * or through another generated Gradle property.
+
+Most importantly, trace the actual code path that is supposed to define `googleMobileAdsJson` before `build.gradle` line 115 reads it.
+
+Compare that with the installed package version:
+
+`react-native-google-mobile-ads@17.1.0`
+
+and the current versions:
+
+* Expo SDK 57.0.24
+* React Native 0.86.3
+* Android compileSdk 36
+* targetSdk 36
+
+Do NOT:
+
+* edit node_modules,
+* upgrade/downgrade dependencies,
+* change AdMob IDs,
+* remove the Expo plugin,
+* change compileSdk,
+* change Gradle versions,
+* change Android package name,
+* change EAS configuration,
+* run another build,
+* commit or push anything.
+
+Report:
+
+1. The exact code path causing `googleMobileAdsJson` to be undefined.
+2. Which configuration format package 17.1.0 actually expects.
+3. Whether our current Expo configuration is being transformed incorrectly or whether this is a package/config compatibility issue.
+4. The smallest safe fix you recommend, but DO NOT apply it yet.
+
+No files should be changed during this investigation.
