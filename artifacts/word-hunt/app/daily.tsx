@@ -6,7 +6,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Screen, CoinPill, PrimaryButton } from '@/components/GameUI';
 import { useColors } from '@/hooks/useColors';
 import { useGame } from '@/context/GameProvider';
-import { isDailyDatePlayable, localDateKey } from '@/game/daily';
+import { dailyWindow, isDailyDatePlayable, localDateKey } from '@/game/daily';
+import { getDailyPuzzle } from '@/game/dailyPuzzle';
 
 const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
@@ -17,6 +18,7 @@ export default function DailyScreen() {
   const insets = useSafeAreaInsets();
   const { coins, completedDailyPuzzles, hydrated, onboardingStep } = useGame();
   const [now, setNow] = useState(() => new Date());
+  const todayKey = localDateKey(now);
   const [month, setMonth] = useState(() => {
     const today = new Date();
     return new Date(today.getFullYear(), today.getMonth(), 1);
@@ -34,6 +36,14 @@ export default function DailyScreen() {
     };
   }, []);
 
+  useEffect(() => {
+    // Generate after the calendar has rendered, one date per turn. A date tap
+    // then uses the already-built grid rather than blocking the route transition.
+    const timers = dailyWindow(now).reverse().map((key, index) =>
+      setTimeout(() => { getDailyPuzzle(key); }, index * 50));
+    return () => timers.forEach(clearTimeout);
+  }, [todayKey]);
+
   if (!hydrated) return <Screen style={{ paddingTop: insets.top + 16 }}>
     <View style={[styles.loadingLine, { backgroundColor: colors.card, width: 132 }]} />
     <View style={[styles.loadingLine, { backgroundColor: colors.card, width: 220, marginTop: 58 }]} />
@@ -43,7 +53,6 @@ export default function DailyScreen() {
     return <Redirect href={{ pathname: '/game', params: { onboardingStep: String(onboardingStep) } }} />;
   }
 
-  const todayKey = localDateKey(now);
   const currentMonth = new Date(now.getFullYear(), now.getMonth(), 1);
   const isCurrentMonth = month.getFullYear() === currentMonth.getFullYear() && month.getMonth() === currentMonth.getMonth();
   const count = new Date(month.getFullYear(), month.getMonth() + 1, 0).getDate();
