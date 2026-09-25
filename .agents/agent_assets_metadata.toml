@@ -28,3 +28,17 @@ mtime_ms = 1790149803375
 storage_uri = "gcs://replit-rams-assets-pike/rams/assets/repl:6330ea3b-2615-4284-a9d6-c16d89a9a821/09ae23bf-4d60-40c1-a082-2b31cf73f352/70138563-eb26-4e84-9e0b-4101ab4f1bce"
 storage_version_token = "1790149812790870"
 content_type = "image/png"
+
+[[outputs]]
+id = "--N6_RcWOgme0Z8lPIwIC"
+uri = "file://exports/word-hunt-expo-go-qr.png"
+type = "image"
+title = "Word Hunt — Expo Go QR code"
+description = "Scan this with Expo Go on Android to open the current updated development app."
+logical_id = "e862cc79-b94c-4550-84c1-4e939eb897d9"
+content_hash = "sha256:7627fc887cfdabe5db7c5e6edbc29b3b0dde4e973649bbe9fd838134f9ebe97e"
+size = 896
+mtime_ms = 1790332751338
+storage_uri = "gcs://replit-rams-assets-pike/rams/assets/repl:6330ea3b-2615-4284-a9d6-c16d89a9a821/e862cc79-b94c-4550-84c1-4e939eb897d9/b1a6f9a2-ff1f-4c7a-9e29-2f1f3fc14345"
+storage_version_token = "1790332761544123"
+content_type = "image/png"
