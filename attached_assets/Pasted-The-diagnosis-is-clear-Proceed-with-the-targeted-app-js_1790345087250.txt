@@ -1,0 +1,74 @@
+The diagnosis is clear. Proceed with the **targeted app.json workaround only**.
+
+### Required change
+
+Keep the existing Expo plugin configuration exactly as it is.
+
+Add the required top-level:
+
+`"react-native-google-mobile-ads"`
+
+configuration to `app.json` using the **exact same existing Android AdMob App ID** already configured under the Expo plugin.
+
+Do NOT invent, regenerate, replace, or modify the AdMob App ID.
+
+The goal is only to make `react-native-google-mobile-ads@17.1.0` initialize its expected `googleMobileAdsJson` Gradle property.
+
+### IMPORTANT — do not make unrelated changes
+
+Do NOT:
+
+* upgrade or downgrade `react-native-google-mobile-ads`
+* change Expo SDK
+* change React Native
+* change Gradle
+* change Android SDK/API level
+* edit node_modules
+* change banner/interstitial/rewarded ad units
+* change UMP consent behavior
+* change production/test ad selection logic
+* change ad placement
+* change gameplay
+* change navigation
+* change the home page
+* change the splash screen
+* change any game feature
+
+### Before building
+
+After modifying `app.json`:
+
+1. Verify the existing Expo plugin `androidAppId` and the new top-level `android_app_id` contain the **same exact App ID**.
+2. Run the Expo configuration validation.
+3. Verify the resolved Expo configuration.
+4. Confirm the generated Android configuration contains the expected AdMob application ID.
+5. Confirm no unrelated configuration changed.
+6. Run TypeScript checks.
+7. Run the existing Daily/onboarding tests.
+
+### Then
+
+If all configuration/tests pass, attempt **one Android EAS build** using the same build profile that produced the failure we just diagnosed.
+
+Do not create the production AAB yet. This is a diagnostic verification build.
+
+The purpose of this build is to determine whether the `googleMobileAdsJson` Gradle failure is resolved.
+
+If the build fails again:
+
+* do not repeatedly retry it
+* capture the complete new `Run gradlew` failure
+* report the exact first Gradle error
+* do not make another fix without showing me the diagnosis
+
+If the build succeeds:
+
+* report the complete build ID
+* report the artifact type
+* confirm that the AdMob Gradle error is gone
+* do not make further changes
+* do not commit or push yet
+
+### Git
+
+Do NOT commit or push this change yet. I want to verify the successful Android build first.
