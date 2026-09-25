@@ -1,0 +1,136 @@
+I have attached the new finalized/cropped logo asset for our game. The official game name is:
+
+**Word Hunt : Mystery Dumpling**
+
+I want you to update ONLY the branding, splash/loading screen, and main front-page UI using the attached logo asset. Do not change any gameplay logic or existing functionality.
+
+### 1. Main front page / home screen
+
+Update the main home screen to use the new visual branding and overall style represented by the attached logo.
+
+IMPORTANT:
+
+* **Do NOT display the logo anywhere on the main front page.**
+* The main front page should remain clean without the logo.
+* Do not create a second version of the logo, recreate it with text, or place the logo inside another UI element.
+* Where the game's name is appropriate as text branding, use the exact official name:
+  **Word Hunt : Mystery Dumpling**
+* Keep the existing functional buttons/navigation and their functionality intact.
+* Preserve the existing coin balance and calendar/Daily Puzzle controls.
+* Do not remove or break any existing gameplay entry points.
+
+### 2. Remove the bottom informational text
+
+The current main front page contains the text:
+
+**“15 categories · 2 ways to play · zero internet required”**
+
+Remove this entire text block.
+
+Do NOT replace it with another text block.
+
+Leave that area intentionally **empty and visually clean**.
+
+This empty area is being reserved for our future **advertisement placement**, so:
+
+* Do not place buttons there.
+* Do not place decorative text there.
+* Do not fill it with another feature.
+* Do not make the existing UI stretch into or cover this reserved area unnecessarily.
+* Keep a stable reserved space so a future banner ad can be inserted there without redesigning the entire home screen.
+
+Do not implement the ad itself as part of this task.
+
+### 3. Phone loading / splash screen
+
+When the app is first loading/opening on the phone, I want the **attached logo** to be displayed as the splash/loading screen branding.
+
+The splash screen should contain:
+
+* The attached logo
+* Centered appropriately on the screen
+* A clean background that matches the game's visual style
+
+VERY IMPORTANT:
+
+**There must be NOTHING written underneath the logo.**
+
+Do not display:
+
+* “Word Hunt”
+* “Mystery Dumpling”
+* “Word Hunt : Mystery Dumpling”
+* loading text
+* taglines
+* version text
+* any other text
+
+The logo itself is the only branding element on the splash/loading screen.
+
+Use the actual attached logo asset rather than recreating it with React Native text or shapes.
+
+### 4. Asset handling
+
+Use the attached image as the source of truth for the logo.
+
+Do not modify the artwork itself.
+
+Make sure it is:
+
+* displayed without distortion
+* correctly scaled
+* properly centered
+* not cropped unexpectedly
+* not stretched
+* suitable for the phone's splash/loading screen
+
+If the project already has an existing splash-screen configuration, update that configuration appropriately rather than creating a second competing splash implementation.
+
+### 5. Preserve everything else
+
+This is a UI/branding change only.
+
+DO NOT modify:
+
+* Word Hunt puzzle generation
+* letter selection
+* puzzle grids
+* category system
+* Daily Puzzle
+* calendar
+* onboarding
+* coins
+* dumpling rewards
+* rarity system
+* Collection Room
+* reward animations
+* AsyncStorage/progress persistence
+* AdMob implementation
+* navigation logic unless absolutely required to implement the visual changes
+* game rules
+* scoring
+* hints
+* existing animations
+
+Do not refactor unrelated code.
+
+### 6. Responsive behavior
+
+Make sure the redesigned front page works properly on the Android phone sizes we have already been testing.
+
+The reserved bottom advertisement area should remain stable across different screen heights and should not overlap the existing controls.
+
+### 7. Before finishing
+
+After implementing the changes:
+
+1. Run the project's TypeScript/type checks.
+2. Run the existing relevant validation checks.
+3. Confirm the splash screen uses only the logo with no text underneath.
+4. Confirm the main front page contains NO logo.
+5. Confirm the text “15 categories · 2 ways to play · zero internet required” is completely removed.
+6. Confirm the bottom area remains empty/reserved for a future banner ad.
+7. Confirm the exact game name is **“Word Hunt : Mystery Dumpling”** wherever text branding is actually appropriate.
+8. Do not modify unrelated files or functionality.
+
+Do not commit or push anything yet. I will physically test the new front page on Android first.
