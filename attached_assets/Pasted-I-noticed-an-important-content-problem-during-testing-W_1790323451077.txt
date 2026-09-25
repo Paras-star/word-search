@@ -1,0 +1,216 @@
+I noticed an important content problem during testing:
+
+**Words are currently repeating between the fresh-player onboarding/tutorial puzzles, Daily Puzzles, and normal category puzzles.**
+
+This makes the game feel repetitive because the player can encounter the same words shortly after seeing them elsewhere.
+
+We need to fix the WORD POOL architecture while preserving the existing category puzzle content.
+
+IMPORTANT:
+
+* Do NOT change the existing category word lists.
+* Do NOT change normal category difficulty or generation behavior.
+* Do NOT change onboarding progression, rewards, or persistence.
+* Do NOT change Daily Puzzle rewards or calendar behavior.
+* Do NOT change AdMob.
+* Do NOT commit yet.
+* First inspect the existing word datasets and report the overlap before implementing.
+
+## REQUIRED CONTENT SEPARATION
+
+We need three logically separate content pools:
+
+### 1. NORMAL CATEGORY POOL
+
+This is the existing category content.
+
+Keep it exactly as it currently works.
+
+For example:
+Animals should continue using its existing category word list.
+
+Do not remove or replace category words just to solve this problem.
+
+### 2. ONBOARDING / FRESH-PLAYER POOL
+
+The Tutorial + 5/7/9/12/15 onboarding puzzles should use a dedicated onboarding vocabulary.
+
+These words should NOT overlap with:
+
+* Daily Puzzle vocabulary
+* normal category vocabulary
+
+The onboarding should feel like a separate introduction to the game.
+
+The existing onboarding difficulty progression must remain intact.
+
+### 3. DAILY PUZZLE POOL
+
+Daily Puzzles should have a dedicated Daily vocabulary pool.
+
+Daily words should NOT normally overlap with:
+
+* onboarding vocabulary
+* normal category vocabulary
+
+More importantly, different Daily Puzzle dates should use substantially different words.
+
+## DAILY-TO-DAILY REPETITION RULE
+
+For example:
+
+September 20 Daily:
+CAT
+TREE
+APPLE
+...
+
+September 21 Daily:
+must use a substantially different set.
+
+Do NOT simply generate a new grid using the same words.
+
+The actual word list should change.
+
+Our target should be:
+
+* ideally 0 repeated words between nearby Daily Puzzles
+* occasional 1–2 word overlap is acceptable if the vocabulary pool or puzzle constraints make it necessary
+* avoid large repeated sets
+
+We want players to feel that each Daily Puzzle gives them something new to discover.
+
+## IMPORTANT: PRESERVE DETERMINISM
+
+Daily puzzles must remain deterministic.
+
+For example:
+
+`2026-09-25`
+
+must always produce the same Daily Puzzle.
+
+If the player closes/reopens the app, the September 25 puzzle must not change.
+
+Therefore use the date as the deterministic selection key, but use that key to select from the Daily-specific word pool.
+
+Do NOT use Date.now().
+
+## IMPORTANT: DO NOT SOLVE THIS BY RANDOMIZING THE SAME WORDS
+
+This is NOT what we want:
+
+September 20:
+CAT, DOG, LION, TIGER
+
+September 21:
+DOG, TIGER, CAT, LION
+
+That is still repetitive.
+
+We want different actual vocabulary.
+
+## FIRST TASK — AUDIT
+
+Before changing anything, inspect:
+
+1. `data/categories.ts`
+2. `game/onboarding.ts`
+3. `game/daily.ts`
+4. Any bonus-word dictionary currently used
+5. Any other word datasets used by puzzle generation
+
+Calculate/report:
+
+* total category words
+* total onboarding words
+* total Daily words
+* duplicate words between onboarding and categories
+* duplicate words between Daily and categories
+* duplicate words between Daily and onboarding
+* approximate repetition between several consecutive Daily dates
+
+Also identify whether the current Daily system has enough unique vocabulary to support the intended behavior.
+
+Do NOT change code during this audit.
+
+## THEN PROPOSE THE CONTENT ARCHITECTURE
+
+After the audit, propose the smallest clean solution.
+
+I expect something similar to:
+
+`NORMAL_CATEGORY_WORDS`
+`ONBOARDING_WORDS`
+`DAILY_WORDS`
+
+but use the project's existing architecture if there is a cleaner approach.
+
+Daily selection should be deterministic and date-based.
+
+For example, conceptually:
+
+`date → deterministic index/seed → unique Daily word set`
+
+Do not hard-code one puzzle for each date.
+
+## DAILY VOCABULARY SIZE
+
+If the current Daily vocabulary is too small, expand it.
+
+The Daily pool should be large enough that nearby Daily Puzzles can remain meaningfully different.
+
+Prioritize:
+
+* common words
+* recognizable words
+* short/medium words suitable for word search
+* words that are fun to discover
+* no obscure dictionary garbage just to increase the count
+
+Do not introduce thousands of random words without checking quality.
+
+## CATEGORY PROTECTION
+
+Normal category words should remain untouched.
+
+If a word already belongs to a category, the Daily pool should preferably exclude it.
+
+For example, if `ELEPHANT` is an Animals category word, don't use `ELEPHANT` as a Daily word.
+
+This is important because the categories are part of the game's identity.
+
+## ONBOARDING PROTECTION
+
+Likewise, words specifically selected for the fresh-player onboarding should not immediately appear in Daily Puzzles.
+
+The first experience should introduce vocabulary that feels separate from what the player later encounters.
+
+## BONUS WORDS
+
+Inspect the existing bonus dictionary carefully.
+
+Bonus words can create hidden repetition even if the main target words are different.
+
+Do NOT unnecessarily remove the existing bonus dictionary.
+
+Instead determine whether bonus-word overlap is actually visible to the player and whether it needs a separate treatment.
+
+Do not make changes to bonus words without reporting the impact first.
+
+## WHAT I WANT AFTER THE AUDIT
+
+Report:
+
+1. Current word-pool sizes
+2. Current overlaps
+3. Daily-to-Daily repetition
+4. Whether the current Daily pool is large enough
+5. Recommended architecture
+6. Recommended Daily vocabulary size
+7. Any impact on puzzle generation/performance
+8. Exact files that would need modification
+
+Then STOP and wait for approval.
+
+Do not implement anything yet.
