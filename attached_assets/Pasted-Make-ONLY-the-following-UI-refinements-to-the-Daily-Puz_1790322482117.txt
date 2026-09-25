@@ -1,0 +1,131 @@
+Make ONLY the following UI refinements to the Daily Puzzle / top-right controls.
+
+Do NOT change:
+
+* Daily Puzzle logic
+* calendar date-window logic
+* daily puzzle generation
+* +20 reward
+* persistence
+* onboarding
+* normal category progression
+* Mystery Dumpling
+* AdMob
+* any other gameplay logic
+
+Do NOT commit yet.
+
+## 1. CHANGE THE CALENDAR EMOJI
+
+I specifically want the calendar icon to use:
+
+**🗓️**
+
+Do not use 📅.
+
+## 2. CALENDAR POSITION
+
+The calendar must be positioned **BELOW the coin balance**, not beside it.
+
+Desired structure in the top-right:
+
+```text
+🪙 110
+🗓️
+```
+
+The coin balance remains on the top row.
+
+The 🗓️ calendar button should be directly underneath it, aligned cleanly with the coin display.
+
+Do not place the calendar beside the coins.
+
+Give the calendar an appropriate touch target while keeping the visible icon small.
+
+Make sure it does not overlap or interfere with:
+
+* title/logo
+* navigation
+* gameplay
+* other controls
+
+## 3. IMPROVE THE COIN VISUAL
+
+The current 🪙 emoji does not look good in the preview.
+
+Do not simply force a different random emoji.
+
+Instead, inspect the current coin display and create a cleaner **game-style gold coin indicator**.
+
+The goal is:
+
+* clearly recognizable as a coin
+* visually attractive
+* small and compact
+* consistent with the game's existing visual style
+* readable at small size
+* does not look like a generic text emoji pasted beside the number
+
+If the platform's emoji rendering makes the coin emoji look inconsistent, prefer a small custom UI coin treatment using existing React Native styling/shapes rather than relying on the emoji.
+
+For example, a small golden coin-like circular element with subtle depth/highlight plus:
+
+`110`
+
+is acceptable and may look better than the current emoji.
+
+Do NOT create a large coin graphic or introduce a new image asset unless genuinely necessary.
+
+The actual coin balance/state must remain unchanged.
+
+## 4. VISUAL HIERARCHY
+
+The top-right area should feel intentional and compact:
+
+* Coin balance = primary information
+* Calendar = secondary action directly underneath
+* Both should feel like part of the same UI control area
+
+Do not make the calendar larger than necessary.
+
+## 5. RESPONSIVE CHECK
+
+Check the updated top-right area at:
+
+* 360×700
+* 360×800
+* 402×874
+
+Make sure:
+
+* coin display remains visible
+* calendar is directly underneath
+* neither overlaps anything
+* both are easy to tap
+* layout remains clean
+
+## 6. VALIDATION
+
+After making only these UI changes:
+
+* TypeScript check
+* web export
+* existing Daily Puzzle tests should still pass
+* verify the calendar still opens
+* verify the coin balance is unchanged
+* verify no gameplay logic changed
+
+Do not modify package versions.
+
+Do not touch the existing Expo Doctor issue.
+
+Do not commit.
+
+At the end, show:
+
+1. files changed
+2. exact new top-right layout
+3. how the coin visual was implemented
+4. validation results
+
+Stop there.
