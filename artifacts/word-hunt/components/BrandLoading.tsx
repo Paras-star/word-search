@@ -1,7 +1,7 @@
 import React from 'react';
 import { Image, StyleSheet, View } from 'react-native';
 
-const logo = require('../assets/images/splash-logo.png');
+const logo = require('../assets/images/game-logo-final-1790332918204.png');
 
 export function BrandLoading() {
   return (

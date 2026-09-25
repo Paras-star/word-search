@@ -22,7 +22,7 @@
       [
         "expo-splash-screen",
         {
-          "image": "./assets/images/splash-logo.png",
+          "image": "./assets/images/game-logo-final-1790332918204.png",
           "imageWidth": 220,
           "resizeMode": "contain",
           "backgroundColor": "#FFFFFF"
