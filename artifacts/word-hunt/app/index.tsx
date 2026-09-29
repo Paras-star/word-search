@@ -54,7 +54,6 @@ export default function HomeScreen() {
       <PrimaryButton onPress={play} testID="play-button" style={styles.playButton}>PLAY</PrimaryButton>
       <SoftButton onPress={() => router.push('/collection')} testID="collection-button" style={styles.collectionButton}><Feather name="grid" size={17} color={colors.foreground} />  COLLECTION</SoftButton>
     </View>
-    <View style={styles.reservedAdSpace} />
   </Screen>;
 }
 
@@ -81,5 +80,4 @@ const styles = StyleSheet.create({
   actions: { gap: 12 },
   playButton: { backgroundColor: homeColors.teal },
   collectionButton: { backgroundColor: homeColors.tile, borderColor: homeColors.tealBorder },
-  reservedAdSpace: { height: 68 },
 });
