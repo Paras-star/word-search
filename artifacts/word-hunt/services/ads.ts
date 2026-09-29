@@ -1,5 +1,8 @@
 // Web and other non-native runtimes remain fully playable without an ad SDK.
 export const isAdsSupported = () => false;
+export const canRequestAds = () => false;
+export const canOpenPrivacyOptions = () => false;
+export const showPrivacyOptions = async () => false;
 export const isRewardedReady = () => false;
 export const prepareAds = async () => {};
 export const registerCompletedPuzzle = (_puzzleId: string) => {};

@@ -1,5 +1,5 @@
-import React from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { Alert, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -7,6 +7,7 @@ import { Screen, PrimaryButton, SoftButton, CoinPill } from '@/components/GameUI
 import { BrandLoading } from '@/components/BrandLoading';
 import { useColors } from '@/hooks/useColors';
 import { useGame } from '@/context/GameProvider';
+import { canOpenPrivacyOptions, showPrivacyOptions, subscribeToAds } from '@/services/ads';
 
 const homeColors = {
   background: '#FFF9EF',
@@ -27,6 +28,8 @@ export default function HomeScreen() {
   const { height } = useWindowDimensions();
   const compact = height < 730;
   const { coins, hydrated, onboardingStep } = useGame();
+  const [privacyOptionsAvailable, setPrivacyOptionsAvailable] = useState(canOpenPrivacyOptions);
+  useEffect(() => subscribeToAds(() => setPrivacyOptionsAvailable(canOpenPrivacyOptions())), []);
   if (!hydrated) return <BrandLoading />;
   const play = () => {
     if (onboardingStep < 6) {
@@ -53,6 +56,15 @@ export default function HomeScreen() {
     <View style={styles.actions}>
       <PrimaryButton onPress={play} testID="play-button" style={styles.playButton}>PLAY</PrimaryButton>
       <SoftButton onPress={() => router.push('/collection')} testID="collection-button" style={styles.collectionButton}><Feather name="grid" size={17} color={colors.foreground} />  COLLECTION</SoftButton>
+      {privacyOptionsAvailable && <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="Privacy choices"
+        testID="privacy-options-button"
+        onPress={() => { void showPrivacyOptions().then((shown) => {
+          if (!shown) Alert.alert('Privacy choices unavailable', 'Please try again later.');
+        }); }}
+        style={styles.privacyButton}
+      ><Text style={styles.privacyText}>PRIVACY CHOICES</Text></Pressable>}
     </View>
   </Screen>;
 }
@@ -80,4 +92,6 @@ const styles = StyleSheet.create({
   actions: { gap: 12 },
   playButton: { backgroundColor: homeColors.teal },
   collectionButton: { backgroundColor: homeColors.tile, borderColor: homeColors.tealBorder },
+  privacyButton: { minHeight: 36, alignItems: 'center', justifyContent: 'center' },
+  privacyText: { color: homeColors.softInk, fontFamily: 'Inter_600SemiBold', fontSize: 12 },
 });

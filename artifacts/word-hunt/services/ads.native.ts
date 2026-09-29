@@ -7,6 +7,7 @@ import {
 type AdsSdk = typeof import('react-native-google-mobile-ads');
 type Interstitial = ReturnType<AdsSdk['InterstitialAd']['createForAdRequest']>;
 type Rewarded = ReturnType<AdsSdk['RewardedAd']['createForAdRequest']>;
+type ConsentInfo = Awaited<ReturnType<AdsSdk['AdsConsent']['getConsentInfo']>>;
 type WatchResult = 'earned' | 'closed' | 'unavailable' | 'save-failed';
 
 let sdk: AdsSdk | null | undefined;
@@ -23,6 +24,12 @@ function getSdk(): AdsSdk | null {
 }
 
 export const isAdsSupported = () => getSdk() !== null;
+let consentAllowed = false;
+let privacyOptionsRequired = false;
+let privacyOpen = false;
+let consentPromise: Promise<boolean> | null = null;
+export const canRequestAds = () => consentAllowed && !privacyOpen && isAdsSupported();
+export const canOpenPrivacyOptions = () => privacyOptionsRequired && !privacyOpen && isAdsSupported();
 
 function unitId(kind: keyof typeof ANDROID_AD_UNITS, ads: AdsSdk): string {
   return __DEV__ ? ads.TestIds[kind.toUpperCase() as 'BANNER' | 'INTERSTITIAL' | 'REWARDED'] : ANDROID_AD_UNITS[kind];
@@ -45,8 +52,74 @@ let completedCount = 0;
 let lastInterstitialAt = 0;
 const seenPuzzles = new Set<string>();
 
+function discardLoadedAds() {
+  interstitial?.destroy();
+  rewarded?.destroy();
+  interstitial = null;
+  rewarded = null;
+  interstitialReady = false;
+  rewardedReady = false;
+  notify();
+}
+
+function applyConsentInfo(ads: AdsSdk, info: ConsentInfo | null) {
+  consentAllowed = info?.canRequestAds === true;
+  privacyOptionsRequired = info?.privacyOptionsRequirementStatus === ads.AdsConsentPrivacyOptionsRequirementStatus.REQUIRED;
+  if (!consentAllowed) discardLoadedAds();
+  else notify();
+  return consentAllowed;
+}
+
+function refreshConsent(ads: AdsSdk): Promise<boolean> {
+  if (!consentPromise) {
+    // gatherConsent refreshes UMP information and displays a required form.
+    // On a network error, only the SDK's cached canRequestAds result may allow ads.
+    consentPromise = (async () => {
+      try {
+        return applyConsentInfo(ads, await ads.AdsConsent.gatherConsent());
+      } catch {
+        try {
+          const info = await ads.AdsConsent.getConsentInfo();
+          const allowed = applyConsentInfo(ads, info);
+          if (!allowed) consentPromise = null; // Retry on a later screen visit.
+          return allowed;
+        } catch {
+          applyConsentInfo(ads, null);
+          consentPromise = null;
+          return false;
+        }
+      }
+    })();
+  }
+  return consentPromise;
+}
+
+export async function showPrivacyOptions(): Promise<boolean> {
+  const ads = getSdk();
+  if (!ads || !canOpenPrivacyOptions()) return false;
+  privacyOpen = true;
+  discardLoadedAds(); // Hide banners and pause ad requests while choices are open.
+  let shown = false;
+  try {
+    applyConsentInfo(ads, await ads.AdsConsent.showPrivacyOptionsForm());
+    shown = true;
+  } catch {
+    try {
+      applyConsentInfo(ads, await ads.AdsConsent.getConsentInfo());
+    } catch {
+      applyConsentInfo(ads, null);
+    }
+  } finally {
+    privacyOpen = false;
+    consentPromise = Promise.resolve(consentAllowed);
+    notify();
+    if (consentAllowed) void prepareAds();
+  }
+  return shown;
+}
+
 function loadInterstitial(ads: AdsSdk) {
-  if (interstitial) return;
+  if (interstitial || !canRequestAds()) return;
   const ad = ads.InterstitialAd.createForAdRequest(unitId('interstitial', ads));
   interstitial = ad;
   const unsubscribeLoaded = ad.addAdEventListener(ads.AdEventType.LOADED, () => { interstitialReady = true; });
@@ -60,7 +133,7 @@ function loadInterstitial(ads: AdsSdk) {
 }
 
 function loadRewarded(ads: AdsSdk) {
-  if (rewarded) return;
+  if (rewarded || !canRequestAds()) return;
   const ad = ads.RewardedAd.createForAdRequest(unitId('rewarded', ads));
   rewarded = ad;
   const unsubscribeLoaded = ad.addAdEventListener(ads.RewardedAdEventType.LOADED, () => {
@@ -79,9 +152,10 @@ function loadRewarded(ads: AdsSdk) {
 export async function prepareAds() {
   const ads = getSdk();
   if (!ads) return;
+  if (!await refreshConsent(ads) || !canRequestAds()) return;
   initialized ??= ads.default().initialize().then(() => ads).catch(() => null);
   const ready = await initialized;
-  if (!ready) return;
+  if (!ready || !canRequestAds()) return;
   loadInterstitial(ready);
   loadRewarded(ready);
 }
@@ -94,7 +168,7 @@ export function registerCompletedPuzzle(puzzleId: string) {
 
 export async function showInterstitialAtTransition() {
   const ads = getSdk();
-  if (!ads || !interstitial || !interstitialReady
+  if (!ads || !canRequestAds() || !interstitial || !interstitialReady
     || completedCount < INTERSTITIAL_EVERY_PUZZLES
     || Date.now() - lastInterstitialAt < MIN_INTERSTITIAL_INTERVAL_MS) return;
   const ad = interstitial;
@@ -124,7 +198,7 @@ export async function showInterstitialAtTransition() {
   });
 }
 
-export const isRewardedReady = () => rewardedReady && !watching && rewarded !== null;
+export const isRewardedReady = () => canRequestAds() && rewardedReady && !watching && rewarded !== null;
 
 export async function watchRewardedForCoins(awardCoins: (amount: number) => Promise<void>): Promise<WatchResult> {
   const ads = getSdk();

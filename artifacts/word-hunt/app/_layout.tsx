@@ -14,6 +14,7 @@ import {
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { GameProvider } from '@/context/GameProvider';
+import { prepareAds } from '@/services/ads';
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
@@ -42,6 +43,8 @@ export default function RootLayout() {
     Inter_600SemiBold,
     Inter_700Bold,
   });
+
+  useEffect(() => { void prepareAds(); }, []);
 
   useEffect(() => {
     if (fontsLoaded || fontError) {

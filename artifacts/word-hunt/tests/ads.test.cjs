@@ -4,9 +4,11 @@ const fs = require('node:fs');
 const path = require('node:path');
 const ts = require('typescript');
 
-function harness() {
+function harness(options = {}) {
   const created = { rewarded: [], interstitial: [] };
   const events = { LOADED: 'loaded', CLOSED: 'closed', ERROR: 'error', EARNED_REWARD: 'earned' };
+  const stats = { gather: 0, cached: 0, initialized: 0, privacyForms: 0 };
+  const info = options.info ?? { canRequestAds: true, privacyOptionsRequirementStatus: 'NOT_REQUIRED' };
   function makeAd(kind) {
     const callbacks = new Map();
     const ad = {
@@ -25,7 +27,24 @@ function harness() {
     return ad;
   }
   const sdk = {
-    default: () => ({ initialize: async () => [] }),
+    default: () => ({ initialize: async () => { stats.initialized++; return []; } }),
+    AdsConsentPrivacyOptionsRequirementStatus: { REQUIRED: 'REQUIRED' },
+    AdsConsent: {
+      gatherConsent: async () => {
+        stats.gather++;
+        if (options.gatherError) throw new Error('consent network unavailable');
+        return info;
+      },
+      getConsentInfo: async () => {
+        stats.cached++;
+        if (options.cachedError) throw new Error('consent state unavailable');
+        return info;
+      },
+      showPrivacyOptionsForm: async () => {
+        stats.privacyForms++;
+        return options.privacyResult ?? info;
+      },
+    },
     TestIds: { BANNER: 'test-banner', INTERSTITIAL: 'test-interstitial', REWARDED: 'test-rewarded' },
     AdEventType: events,
     RewardedAdEventType: events,
@@ -45,8 +64,87 @@ function harness() {
     throw new Error(`Unexpected import ${name}`);
   };
   new Function('require', 'module', 'exports', '__DEV__', code)(mockRequire, module, module.exports, true);
-  return { ads: module.exports, created, events };
+  return { ads: module.exports, created, events, stats };
 }
+
+test('refreshes UMP consent before SDK initialization or ad loading', async () => {
+  const { ads, created, stats } = harness();
+  await ads.prepareAds();
+  await ads.prepareAds();
+  assert.equal(stats.gather, 1);
+  assert.equal(stats.initialized, 1);
+  assert.equal(created.interstitial.length, 1);
+  assert.equal(created.rewarded.length, 1);
+});
+
+test('denied consent prevents initialization, all ad requests, and rewarded coins', async () => {
+  const { ads, created, stats } = harness({
+    info: { canRequestAds: false, privacyOptionsRequirementStatus: 'REQUIRED' },
+  });
+  await ads.prepareAds();
+  assert.equal(stats.gather, 1);
+  assert.equal(stats.initialized, 0);
+  assert.equal(created.interstitial.length, 0);
+  assert.equal(created.rewarded.length, 0);
+  assert.equal(ads.canRequestAds(), false);
+  assert.equal(ads.canOpenPrivacyOptions(), true);
+  assert.equal(await ads.watchRewardedForCoins(async () => { throw new Error('never called'); }), 'unavailable');
+});
+
+test('a required privacy-options form can grant consent and enable ads', async () => {
+  const { ads, created, stats } = harness({
+    info: { canRequestAds: false, privacyOptionsRequirementStatus: 'REQUIRED' },
+    privacyResult: { canRequestAds: true, privacyOptionsRequirementStatus: 'REQUIRED' },
+  });
+  await ads.prepareAds();
+  assert.equal(await ads.showPrivacyOptions(), true);
+  await ads.prepareAds();
+  assert.equal(stats.privacyForms, 1);
+  assert.equal(stats.initialized, 1);
+  assert.equal(created.rewarded.length, 1);
+  assert.equal(ads.canRequestAds(), true);
+});
+
+test('revoking consent hides loaded ads and blocks subsequent ad requests', async () => {
+  const { ads, created, stats } = harness({
+    info: { canRequestAds: true, privacyOptionsRequirementStatus: 'REQUIRED' },
+    privacyResult: { canRequestAds: false, privacyOptionsRequirementStatus: 'REQUIRED' },
+  });
+  await ads.prepareAds();
+  assert.equal(ads.isRewardedReady(), true);
+  await ads.showPrivacyOptions();
+  await ads.prepareAds();
+  assert.equal(ads.canRequestAds(), false);
+  assert.equal(ads.isRewardedReady(), false);
+  assert.equal(created.rewarded.length, 1);
+  assert.equal(stats.initialized, 1);
+});
+
+test('a consent network failure stays ad-free without cached permission', async () => {
+  const { ads, created, stats } = harness({
+    info: { canRequestAds: false, privacyOptionsRequirementStatus: 'UNKNOWN' },
+    gatherError: true,
+  });
+  await ads.prepareAds();
+  assert.equal(stats.cached, 1);
+  assert.equal(stats.initialized, 0);
+  assert.equal(created.rewarded.length, 0);
+  assert.equal(ads.canRequestAds(), false);
+});
+
+test('a consent network failure only uses SDK-confirmed cached permission', async () => {
+  const { ads, stats } = harness({ gatherError: true });
+  await ads.prepareAds();
+  assert.equal(stats.cached, 1);
+  assert.equal(stats.initialized, 1);
+});
+
+test('missing consent state never crashes or loads ads', async () => {
+  const { ads, created, stats } = harness({ gatherError: true, cachedError: true });
+  await ads.prepareAds();
+  assert.equal(stats.initialized, 0);
+  assert.equal(created.interstitial.length, 0);
+});
 
 test('reward is granted only after the earned callback, once per ad', async () => {
   const { ads, created, events } = harness();

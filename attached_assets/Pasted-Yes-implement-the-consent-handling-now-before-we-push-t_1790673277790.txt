@@ -1,0 +1,61 @@
+Yes, implement the consent handling now before we push the AdMob integration.
+
+Use the current AdMob implementation and add proper Google UMP consent handling for Android.
+
+Requirements:
+
+1. Use the consent functionality supported by the currently installed react-native-google-mobile-ads version (17.2.0). Do not downgrade the package.
+
+2. At app startup, refresh/update the user's consent information before requesting ads.
+
+3. Gate AdMob initialization and ad requests on the SDK's consent/request status. Do not load banner, interstitial, or rewarded ads when the SDK reports that ads cannot currently be requested.
+
+4. If a consent form is required, present it through the supported UMP flow and continue only after the consent process has been handled.
+
+5. Provide a privacy/consent-options entry point that allows the user to reopen privacy choices when the SDK indicates that this is required or available.
+
+6. Make the consent flow resilient:
+   - If consent information cannot be retrieved because of a network problem, do not crash the game.
+   - The game must remain playable without ads.
+   - Never grant rewards based on consent completion, ad loading, or ad closing.
+
+7. Keep the existing AdMob behavior intact:
+   - Banner ID: ca-app-pub-9827389269181842/1228070692
+   - Interstitial ID: ca-app-pub-9827389269181842/1693753369
+   - Rewarded ID: ca-app-pub-9827389269181842/4711116175
+   - Android App ID: ca-app-pub-9827389269181842~4120089237
+
+8. Keep Daily Puzzle, onboarding, gameplay, coins, hints, and Mystery Dumpling functionality unchanged.
+
+9. Do not add or invent an iOS App ID.
+
+10. Do not hardcode a fake/sample consent configuration or pretend that AdMob Privacy & Messaging has been configured remotely. If the app-side implementation requires a configuration that must be completed in the AdMob console, clearly tell me exactly what remains to be configured there.
+
+11. Keep web/Expo Go safe. The native UMP/AdMob modules must not cause the web preview or Expo Go to crash.
+
+12. Update/add focused tests for the consent gating logic where practical.
+
+VALIDATE EVERYTHING:
+- TypeScript
+- all existing tests
+- consent-related tests
+- Expo config parsing
+- Android bundle/export
+- web preview
+- no conflict markers
+- no obsolete AdMob code
+- Daily Puzzle and onboarding still present
+- git diff
+- git status
+
+IMPORTANT GIT RULE:
+Do NOT create another commit.
+Do NOT push anything.
+The existing local AdMob commit is 4991d50 and the iOS App ID removal is currently uncommitted. Leave the resulting changes uncommitted so we can review the final diff together.
+
+At the end, tell me:
+1. Exactly how consent is implemented.
+2. Which files changed.
+3. What must still be configured in the AdMob console, if anything.
+4. Validation results.
+5. Current git status.
