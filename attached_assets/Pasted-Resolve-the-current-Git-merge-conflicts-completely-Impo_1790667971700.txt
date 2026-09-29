@@ -1,0 +1,59 @@
+Resolve the current Git merge conflicts completely.
+
+Important context:
+
+* We are merging the GitHub branch `origin/feature/game-improvements` into the current Replit branch `feature/game-improvements`.
+* The current Replit code contains newer Daily Puzzle functionality and the recent AdMob removal.
+* The GitHub branch contains the Phase 2 onboarding changes.
+* The merge conflicts are showing some stale/old AdMob code on the HEAD side. That code MUST NOT be restored.
+
+Resolve all remaining merge conflicts using these rules:
+
+1. **Preserve the current Replit implementation wherever possible**, especially:
+
+   * Daily Puzzle functionality
+   * Daily Puzzle routes and results
+   * current game flow
+   * current UI/UX
+   * recent AdMob removal
+
+2. **Keep the useful GitHub onboarding changes** from `origin/feature/game-improvements` where they do not conflict with the current Replit implementation.
+
+3. **AdMob must remain completely removed.**
+   Do NOT restore:
+
+   * `react-native-google-mobile-ads`
+   * `prepareAds`
+   * `subscribeToAds`
+   * `isRewardedReady`
+   * ad banners
+   * consent/ad SDK code
+   * any other old AdMob integration
+
+4. Specifically resolve these currently conflicted files:
+
+   * `artifacts/word-hunt/app/results.tsx`
+   * `artifacts/word-hunt/context/GameProvider.tsx`
+   * `artifacts/word-hunt/game/onboarding.ts`
+   * `artifacts/word-hunt/services/storage.ts`
+
+   Also verify that the already-resolved files remain correct:
+
+   * `artifacts/word-hunt/app/categories.tsx`
+   * `artifacts/word-hunt/app/game.tsx`
+   * `artifacts/word-hunt/app/index.tsx`
+
+5. For `results.tsx`, preserve the Daily Puzzle results flow and remove the stale AdMob effect/code. Keep normal puzzle results and onboarding behavior working.
+
+6. Do NOT abort the merge.
+
+7. Do NOT reset or force-push anything.
+
+8. After resolving conflicts, run:
+
+   * `git status`
+   * TypeScript/type checking
+   * the existing tests if available
+   * a search confirming there are no active AdMob imports/references in the app code.
+
+9. Do NOT commit yet. Stop after all conflicts are resolved and validation is complete, then report exactly what was changed and whether `git status` still shows unmerged paths.
