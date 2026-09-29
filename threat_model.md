@@ -26,7 +26,6 @@ Word Hunt is an offline-first mobile word-search game built with Expo/React Nati
 - Highest-risk code (reviewed): `serve.js` path handling (`serveStaticFile`, `serveManifest`).
 - Public surfaces: `/api/health`, `/api/healthz`, static assets. No authenticated or admin surface exists.
 - Dev-only (ignore unless proven reachable): `artifacts/mockup-sandbox/**`, `artifacts/word-hunt/scripts/build.js` (build-time `fetch` to `localhost:8081`).
-- Public non-secret identifiers: AdMob app/unit IDs in `artifacts/word-hunt/services/ads.ts` are intentionally client-embedded, not secrets.
 
 ## Threat Categories
 
