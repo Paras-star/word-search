@@ -8,6 +8,15 @@ function harness(options = {}) {
   const created = { rewarded: [], interstitial: [] };
   const events = { LOADED: 'loaded', CLOSED: 'closed', ERROR: 'error', EARNED_REWARD: 'earned' };
   const stats = { gather: 0, cached: 0, initialized: 0, privacyForms: 0 };
+  const timers = [];
+  const schedule = options.fakeTimers
+    ? (callback, delay) => {
+      const timer = { callback, delay, cancelled: false };
+      timers.push(timer);
+      return timer;
+    }
+    : setTimeout;
+  const cancel = options.fakeTimers ? (timer) => { timer.cancelled = true; } : clearTimeout;
   const info = options.info ?? { canRequestAds: true, privacyOptionsRequirementStatus: 'NOT_REQUIRED' };
   function makeAd(kind) {
     const callbacks = new Map();
@@ -20,14 +29,19 @@ function harness(options = {}) {
       },
       emit(event) { for (const callback of [...(callbacks.get(event) ?? [])]) callback(); },
       load() { this.loaded = true; this.emit(events.LOADED); },
-      show: async () => {},
-      destroy() {},
+      show: () => kind === 'interstitial' && options.interstitialShowNeverSettles
+        ? new Promise(() => {}) : Promise.resolve(),
+      destroy() { this.destroyed = true; },
     };
     created[kind].push(ad);
     return ad;
   }
   const sdk = {
-    default: () => ({ initialize: async () => { stats.initialized++; return []; } }),
+    default: () => ({ initialize: async () => {
+      stats.initialized++;
+      if (options.initializeError) throw new Error('AdMob initialization failed');
+      return [];
+    } }),
     AdsConsentPrivacyOptionsRequirementStatus: { REQUIRED: 'REQUIRED' },
     AdsConsent: {
       gatherConsent: async () => {
@@ -63,8 +77,10 @@ function harness(options = {}) {
     if (name === 'react-native-google-mobile-ads') return sdk;
     throw new Error(`Unexpected import ${name}`);
   };
-  new Function('require', 'module', 'exports', '__DEV__', code)(mockRequire, module, module.exports, true);
-  return { ads: module.exports, created, events, stats };
+  new Function('require', 'module', 'exports', '__DEV__', 'setTimeout', 'clearTimeout', code)(
+    mockRequire, module, module.exports, true, schedule, cancel,
+  );
+  return { ads: module.exports, created, events, stats, timers };
 }
 
 test('refreshes UMP consent before SDK initialization or ad loading', async () => {
@@ -75,6 +91,46 @@ test('refreshes UMP consent before SDK initialization or ad loading', async () =
   assert.equal(stats.initialized, 1);
   assert.equal(created.interstitial.length, 1);
   assert.equal(created.rewarded.length, 1);
+  assert.equal(ads.isAdsReady(), true);
+});
+
+test('banner remains unavailable when AdMob initialization fails despite allowed consent', async () => {
+  const { ads, created, stats } = harness({ initializeError: true });
+  await ads.prepareAds();
+  assert.equal(ads.canRequestAds(), true);
+  assert.equal(ads.isAdsReady(), false);
+  assert.equal(stats.initialized, 1);
+  assert.equal(created.interstitial.length, 0);
+  assert.equal(created.rewarded.length, 0);
+});
+
+test('interstitial resolves after a stalled show and retains frequency rules', async () => {
+  const { ads, created, timers } = harness({ fakeTimers: true, interstitialShowNeverSettles: true });
+  await ads.prepareAds();
+  for (let i = 0; i < 3; i++) ads.registerCompletedPuzzle(`puzzle-${i}`);
+  const pending = ads.showInterstitialAtTransition();
+  assert.equal(timers.length, 1);
+  assert.equal(timers[0].delay, 60_000);
+  assert.equal(timers[0].cancelled, false);
+  timers[0].callback();
+  await pending;
+  assert.equal(timers[0].cancelled, true);
+  assert.equal(created.interstitial[0].destroyed, true);
+  await ads.prepareAds();
+  for (let i = 3; i < 6; i++) ads.registerCompletedPuzzle(`puzzle-${i}`);
+  await ads.showInterstitialAtTransition();
+  assert.equal(timers.length, 1); // The minimum interval still blocks another show.
+});
+
+test('interstitial close resolves promptly and cancels the fail-safe timer', async () => {
+  const { ads, created, events, timers } = harness({ fakeTimers: true });
+  await ads.prepareAds();
+  for (let i = 0; i < 3; i++) ads.registerCompletedPuzzle(`puzzle-${i}`);
+  const pending = ads.showInterstitialAtTransition();
+  created.interstitial[0].emit(events.CLOSED);
+  await pending;
+  assert.equal(timers[0].cancelled, true);
+  assert.equal(created.interstitial[0].destroyed, true);
 });
 
 test('denied consent prevents initialization, all ad requests, and rewarded coins', async () => {

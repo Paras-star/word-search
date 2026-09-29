@@ -43,6 +43,8 @@ export function subscribeToAds(listener: () => void) {
 }
 
 let initialized: Promise<AdsSdk | null> | null = null;
+let adsReady = false;
+export const isAdsReady = () => adsReady && canRequestAds();
 let interstitial: Interstitial | null = null;
 let rewarded: Rewarded | null = null;
 let interstitialReady = false;
@@ -156,6 +158,10 @@ export async function prepareAds() {
   initialized ??= ads.default().initialize().then(() => ads).catch(() => null);
   const ready = await initialized;
   if (!ready || !canRequestAds()) return;
+  if (!adsReady) {
+    adsReady = true;
+    notify();
+  }
   loadInterstitial(ready);
   loadRewarded(ready);
 }
@@ -176,17 +182,31 @@ export async function showInterstitialAtTransition() {
   interstitialReady = false;
   await new Promise<void>((resolve) => {
     let settled = false;
+    let timeout: ReturnType<typeof setTimeout>;
     const finish = () => {
       if (settled) return;
       settled = true;
-      removeClosed();
-      removeError();
-      ad.destroy();
-      void prepareAds();
-      resolve();
+      clearTimeout(timeout);
+      try {
+        removeClosed();
+        removeError();
+        ad.destroy();
+      } catch {
+        // A native cleanup error must not prevent navigation.
+      } finally {
+        resolve();
+        void prepareAds();
+      }
     };
     const removeClosed = ad.addAdEventListener(ads.AdEventType.CLOSED, finish);
     const removeError = ad.addAdEventListener(ads.AdEventType.ERROR, finish);
+    timeout = setTimeout(() => {
+      // Treat an unconfirmed show as an attempt so a stalled SDK cannot
+      // immediately serve another interstitial at the next transition.
+      completedCount = 0;
+      lastInterstitialAt = Date.now();
+      finish();
+    }, 60_000);
     try {
       void ad.show().then(() => {
         completedCount = 0;
