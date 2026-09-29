@@ -7,6 +7,7 @@ import { CATEGORIES } from '@/data/categories';
 import { isCategoryUnlocked } from '@/game/progression';
 import { useGame } from '@/context/GameProvider';
 import { useColors } from '@/hooks/useColors';
+import { AdBanner } from '@/components/AdBanner';
 
 export default function CategoriesScreen() {
   const router = useRouter();
@@ -28,6 +29,7 @@ export default function CategoriesScreen() {
         <View style={styles.status}>{completed ? <><Feather name="check-circle" size={14} color={colors.success} /><Text style={[styles.statusText, { color: colors.success }]}>CLEARED</Text></> : unlocked ? <><SectionLabel>READY</SectionLabel></> : <><Feather name="lock" size={13} color={colors.mutedForeground} /><Text style={[styles.statusText, { color: colors.mutedForeground }]}>LOCKED</Text></>}</View>
       </Pressable>;
     }} />
+    <AdBanner />
   </Screen>;
 }
 

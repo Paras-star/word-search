@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "Word Hunt : Mystery Dumpling",
+    "name": "Word Hunt: Mystery Dumplings",
     "slug": "word-hunt",
     "owner": "paraschuri",
     "version": "2.0.0",
@@ -20,6 +20,13 @@
     },
     "plugins": [
       "expo-router",
+      [
+        "react-native-google-mobile-ads",
+        {
+          "androidAppId": "ca-app-pub-9827389269181842~4120089237",
+          "iosAppId": "ca-app-pub-3940256099942544~1458002511"
+        }
+      ],
       [
         "expo-splash-screen",
         {

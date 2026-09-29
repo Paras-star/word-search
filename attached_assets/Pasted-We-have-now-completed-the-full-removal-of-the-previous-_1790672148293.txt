@@ -1,0 +1,77 @@
+We have now completed the full removal of the previous AdMob integration. I want you to add a completely fresh AdMob integration using the following official AdMob configuration for the Word Hunt: Mystery Dumplings app.
+
+APP:
+- App name: Word Hunt: Mystery Dumplings
+- Android App ID: ca-app-pub-9827389269181842~4120089237
+
+AD UNITS:
+- Banner: ca-app-pub-9827389269181842/1228070692
+- Interstitial: ca-app-pub-9827389269181842/1693753369
+- Rewarded: ca-app-pub-9827389269181842/4711116175
+
+IMPORTANT PROJECT CONTEXT:
+- Current branch: feature/game-improvements
+- The branch has already been merged and pushed to GitHub.
+- Daily Puzzle is working and must remain untouched.
+- Phase 2 onboarding is working and must remain untouched.
+- Mystery Dumpling collection/reveal system must remain untouched.
+- The previous AdMob integration was deliberately removed completely before this new integration.
+- Do NOT restore any old implementation blindly. Build the new integration cleanly from the current ad-free codebase.
+
+TASK:
+
+1. Inspect the current project and determine the correct current Expo/React Native AdMob integration approach for this project.
+2. Add the current supported `react-native-google-mobile-ads` dependency and configure the Android App ID:
+   ca-app-pub-9827389269181842~4120089237
+3. Configure the three ad unit IDs above in a centralized, maintainable way rather than scattering hardcoded IDs throughout the UI.
+4. Restore the intended ad functionality using the current game's existing architecture, but do not reintroduce obsolete code from the previous AdMob implementation.
+5. Banner ads:
+   - Restore the banner placement where the game previously used a banner.
+   - Make sure it does not cover gameplay controls, the word-search grid, navigation, or important result/reward UI.
+6. Interstitial ads:
+   - Restore the intended interstitial behavior from the game's current design.
+   - Do not show an interstitial during onboarding.
+   - Do not show an interstitial in the middle of active word selection.
+   - Do not interfere with Daily Puzzle completion/reward flow.
+7. Rewarded ads:
+   - Restore the rewarded-ad functionality used for the game's reward/hint/coin system where appropriate.
+   - The user must explicitly choose to watch a rewarded ad.
+   - Never automatically reward the player simply because an ad was loaded or displayed.
+   - Only grant the reward after the rewarded-ad completion callback confirms the user earned the reward.
+8. Keep all existing Daily Puzzle, onboarding, progression, dumpling, coin, and puzzle logic intact.
+9. Handle ad loading failures gracefully. The game must remain fully playable if an ad is unavailable or fails to load.
+10. Do not add authentication, backend requirements, or cloud dependencies for AdMob.
+11. Keep web/Expo preview compatibility in mind. Do not cause the web version to crash because the native AdMob module is unavailable.
+12. Check the current Expo SDK/package versions and use a compatible `react-native-google-mobile-ads` version rather than arbitrarily using an old version.
+13. Do not modify unrelated dependencies unless required for the AdMob integration.
+
+VALIDATION:
+
+After implementation:
+- Run TypeScript validation.
+- Run all existing tests.
+- Verify Expo config parses successfully.
+- Search the project for AdMob references and verify they point to the NEW integration only.
+- Verify the old AdMob implementation/files are not accidentally restored.
+- Verify the three new ad unit IDs are used correctly.
+- Verify the Android App ID is configured correctly.
+- Verify Daily Puzzle and onboarding code are still present.
+- Verify there are no conflict markers.
+- Check `git status`.
+
+IMPORTANT:
+- Do NOT commit yet.
+- Do NOT push to GitHub yet.
+- Do NOT force-push.
+- Do NOT reset the branch.
+- Do NOT change unrelated game functionality.
+
+At the end, report:
+1. Files changed
+2. AdMob package/version used
+3. Android App ID configuration
+4. Where Banner, Interstitial, and Rewarded ads are integrated
+5. Validation results
+6. Any issues or decisions that still require my approval
+
+Stop before committing or pushing.
