@@ -13,7 +13,8 @@
       "bundleIdentifier": "com.paras.wordhunt"
     },
     "android": {
-      "package": "com.paras.wordhunt"
+      "package": "com.paras.wordhunt",
+      "versionCode": 2
     },
     "web": {
       "favicon": "./assets/images/icon.png"
