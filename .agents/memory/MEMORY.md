@@ -5,3 +5,4 @@
 - [Expo build port collision](expo-build-port-collision.md) — local production builds can conflict with the mockup preview server's Metro port; use an isolated port for smoke builds.
 - [Scoped workspace dependencies](scoped-workspace-dependencies.md) — package installer rejects workspace filter flags; scope artifact dependencies explicitly to avoid root pollution.
 - [Expo Doctor package age](expo-doctor-package-age.md) — SDK patch recommendations can precede the package firewall's maturity window; do not bypass it.
+- [Home theme preservation](home-theme-preservation.md) — theme changes on other screens must not alter the Home screen's existing shared-component colors.
