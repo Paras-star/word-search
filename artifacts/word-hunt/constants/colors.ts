@@ -1,51 +1,40 @@
-/**
- * Semantic design tokens for the mobile app.
- *
- * These tokens mirror the naming conventions used in web artifacts (index.css)
- * so that multi-artifact projects share a cohesive visual identity.
- *
- * Replace the placeholder values below with values that match the project's
- * brand. If a sibling web artifact exists, read its index.css and convert the
- * HSL values to hex so both artifacts use the same palette.
- *
- * To add dark mode, add a `dark` key with the same token names.
- * The useColors() hook will automatically pick it up.
- */
+import { homeColors } from './homePalette';
 
 const colors = {
   light: {
-    text: '#1a1a1a',
-    tint: '#2f80ed',
+    text: homeColors.ink,
+    tint: homeColors.teal,
 
-    background: '#f0f0f3',
-    foreground: '#1a1a1a',
+    background: homeColors.background,
+    foreground: homeColors.ink,
 
-    card: '#ffffff',
-    cardForeground: '#1a1a1a',
+    card: homeColors.tile,
+    cardForeground: homeColors.ink,
 
-    primary: '#2f80ed',
-    primaryForeground: '#ffffff',
+    primary: homeColors.teal,
+    primaryForeground: '#FFFFFF',
 
-    secondary: '#e7e8ed',
-    secondaryForeground: '#1a1a1a',
+    secondary: homeColors.tileBorder,
+    secondaryForeground: homeColors.ink,
 
-    muted: '#ececf1',
-    mutedForeground: '#6f7180',
+    muted: homeColors.goldSoft,
+    mutedForeground: homeColors.softInk,
 
-    accent: '#fff1df',
-    accentForeground: '#1a1a1a',
+    accent: homeColors.goldSoft,
+    accentForeground: homeColors.gold,
 
-    destructive: '#eb4c4c',
-    destructiveForeground: '#ffffff',
+    destructive: homeColors.gold,
+    destructiveForeground: '#FFFFFF',
 
-    border: '#dedfe7',
-    input: '#dedfe7',
-    orange: '#ff8c1a',
-    pink: '#f83f8f',
-    success: '#2eaa72',
-    warning: '#e45757',
-    foundWord: '#c0c0c8',
-    inkSoft: '#555867',
+    border: homeColors.tileBorder,
+    input: homeColors.tileBorder,
+    buttonBorder: homeColors.tealBorder,
+    orange: homeColors.gold,
+    pink: homeColors.gold,
+    success: homeColors.teal,
+    warning: homeColors.gold,
+    foundWord: homeColors.softInk,
+    inkSoft: homeColors.softInk,
   },
 
   radius: 18,

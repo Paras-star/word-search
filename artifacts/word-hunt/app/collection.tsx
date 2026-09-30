@@ -15,7 +15,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Header, LoadingScreen, Screen } from '@/components/GameUI';
 import { DUMPLINGS, RARITY_PRESENTATION, type Dumpling, type DumplingRarity } from '@/data/dumplings';
-import { useColors } from '@/hooks/useColors';
+import { homeColors } from '@/constants/homePalette';
 import { getCollection } from '@/services/dumplingRewards';
 
 const RARITIES_ORDER: DumplingRarity[] = ['Legendary', 'Epic', 'Rare', 'Uncommon', 'Common'];
@@ -179,7 +179,7 @@ function DumplingSlot({
           <Image source={dumpling.asset} style={styles.dumplingImg} resizeMode="contain" />
         ) : (
           <View style={styles.placeholderShape}>
-            <Feather name="lock" size={20} color="#B0A090" />
+            <Feather name="lock" size={20} color={homeColors.softInk} />
           </View>
         )}
       </Animated.View>
@@ -199,7 +199,6 @@ function DumplingSlot({
 
 export default function CollectionScreen() {
   const router = useRouter();
-  const colors = useColors();
   const insets = useSafeAreaInsets();
   const params = useLocalSearchParams<{ newDumplingId?: string }>();
 
@@ -249,7 +248,7 @@ export default function CollectionScreen() {
   }, []);
 
   if (collectionError) return (
-    <Screen style={{ paddingTop: insets.top }}>
+    <Screen style={{ paddingTop: insets.top, backgroundColor: homeColors.background }}>
       <Header title="Collection Room" onBack={() => router.back()} />
       <View style={styles.loadError}>
         <Text style={styles.loadErrorText}>Your collection could not be loaded. It has not been reset.</Text>
@@ -300,20 +299,20 @@ export default function CollectionScreen() {
   };
 
   return (
-    <Screen style={{ paddingTop: insets.top }}>
+    <Screen style={{ paddingTop: insets.top, backgroundColor: homeColors.background }}>
       <Header title="Collection Room" onBack={() => router.back()} />
       <View style={{ flex: 1, paddingHorizontal: 16 }}>
-        <View style={[styles.progressCard, { backgroundColor: colors.card, borderColor: colors.border, marginBottom: 16 }]}>
+        <View style={[styles.progressCard, { backgroundColor: homeColors.tile, borderColor: homeColors.tileBorder, marginBottom: 16 }]}>
           <View>
-            <Text style={[styles.progressKicker, { color: colors.mutedForeground }]}>MYSTERY DUMPLINGS</Text>
-            <Text style={[styles.progressTitle, { color: colors.foreground }]}>{owned.size} of {DUMPLINGS.length} collected</Text>
+            <Text style={[styles.progressKicker, { color: homeColors.softInk }]}>MYSTERY DUMPLINGS</Text>
+            <Text style={[styles.progressTitle, { color: homeColors.ink }]}>{owned.size} of {DUMPLINGS.length} collected</Text>
           </View>
-          <View style={[styles.progressCircle, { backgroundColor: colors.accent }]}>
-            <Text style={[styles.progressPercent, { color: colors.orange }]}>{progress}%</Text>
+          <View style={[styles.progressCircle, { backgroundColor: homeColors.goldSoft }]}>
+            <Text style={[styles.progressPercent, { color: homeColors.gold }]}>{progress}%</Text>
           </View>
         </View>
 
-        <View style={[styles.galleryContainer, { borderColor: colors.border }]}>
+        <View style={[styles.galleryContainer, { borderColor: homeColors.tileBorder }]}>
           <FlatList
             data={flatData}
             keyExtractor={(item) => item.id}
@@ -333,8 +332,8 @@ export default function CollectionScreen() {
 
 const styles = StyleSheet.create({
   loadError: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24 },
-  loadErrorText: { fontFamily: 'Inter_600SemiBold', fontSize: 16, textAlign: 'center', marginBottom: 20 },
-  retryButton: { backgroundColor: '#2F80ED', borderRadius: 14, paddingHorizontal: 24, paddingVertical: 14 },
+  loadErrorText: { color: homeColors.ink, fontFamily: 'Inter_600SemiBold', fontSize: 16, textAlign: 'center', marginBottom: 20 },
+  retryButton: { backgroundColor: homeColors.teal, borderRadius: 14, paddingHorizontal: 24, paddingVertical: 14 },
   retryText: { fontFamily: 'Inter_700Bold', color: '#FFFFFF' },
   progressCard: { borderWidth: 1, borderRadius: 20, padding: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   progressKicker: { fontFamily: 'Inter_700Bold', fontSize: 10, letterSpacing: 1.2 },
@@ -342,7 +341,7 @@ const styles = StyleSheet.create({
   progressCircle: { width: 54, height: 54, borderRadius: 27, alignItems: 'center', justifyContent: 'center' },
   progressPercent: { fontFamily: 'Inter_700Bold', fontSize: 14 },
 
-  galleryContainer: { flex: 1, borderWidth: 2, borderRadius: 22, overflow: 'hidden', backgroundColor: '#FFF9F2', shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 8, shadowOffset: { width: 0, height: 4 } },
+  galleryContainer: { flex: 1, borderWidth: 2, borderRadius: 22, overflow: 'hidden', backgroundColor: homeColors.tile, shadowColor: homeColors.ink, shadowOpacity: 0.1, shadowRadius: 8, shadowOffset: { width: 0, height: 4 } },
 
   sectionHeader: {
     height: HEADER_HEIGHT,
@@ -353,7 +352,7 @@ const styles = StyleSheet.create({
     paddingTop: 16,
     paddingBottom: 10,
     borderBottomWidth: 2,
-    backgroundColor: '#FFF9F2',
+    backgroundColor: homeColors.tile,
   },
   sectionHeaderTitle: {
     flexDirection: 'row',
@@ -368,7 +367,7 @@ const styles = StyleSheet.create({
   sectionHeaderCount: {
     fontFamily: 'Inter_600SemiBold',
     fontSize: 14,
-    color: '#7A8192',
+    color: homeColors.softInk,
   },
   row: {
     height: ROW_HEIGHT,
@@ -384,16 +383,16 @@ const styles = StyleSheet.create({
     zIndex: 10
   },
   dumplingImg: { width: 55, height: 55 },
-  placeholderShape: { width: 48, height: 42, backgroundColor: '#DFD5C9', borderTopLeftRadius: 24, borderTopRightRadius: 24, borderBottomLeftRadius: 10, borderBottomRightRadius: 10, alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: '#C8BAA8' },
+  placeholderShape: { width: 48, height: 42, backgroundColor: homeColors.goldSoft, borderTopLeftRadius: 24, borderTopRightRadius: 24, borderBottomLeftRadius: 10, borderBottomRightRadius: 10, alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: homeColors.tileBorder },
   glowBackdrop: { width: 100, height: 100, borderRadius: 50, opacity: 0.5 },
-  sparkle: { position: 'absolute', width: 6, height: 6, borderRadius: 3, shadowColor: '#FFFFFF', shadowOpacity: 0.8, shadowRadius: 4 },
+  sparkle: { position: 'absolute', width: 6, height: 6, borderRadius: 3, shadowColor: homeColors.gold, shadowOpacity: 0.8, shadowRadius: 4 },
   sparkleOne: { left: 10, top: 24 },
   sparkleTwo: { right: 12, top: 38, width: 4, height: 4 },
   sparkleThree: { right: 22, bottom: 16, width: 5, height: 5 },
-  label: { backgroundColor: 'rgba(0,0,0,0.5)', borderRadius: 8, paddingHorizontal: 6, paddingVertical: 3, marginTop: 4, alignItems: 'center', minWidth: 50 },
-  labelLocked: { backgroundColor: 'rgba(0,0,0,0.25)' },
-  name: { fontSize: 9, color: '#FFFFFF', fontFamily: 'Inter_600SemiBold', textAlign: 'center' },
-  nameLocked: { color: 'rgba(255,255,255,0.4)' },
+  label: { backgroundColor: homeColors.goldSoft, borderRadius: 8, paddingHorizontal: 6, paddingVertical: 3, marginTop: 4, alignItems: 'center', minWidth: 50 },
+  labelLocked: { backgroundColor: homeColors.goldSoft },
+  name: { fontSize: 9, color: homeColors.ink, fontFamily: 'Inter_600SemiBold', textAlign: 'center' },
+  nameLocked: { color: homeColors.softInk },
   rarityRow: { flexDirection: 'row', alignItems: 'center', gap: 3, marginTop: 2 },
   rarityDot: { width: 4, height: 4, borderRadius: 2 },
   rarityText: { fontSize: 7, fontFamily: 'Inter_700Bold' },

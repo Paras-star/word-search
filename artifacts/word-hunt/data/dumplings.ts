@@ -1,4 +1,5 @@
 import type { ImageSourcePropType } from 'react-native';
+import { homeColors } from '@/constants/homePalette';
 
 export const DUMPLING_RARITIES = ['Common', 'Uncommon', 'Rare', 'Epic', 'Legendary'] as const;
 export type DumplingRarity = (typeof DUMPLING_RARITIES)[number];
@@ -46,9 +47,9 @@ export const DUMPLINGS: Dumpling[] = [
 export const DUMPLING_BY_ID = Object.fromEntries(DUMPLINGS.map((dumpling) => [dumpling.id, dumpling])) as Record<string, Dumpling>;
 
 export const RARITY_PRESENTATION: Record<DumplingRarity, { color: string; glow: string; particleCount: number }> = {
-  Common: { color: '#7A8192', glow: '#D9DDE7', particleCount: 5 },
-  Uncommon: { color: '#2FA96E', glow: '#8AE2B4', particleCount: 7 },
-  Rare: { color: '#2F80ED', glow: '#81B8FF', particleCount: 9 },
-  Epic: { color: '#9B51E0', glow: '#D9A7FF', particleCount: 12 },
-  Legendary: { color: '#E5A11A', glow: '#FFE38B', particleCount: 15 },
+  Common: { color: homeColors.softInk, glow: homeColors.softInk, particleCount: 5 },
+  Uncommon: { color: homeColors.teal, glow: homeColors.teal, particleCount: 7 },
+  Rare: { color: homeColors.ink, glow: homeColors.ink, particleCount: 9 },
+  Epic: { color: homeColors.teal, glow: homeColors.gold, particleCount: 12 },
+  Legendary: { color: homeColors.gold, glow: homeColors.gold, particleCount: 15 },
 };

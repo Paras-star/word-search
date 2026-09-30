@@ -1,6 +1,12 @@
 import type { GameMode } from './types';
 
-export const HIGHLIGHT_COLORS = ['#eb4c4c', '#2f80ed', '#2eaa72', '#f6c445', '#f83f8f', '#ff8c1a', '#8b5cf6', '#15aabf', '#e64980', '#22b8cf', '#82c91e', '#7950f2', '#f59f00', '#20c997', '#d633c9', '#339af0', '#8bdc65', '#ffad5c'];
+import { homeColors } from '@/constants/homePalette';
+
+export const HIGHLIGHT_COLORS = [
+  homeColors.teal, homeColors.gold, homeColors.ink, homeColors.softInk, homeColors.tealBorder, homeColors.tileBorder,
+  homeColors.teal, homeColors.gold, homeColors.ink, homeColors.softInk, homeColors.tealBorder, homeColors.tileBorder,
+  homeColors.teal, homeColors.gold, homeColors.ink, homeColors.softInk, homeColors.tealBorder, homeColors.tileBorder,
+];
 
 export function scoreFoundWord(currentScore: number, isTarget: boolean): number {
   return currentScore + (isTarget ? 10 : 5);

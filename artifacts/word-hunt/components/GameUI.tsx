@@ -18,7 +18,7 @@ export function PrimaryButton({ children, style, disabled, ...props }: ButtonPro
 
 export function SoftButton({ children, style, disabled, ...props }: ButtonProps) {
   const colors = useColors();
-  return <Pressable disabled={disabled} style={({ pressed }) => [styles.softButton, { backgroundColor: colors.card, borderColor: colors.border, opacity: pressed ? 0.75 : disabled ? 0.5 : 1 }, style]} {...props}><Text style={[styles.softText, { color: colors.foreground }]}>{children}</Text></Pressable>;
+  return <Pressable disabled={disabled} style={({ pressed }) => [styles.softButton, { backgroundColor: colors.card, borderColor: colors.buttonBorder, opacity: pressed ? 0.75 : disabled ? 0.5 : 1 }, style]} {...props}><Text style={[styles.softText, { color: colors.foreground }]}>{children}</Text></Pressable>;
 }
 
 export function CoinPill({ coins }: { coins: number }) {

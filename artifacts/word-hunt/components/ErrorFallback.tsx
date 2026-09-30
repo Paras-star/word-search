@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useColors } from '@/hooks/useColors';
+import { homeColors } from '@/constants/homePalette';
 import { Feather } from '@expo/vector-icons';
 import { reloadAppAsync } from 'expo';
 
@@ -210,7 +211,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     paddingHorizontal: 24,
     minWidth: 200,
-    shadowColor: '#000',
+    shadowColor: homeColors.ink,
     shadowOffset: {
       width: 0,
       height: 2,
@@ -226,7 +227,7 @@ const styles = StyleSheet.create({
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: 'rgba(21, 61, 72, 0.5)',
     justifyContent: 'flex-end',
   },
   modalContainer: {

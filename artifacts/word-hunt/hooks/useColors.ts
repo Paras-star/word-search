@@ -1,4 +1,5 @@
 import { useColorScheme } from 'react-native';
+import { usePathname } from 'expo-router';
 import colors from '@/constants/colors';
 
 /**
@@ -15,9 +16,11 @@ import colors from '@/constants/colors';
  */
 export function useColors() {
   const scheme = useColorScheme();
+  const pathname = usePathname();
   const palette =
     scheme === 'dark' && 'dark' in colors
       ? (colors as Record<string, typeof colors.light>).dark
       : colors.light;
-  return { ...palette, radius: colors.radius };
+  // Keep the Home Page's existing shared icon/coin-pills visually unchanged.
+  return { ...palette, ...(pathname === '/' ? { foreground: '#1a1a1a', accent: '#fff1df' } : {}), radius: colors.radius };
 }

@@ -1,5 +1,6 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { AppState, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import { homeColors } from '@/constants/homePalette';
 import { advanceOnboarding, awardDailyPuzzle, loadProgress, saveProgress, STARTING_COINS, type GameProgress } from '@/services/storage';
 
 type GameContextValue = {
@@ -139,9 +140,9 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
 }
 
 const styles = StyleSheet.create({
-  errorScreen: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 28, backgroundColor: '#F8F9FC' },
-  errorText: { fontFamily: 'Inter_600SemiBold', fontSize: 16, textAlign: 'center', marginBottom: 20, color: '#252B39' },
-  retryButton: { paddingHorizontal: 24, paddingVertical: 14, borderRadius: 14, backgroundColor: '#2F80ED' },
+  errorScreen: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 28, backgroundColor: homeColors.background },
+  errorText: { fontFamily: 'Inter_600SemiBold', fontSize: 16, textAlign: 'center', marginBottom: 20, color: homeColors.ink },
+  retryButton: { paddingHorizontal: 24, paddingVertical: 14, borderRadius: 14, backgroundColor: homeColors.teal },
   retryText: { fontFamily: 'Inter_700Bold', color: '#FFFFFF' },
 });
 

@@ -76,7 +76,7 @@ export default function ResultsScreen() {
     return <Screen>
       <Header title={next ? 'Hunt complete' : 'Animals unlocked'} onBack={() => router.replace('/')} />
       <ScrollView style={styles.scroll} contentContainerStyle={styles.content}>
-        <View style={[styles.icon, { backgroundColor: '#e4f7ec' }]}><Feather name="check" size={40} color={colors.success} /></View>
+        <View style={[styles.icon, { backgroundColor: colors.accent }]}><Feather name="check" size={40} color={colors.success} /></View>
         <Text style={[styles.title, { color: colors.foreground }]}>{next ? 'Nice work' : 'Animals unlocked!'}</Text>
         <Text style={[styles.copy, { color: colors.mutedForeground }]}>
           {next ? `Next: ${next.words.length} words. Keep hunting to unlock Animals.` : 'Your first category is ready. The normal Word Hunt begins now!'}
@@ -102,7 +102,7 @@ export default function ResultsScreen() {
     return <Screen>
       <Header title="Daily Puzzle" onBack={() => router.canGoBack() ? router.back() : router.replace('/daily')} />
       <ScrollView style={styles.scroll} contentContainerStyle={styles.content}>
-        <View style={[styles.icon, { backgroundColor: '#e4f7ec' }]}><Text style={{ fontSize: 38 }}>👑</Text></View>
+        <View style={[styles.icon, { backgroundColor: colors.accent }]}><Text style={{ fontSize: 38 }}>👑</Text></View>
         <Text style={[styles.title, { color: colors.foreground }]}>Daily Puzzle Complete!</Text>
         <Text style={[styles.copy, { color: colors.mutedForeground }]}>{params.dailyDate} is complete. Your crown is waiting on the calendar.</Text>
         <View style={styles.stats}>
@@ -118,7 +118,7 @@ export default function ResultsScreen() {
   return <Screen>
     <Header title={gameOver ? 'Time is up' : 'Hunt complete'} onBack={() => proceed('/')} />
     <ScrollView style={styles.scroll} contentContainerStyle={styles.content}>
-      <View style={[styles.icon, { backgroundColor: gameOver ? '#ffe4e4' : '#e4f7ec' }]}><Feather name={gameOver ? 'clock' : 'check'} size={40} color={gameOver ? colors.warning : colors.success} /></View>
+      <View style={[styles.icon, { backgroundColor: gameOver ? colors.secondary : colors.accent }]}><Feather name={gameOver ? 'clock' : 'check'} size={40} color={gameOver ? colors.warning : colors.success} /></View>
       <Text style={[styles.title, { color: colors.foreground }]}>{gameOver ? 'Good try' : 'Nice work'}</Text>
       <Text style={[styles.copy, { color: colors.mutedForeground }]}>{gameOver ? 'The clock ran out before the hunt was complete.' : `${category.name} is cleared. Your next category is ready when you are.`}</Text>
       <View style={styles.stats}><View style={[styles.stat, { backgroundColor: colors.card, borderColor: colors.border }]}><Text style={[styles.label, { color: colors.mutedForeground }]}>SCORE</Text><Text style={[styles.value, { color: colors.foreground }]}>{params.score ?? '0'}</Text></View><View style={[styles.stat, { backgroundColor: colors.card, borderColor: colors.border }]}><Text style={[styles.label, { color: colors.mutedForeground }]}>TIME</Text><Text style={[styles.value, { color: colors.foreground }]}>{formatTime(Number(params.time ?? 0))}</Text></View><View style={[styles.stat, { backgroundColor: colors.card, borderColor: colors.border }]}><Text style={[styles.label, { color: colors.mutedForeground }]}>COINS</Text><Text style={[styles.value, { color: gameOver ? colors.mutedForeground : colors.orange }]}>{gameOver ? '+0' : '+50'}</Text></View></View>

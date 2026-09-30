@@ -1,5 +1,6 @@
 import React from 'react';
 import { Image, StyleSheet, View } from 'react-native';
+import { homeColors } from '@/constants/homePalette';
 
 const logo = require('../assets/images/game-logo-final-1790332918204.png');
 
@@ -12,6 +13,6 @@ export function BrandLoading() {
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#FFFFFF' },
+  screen: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: homeColors.background },
   logo: { width: 220, height: 220 },
 });

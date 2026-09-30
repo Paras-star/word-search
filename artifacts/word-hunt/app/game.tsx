@@ -12,6 +12,7 @@ import { dailyCategory, dailySeed, isDailyDatePlayable, parseLocalDateKey } from
 import { getDailyPuzzle } from '@/game/dailyPuzzle';
 import { isCategoryUnlocked } from '@/game/progression';
 import { completionBonus, formatTime, HIGHLIGHT_COLORS, scoreFoundWord } from '@/game/scoring';
+import { homeColors } from '@/constants/homePalette';
 import type { Cell, GameMode, Puzzle } from '@/game/types';
 import { useGame } from '@/context/GameProvider';
 import { rewardGateway } from '@/services/rewardGateway';
@@ -289,7 +290,7 @@ function GameSession({ params }: { params: GameParams }) {
     const key = cellKey(cell);
     const foundIndex = foundCellColors.get(key);
     if (selectedKeys.has(key)) return { backgroundColor: colors.primary, borderColor: colors.primary, borderRadius: 4 };
-    if (hintKeys.has(key)) return { backgroundColor: '#f6c445' };
+    if (hintKeys.has(key)) return { backgroundColor: colors.accent };
     if (foundIndex !== undefined) return { backgroundColor: `${HIGHLIGHT_COLORS[foundIndex % HIGHLIGHT_COLORS.length]}59` };
     return { backgroundColor: colors.card };
   };
@@ -308,7 +309,7 @@ function GameSession({ params }: { params: GameParams }) {
 
   return <Screen style={styles.screen}>
     <Header title={category.name} onBack={() => daily ? (router.canGoBack() ? router.back() : router.replace('/daily')) : onboarding ? router.replace('/') : router.back()} right={<CoinPill coins={coins} />} />
-    <View style={styles.metaRow}><View><Text style={[styles.scoreLabel, { color: colors.mutedForeground }]}>SCORE</Text><Text style={[styles.score, { color: colors.foreground }]}>{score}</Text></View><View style={[styles.timerPill, { backgroundColor: mode === 'time' && timeLeft < 30 ? '#ffe4e4' : colors.card, borderColor: mode === 'time' && timeLeft < 30 ? colors.warning : colors.border }]}><Feather name="clock" size={16} color={mode === 'time' && timeLeft < 30 ? colors.warning : colors.primary} /><Text style={[styles.timerText, { color: mode === 'time' && timeLeft < 30 ? colors.warning : colors.foreground }]}>{formatTime(mode === 'time' ? timeLeft : elapsed)}</Text></View><Pressable onPress={useHint} disabled={hints === 0} style={[styles.hintButton, { backgroundColor: hints ? colors.orange : colors.border }]} testID="hint-button"><Feather name="zap" size={16} color="#fff" /><Text style={styles.hintText}>{hints}</Text></Pressable></View>
+    <View style={styles.metaRow}><View><Text style={[styles.scoreLabel, { color: colors.mutedForeground }]}>SCORE</Text><Text style={[styles.score, { color: colors.foreground }]}>{score}</Text></View><View style={[styles.timerPill, { backgroundColor: mode === 'time' && timeLeft < 30 ? colors.accent : colors.card, borderColor: mode === 'time' && timeLeft < 30 ? colors.warning : colors.border }]}><Feather name="clock" size={16} color={mode === 'time' && timeLeft < 30 ? colors.warning : colors.primary} /><Text style={[styles.timerText, { color: mode === 'time' && timeLeft < 30 ? colors.warning : colors.foreground }]}>{formatTime(mode === 'time' ? timeLeft : elapsed)}</Text></View><Pressable onPress={useHint} disabled={hints === 0} style={[styles.hintButton, { backgroundColor: hints ? colors.primary : colors.border }]} testID="hint-button"><Feather name="zap" size={16} color="#FFFFFF" /><Text style={styles.hintText}>{hints}</Text></Pressable></View>
     {onboarding && <Text style={[styles.tutorialHelp, { color: colors.mutedForeground }]}>
       {requestedStep === 0 ? 'Touch the first letter, drag in a straight line through a word below, then release.' : `Find all ${onboarding.words.length} words to earn 10 coins.`}
     </Text>}
@@ -331,9 +332,9 @@ const styles = StyleSheet.create({
   timerPill: { flexDirection: 'row', alignItems: 'center', gap: 7, borderWidth: 1, borderRadius: 18, paddingHorizontal: 13, paddingVertical: 10 },
   timerText: { fontFamily: 'Inter_700Bold', fontSize: 16 },
   hintButton: { minWidth: 50, height: 42, borderRadius: 15, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 },
-  hintText: { color: '#fff', fontFamily: 'Inter_700Bold', fontSize: 15 },
+  hintText: { color: '#FFFFFF', fontFamily: 'Inter_700Bold', fontSize: 15 },
   gridWrap: { aspectRatio: 1, alignSelf: 'center' },
-  grid: { flex: 1, borderWidth: 1, borderRadius: 18, overflow: 'hidden', padding: 3, backgroundColor: '#fff' },
+  grid: { flex: 1, borderWidth: 1, borderRadius: 18, overflow: 'hidden', padding: 3, backgroundColor: homeColors.tile },
   gridContent: { flex: 1 },
   webGridContent: { userSelect: 'none', touchAction: 'none' },
   gridRow: { flex: 1, flexDirection: 'row' },

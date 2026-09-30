@@ -6,20 +6,9 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Screen, PrimaryButton, SoftButton, CoinPill } from '@/components/GameUI';
 import { BrandLoading } from '@/components/BrandLoading';
 import { useColors } from '@/hooks/useColors';
+import { homeColors } from '@/constants/homePalette';
 import { useGame } from '@/context/GameProvider';
 import { canOpenPrivacyOptions, showPrivacyOptions, subscribeToAds } from '@/services/ads';
-
-const homeColors = {
-  background: '#FFF9EF',
-  ink: '#153D48',
-  softInk: '#59686B',
-  teal: '#175C6C',
-  tealBorder: '#A9C4C3',
-  gold: '#B77024',
-  goldSoft: '#FFF0D0',
-  tile: '#FFFEFA',
-  tileBorder: '#E7DCC8',
-};
 
 export default function HomeScreen() {
   const router = useRouter();

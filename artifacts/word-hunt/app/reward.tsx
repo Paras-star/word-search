@@ -18,6 +18,7 @@ import { DUMPLING_BY_ID, RARITY_PRESENTATION } from '@/data/dumplings';
 import { formatTime } from '@/game/scoring';
 import { collectReward, getPendingReward, type DumplingReward } from '@/services/dumplingRewards';
 import { playDumplingSound } from '@/services/dumplingAudio';
+import { homeColors } from '@/constants/homePalette';
 
 type RevealStage = 'basket' | 'opening' | 'revealed' | 'collected';
 
@@ -114,14 +115,14 @@ export default function RewardScreen() {
   const goToResults = () => router.replace({ pathname: '/results', params });
 
   if (loading) {
-    return <View style={styles.loading}><ActivityIndicator size="large" color="#FFE28B" /></View>;
+    return <View style={styles.loading}><ActivityIndicator size="large" color={homeColors.teal} /></View>;
   }
 
   if (!reward || !dumpling) {
     return (
       <View style={[styles.screen, { paddingTop: insets.top + 24, paddingBottom: insets.bottom + 24 }]}>
         <View style={styles.emptyCard}>
-          <Feather name="gift" size={42} color="#FFE28B" />
+          <Feather name="gift" size={42} color={homeColors.gold} />
           <Text style={styles.emptyTitle}>No reward is waiting</Text>
           <Text style={styles.emptyCopy}>{error ?? 'Complete a Word Hunt puzzle to earn a Mystery Dumpling.'}</Text>
           <PrimaryButton onPress={() => router.replace('/')} style={styles.actionButton}>GO HOME</PrimaryButton>
@@ -135,17 +136,17 @@ export default function RewardScreen() {
     <View style={[styles.screen, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
       <View style={styles.topBar}>
         <Pressable onPress={() => router.replace('/')} hitSlop={12} accessibilityLabel="Return home">
-          <Feather name="x" size={24} color="#FFFFFF" />
+          <Feather name="x" size={24} color={homeColors.ink} />
         </Pressable>
         <Text style={styles.topTitle}>MYSTERY DUMPLING</Text>
-        <View style={styles.savedPill}><Feather name="check" size={12} color="#D9FFEA" /><Text style={styles.savedText}>SAVED</Text></View>
+        <View style={styles.savedPill}><Feather name="check" size={12} color={homeColors.teal} /><Text style={styles.savedText}>SAVED</Text></View>
       </View>
 
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <View style={styles.rewardStage}>
           <View style={styles.starPattern}>
             {PARTICLE_POSITIONS.map(([left, top], index) => (
-              <Feather key={index} name="star" size={index % 3 === 0 ? 20 : 13} color="rgba(255,255,255,0.14)" style={{ position: 'absolute', left, top }} />
+              <Feather key={index} name="star" size={index % 3 === 0 ? 20 : 13} color="rgba(183,112,36,0.14)" style={{ position: 'absolute', left, top }} />
             ))}
           </View>
           <Animated.View style={[styles.glow, { backgroundColor: presentation.glow, opacity: glow, transform: [{ scale: glow.interpolate({ inputRange: [0, 1], outputRange: [0.8, 1.3] }) }] }]} />
@@ -158,7 +159,7 @@ export default function RewardScreen() {
                 {
                   left,
                   top,
-                  backgroundColor: index % 2 ? presentation.glow : '#FFFFFF',
+                  backgroundColor: index % 2 ? presentation.glow : homeColors.gold,
                   opacity: isRevealed ? 0.9 : glow,
                   transform: [{ scale: index % 3 === 0 ? 1.25 : 0.8 }],
                 },
@@ -183,7 +184,7 @@ export default function RewardScreen() {
               <View style={styles.basketLid}><View style={styles.basketHandle} /></View>
               <View style={styles.basketBody}>
                 {[0, 1, 2, 3].map((line) => <View key={line} style={[styles.basketStripe, { top: 22 + line * 25 }]} />)}
-                <View style={styles.mysterySeal}><Feather name="help-circle" size={34} color="#FFF7D7" /></View>
+                <View style={styles.mysterySeal}><Feather name="help-circle" size={34} color={homeColors.goldSoft} /></View>
               </View>
             </Animated.View>
           )}
@@ -216,11 +217,11 @@ export default function RewardScreen() {
         {error && <Text style={styles.error}>{error}</Text>}
 
         <View style={styles.actions}>
-          {stage === 'basket' && <PrimaryButton onPress={startReveal} style={[styles.actionButton, { backgroundColor: '#F4499A' }]} testID="reward-open">OPEN MYSTERY BASKET</PrimaryButton>}
-          {stage === 'opening' && <View style={styles.openingPill}><ActivityIndicator color="#FFFFFF" /><Text style={styles.openingText}>A little magic is happening</Text></View>}
-          {stage === 'revealed' && <PrimaryButton onPress={handleCollect} style={[styles.actionButton, { backgroundColor: presentation.color }]} testID="reward-collect">COLLECT {dumpling.name.toUpperCase()}</PrimaryButton>}
+          {stage === 'basket' && <PrimaryButton onPress={startReveal} style={[styles.actionButton, { backgroundColor: homeColors.teal }]} testID="reward-open">OPEN MYSTERY BASKET</PrimaryButton>}
+          {stage === 'opening' && <View style={styles.openingPill}><ActivityIndicator color={homeColors.teal} /><Text style={styles.openingText}>A little magic is happening</Text></View>}
+          {stage === 'revealed' && <PrimaryButton onPress={handleCollect} style={[styles.actionButton, { backgroundColor: homeColors.teal }]} testID="reward-collect">COLLECT {dumpling.name.toUpperCase()}</PrimaryButton>}
           {stage === 'collected' && <>
-            <PrimaryButton onPress={() => router.replace({ pathname: '/collection', params: !isDuplicate ? { newDumplingId: dumpling.id } : undefined })} style={[styles.actionButton, { backgroundColor: '#F4499A' }]}>VIEW COLLECTION ROOM</PrimaryButton>
+            <PrimaryButton onPress={() => router.replace({ pathname: '/collection', params: !isDuplicate ? { newDumplingId: dumpling.id } : undefined })} style={[styles.actionButton, { backgroundColor: homeColors.teal }]}>VIEW COLLECTION ROOM</PrimaryButton>
             <SoftButton onPress={goToResults} style={styles.continueButton}>CONTINUE</SoftButton>
           </>}
         </View>
@@ -228,7 +229,7 @@ export default function RewardScreen() {
         <View style={styles.summary}>
           <View style={styles.stat}><Text style={styles.statLabel}>SCORE</Text><Text style={styles.statValue}>{params.score ?? '0'}</Text></View>
           <View style={styles.stat}><Text style={styles.statLabel}>TIME</Text><Text style={styles.statValue}>{formatTime(Number(params.time ?? 0))}</Text></View>
-          <View style={styles.stat}><Text style={styles.statLabel}>COINS</Text><Text style={[styles.statValue, { color: '#FFE28B' }]}>+50</Text></View>
+          <View style={styles.stat}><Text style={styles.statLabel}>COINS</Text><Text style={[styles.statValue, { color: homeColors.gold }]}>+50</Text></View>
         </View>
       </ScrollView>
     </View>
@@ -236,43 +237,43 @@ export default function RewardScreen() {
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: '#5D2AA5', paddingHorizontal: 18 },
-  loading: { flex: 1, backgroundColor: '#5D2AA5', alignItems: 'center', justifyContent: 'center' },
+  screen: { flex: 1, backgroundColor: homeColors.background, paddingHorizontal: 18 },
+  loading: { flex: 1, backgroundColor: homeColors.background, alignItems: 'center', justifyContent: 'center' },
   topBar: { height: 58, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  topTitle: { color: '#FFFFFF', fontFamily: 'Inter_700Bold', fontSize: 13, letterSpacing: 1.5 },
-  savedPill: { flexDirection: 'row', gap: 4, alignItems: 'center', backgroundColor: 'rgba(28,111,74,0.45)', paddingHorizontal: 8, paddingVertical: 5, borderRadius: 10 },
-  savedText: { color: '#D9FFEA', fontFamily: 'Inter_700Bold', fontSize: 9, letterSpacing: 0.8 },
+  topTitle: { color: homeColors.ink, fontFamily: 'Inter_700Bold', fontSize: 13, letterSpacing: 1.5 },
+  savedPill: { flexDirection: 'row', gap: 4, alignItems: 'center', backgroundColor: homeColors.goldSoft, paddingHorizontal: 8, paddingVertical: 5, borderRadius: 10 },
+  savedText: { color: homeColors.teal, fontFamily: 'Inter_700Bold', fontSize: 9, letterSpacing: 0.8 },
   content: { alignItems: 'center', paddingBottom: 24 },
   rewardStage: { width: '100%', aspectRatio: 1.06, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
   starPattern: { position: 'absolute', top: 0, right: 0, bottom: 0, left: 0 },
   glow: { position: 'absolute', width: '62%', aspectRatio: 1, borderRadius: 999 },
-  particle: { position: 'absolute', width: 7, height: 7, borderRadius: 4, shadowColor: '#FFFFFF', shadowOpacity: 0.9, shadowRadius: 5 },
+  particle: { position: 'absolute', width: 7, height: 7, borderRadius: 4, shadowColor: homeColors.gold, shadowOpacity: 0.9, shadowRadius: 5 },
   basket: { width: 215, height: 180, alignItems: 'center', justifyContent: 'flex-end' },
-  basketLid: { width: 210, height: 46, borderRadius: 25, backgroundColor: '#E3A84D', borderWidth: 4, borderColor: '#8E562A', zIndex: 2, shadowColor: '#2F144D', shadowOpacity: 0.4, shadowRadius: 8, shadowOffset: { width: 0, height: 5 } },
-  basketHandle: { position: 'absolute', width: 42, height: 14, borderRadius: 10, backgroundColor: '#A4672D', top: -12, alignSelf: 'center', borderWidth: 3, borderColor: '#75421F' },
-  basketBody: { width: 190, height: 125, marginTop: -5, borderBottomLeftRadius: 52, borderBottomRightRadius: 52, borderTopLeftRadius: 15, borderTopRightRadius: 15, backgroundColor: '#D6913D', borderWidth: 4, borderColor: '#8E562A', overflow: 'hidden', alignItems: 'center', justifyContent: 'center' },
-  basketStripe: { position: 'absolute', left: 0, right: 0, height: 7, backgroundColor: 'rgba(255,226,139,0.42)' },
-  mysterySeal: { width: 62, height: 62, borderRadius: 31, backgroundColor: '#B56E2F', borderWidth: 3, borderColor: '#F8D27C', alignItems: 'center', justifyContent: 'center' },
+  basketLid: { width: 210, height: 46, borderRadius: 25, backgroundColor: homeColors.goldSoft, borderWidth: 4, borderColor: homeColors.gold, zIndex: 2, shadowColor: homeColors.ink, shadowOpacity: 0.4, shadowRadius: 8, shadowOffset: { width: 0, height: 5 } },
+  basketHandle: { position: 'absolute', width: 42, height: 14, borderRadius: 10, backgroundColor: homeColors.gold, top: -12, alignSelf: 'center', borderWidth: 3, borderColor: homeColors.gold },
+  basketBody: { width: 190, height: 125, marginTop: -5, borderBottomLeftRadius: 52, borderBottomRightRadius: 52, borderTopLeftRadius: 15, borderTopRightRadius: 15, backgroundColor: homeColors.goldSoft, borderWidth: 4, borderColor: homeColors.gold, overflow: 'hidden', alignItems: 'center', justifyContent: 'center' },
+  basketStripe: { position: 'absolute', left: 0, right: 0, height: 7, backgroundColor: 'rgba(183,112,36,0.42)' },
+  mysterySeal: { width: 62, height: 62, borderRadius: 31, backgroundColor: homeColors.gold, borderWidth: 3, borderColor: homeColors.goldSoft, alignItems: 'center', justifyContent: 'center' },
   reveal: { position: 'absolute', width: '88%', height: '88%', alignItems: 'center', justifyContent: 'center' },
   dumplingImage: { width: '100%', height: '100%' },
   copyBlock: { alignItems: 'center', minHeight: 145, paddingHorizontal: 10 },
   kicker: { fontFamily: 'Inter_700Bold', fontSize: 11, letterSpacing: 1.6, marginBottom: 8 },
-  title: { color: '#FFFFFF', fontFamily: 'Inter_700Bold', fontSize: 29, textAlign: 'center', letterSpacing: -0.5 },
-  copy: { color: 'rgba(255,255,255,0.76)', fontFamily: 'Inter_500Medium', fontSize: 14, lineHeight: 21, textAlign: 'center', marginTop: 9, maxWidth: 330 },
+  title: { color: homeColors.ink, fontFamily: 'Inter_700Bold', fontSize: 29, textAlign: 'center', letterSpacing: -0.5 },
+  copy: { color: 'rgba(89,104,107,0.76)', fontFamily: 'Inter_500Medium', fontSize: 14, lineHeight: 21, textAlign: 'center', marginTop: 9, maxWidth: 330 },
   rarityPill: { flexDirection: 'row', alignItems: 'center', gap: 7, borderWidth: 1, borderRadius: 14, paddingHorizontal: 12, paddingVertical: 7, marginTop: 10 },
   rarityDot: { width: 7, height: 7, borderRadius: 4 },
   rarityText: { fontFamily: 'Inter_700Bold', fontSize: 10, letterSpacing: 1.3 },
   actions: { width: '100%', gap: 10, marginTop: 13 },
   actionButton: { width: '100%' },
-  continueButton: { backgroundColor: '#FFFFFF', borderColor: 'rgba(255,255,255,0.2)' },
-  openingPill: { minHeight: 56, borderRadius: 18, backgroundColor: 'rgba(255,255,255,0.15)', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10 },
-  openingText: { color: '#FFFFFF', fontFamily: 'Inter_600SemiBold', fontSize: 14 },
+  continueButton: { backgroundColor: homeColors.tile, borderColor: homeColors.tealBorder },
+  openingPill: { minHeight: 56, borderRadius: 18, backgroundColor: 'rgba(183,112,36,0.15)', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10 },
+  openingText: { color: homeColors.ink, fontFamily: 'Inter_600SemiBold', fontSize: 14 },
   summary: { width: '100%', flexDirection: 'row', gap: 8, marginTop: 16 },
-  stat: { flex: 1, minHeight: 64, borderRadius: 16, backgroundColor: 'rgba(255,255,255,0.12)', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)' },
-  statLabel: { color: 'rgba(255,255,255,0.62)', fontFamily: 'Inter_700Bold', fontSize: 9, letterSpacing: 1.1 },
-  statValue: { color: '#FFFFFF', fontFamily: 'Inter_700Bold', fontSize: 18, marginTop: 4 },
-  error: { color: '#FFD2D2', fontFamily: 'Inter_600SemiBold', fontSize: 12, textAlign: 'center', marginTop: 8 },
-  emptyCard: { marginTop: '45%', borderRadius: 24, backgroundColor: 'rgba(255,255,255,0.12)', padding: 24, alignItems: 'center', gap: 12 },
-  emptyTitle: { color: '#FFFFFF', fontFamily: 'Inter_700Bold', fontSize: 24, textAlign: 'center' },
-  emptyCopy: { color: 'rgba(255,255,255,0.76)', fontFamily: 'Inter_500Medium', fontSize: 14, lineHeight: 21, textAlign: 'center', marginBottom: 6 },
+  stat: { flex: 1, minHeight: 64, borderRadius: 16, backgroundColor: homeColors.tile, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: homeColors.tileBorder },
+  statLabel: { color: 'rgba(89,104,107,0.62)', fontFamily: 'Inter_700Bold', fontSize: 9, letterSpacing: 1.1 },
+  statValue: { color: homeColors.ink, fontFamily: 'Inter_700Bold', fontSize: 18, marginTop: 4 },
+  error: { color: homeColors.gold, fontFamily: 'Inter_600SemiBold', fontSize: 12, textAlign: 'center', marginTop: 8 },
+  emptyCard: { marginTop: '45%', borderRadius: 24, backgroundColor: homeColors.tile, padding: 24, alignItems: 'center', gap: 12 },
+  emptyTitle: { color: homeColors.ink, fontFamily: 'Inter_700Bold', fontSize: 24, textAlign: 'center' },
+  emptyCopy: { color: 'rgba(89,104,107,0.76)', fontFamily: 'Inter_500Medium', fontSize: 14, lineHeight: 21, textAlign: 'center', marginBottom: 6 },
 });
