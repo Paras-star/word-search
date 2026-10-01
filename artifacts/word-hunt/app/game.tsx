@@ -11,7 +11,7 @@ import { getOnboardingStep } from '@/game/onboarding';
 import { dailyCategory, dailySeed, isDailyDatePlayable, parseLocalDateKey } from '@/game/daily';
 import { getDailyPuzzle } from '@/game/dailyPuzzle';
 import { isCategoryUnlocked } from '@/game/progression';
-import { completionBonus, formatTime, HIGHLIGHT_COLORS, scoreFoundWord } from '@/game/scoring';
+import { completionBonus, formatTime, scoreFoundWord } from '@/game/scoring';
 import { homeColors } from '@/constants/homePalette';
 import type { Cell, GameMode, Puzzle } from '@/game/types';
 import { useGame } from '@/context/GameProvider';
@@ -291,7 +291,7 @@ function GameSession({ params }: { params: GameParams }) {
     const foundIndex = foundCellColors.get(key);
     if (selectedKeys.has(key)) return { backgroundColor: colors.primary, borderColor: colors.primary, borderRadius: 4 };
     if (hintKeys.has(key)) return { backgroundColor: colors.accent };
-    if (foundIndex !== undefined) return { backgroundColor: `${HIGHLIGHT_COLORS[foundIndex % HIGHLIGHT_COLORS.length]}59` };
+    if (foundIndex !== undefined) return { backgroundColor: homeColors.goldSoft, borderColor: homeColors.gold };
     return { backgroundColor: colors.card };
   };
 
