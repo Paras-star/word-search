@@ -1,0 +1,55 @@
+The EAS Android production build failed again. Do NOT start another EAS build yet.
+
+The exact root error is:
+
+Task :react-native-google-mobile-ads failed because:
+
+Cannot get property 'googleMobileAdsJson' on extra properties extension as it does not exist
+
+from:
+react-native-google-mobile-ads@17.2.0/android/build.gradle line 123
+
+The second error:
+project ':react-native-google-mobile-ads' does not specify compileSdk
+appears to be a consequence of the first configuration failure.
+
+We already added this top-level app.json configuration:
+
+"react-native-google-mobile-ads": {
+  "android_app_id": "ca-app-pub-9827389269181842~4120089237",
+  "delay_app_measurement_init": true
+}
+
+Do NOT guess another configuration and do NOT downgrade packages.
+
+Please inspect the installed react-native-google-mobile-ads@17.2.0 Android Gradle files and the Expo config/plugin output to determine exactly why googleMobileAdsJson is not being created/passed into the Gradle project.
+
+Specifically inspect:
+1. node_modules/react-native-google-mobile-ads/android/build.gradle around line 123
+2. the package's Expo config plugin implementation
+3. the generated/prebuild Android project and settings.gradle/build.gradle
+4. `npx expo config --type public` and/or the appropriate Expo config introspection needed to verify whether the AdMob configuration is actually being consumed
+5. Verify whether the plugin expects a particular app.json structure or whether the current Expo SDK 57 + react-native-google-mobile-ads 17.2.0 combination has a configuration mismatch.
+
+Then make ONLY the minimum source/configuration change required to fix googleMobileAdsJson.
+
+Important:
+- Keep Android App ID exactly:
+  ca-app-pub-9827389269181842~4120089237
+- Keep `delay_app_measurement_init: true`
+- Do not change the package name `com.paras.wordhunt`
+- Do not change versionCode 2
+- Do not change Expo SDK
+- Do not downgrade react-native-google-mobile-ads
+- Do not modify the actual ad unit IDs
+- Do not remove UMP consent handling
+- Do not change banner/interstitial/rewarded behavior
+- Do not start an EAS build yet.
+
+After making the fix:
+1. Run the relevant JSON/config validation.
+2. Run TypeScript checks.
+3. Verify the generated Expo/Android configuration actually contains the Google Mobile Ads configuration expected by react-native-google-mobile-ads 17.2.0.
+4. Show me the exact file(s) changed and why.
+5. Commit and push the fix to origin/feature/game-improvements.
+6. Do not start an EAS build until I explicitly tell you to.
