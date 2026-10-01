@@ -3,22 +3,37 @@ import { ActivityIndicator, Platform, Pressable, StyleSheet, Text, View, type Pr
 import { Feather } from '@expo/vector-icons';
 import { usePathname, useRouter } from 'expo-router';
 import { useColors } from '@/hooks/useColors';
+import { playSound } from '@/services/audio';
 
 export function Screen({ children, style }: { children: React.ReactNode; style?: ViewStyle }) {
   const colors = useColors();
   return <View style={[styles.screen, { backgroundColor: colors.background }, style]}>{children}</View>;
 }
 
-type ButtonProps = Omit<PressableProps, 'style'> & { children: React.ReactNode; style?: StyleProp<ViewStyle> };
+type ButtonProps = Omit<PressableProps, 'style'> & {
+  children: React.ReactNode;
+  style?: StyleProp<ViewStyle>;
+  suppressClickSound?: boolean;
+};
 
-export function PrimaryButton({ children, style, disabled, ...props }: ButtonProps) {
+export function PrimaryButton({ children, style, disabled, onPress, suppressClickSound = false, ...props }: ButtonProps) {
   const colors = useColors();
-  return <Pressable disabled={disabled} style={({ pressed }) => [styles.primaryButton, { backgroundColor: disabled ? colors.border : colors.primary, opacity: pressed ? 0.86 : 1 }, style]} {...props}><Text style={styles.primaryText}>{children}</Text></Pressable>;
+  const handlePress: PressableProps['onPress'] = onPress ? (event) => {
+    if (disabled) return;
+    if (!suppressClickSound) playSound('tap');
+    onPress(event);
+  } : undefined;
+  return <Pressable {...props} disabled={disabled} onPress={handlePress} style={({ pressed }) => [styles.primaryButton, { backgroundColor: disabled ? colors.border : colors.primary, opacity: pressed ? 0.86 : 1 }, style]}><Text style={styles.primaryText}>{children}</Text></Pressable>;
 }
 
-export function SoftButton({ children, style, disabled, ...props }: ButtonProps) {
+export function SoftButton({ children, style, disabled, onPress, suppressClickSound = false, ...props }: ButtonProps) {
   const colors = useColors();
-  return <Pressable disabled={disabled} style={({ pressed }) => [styles.softButton, { backgroundColor: colors.card, borderColor: colors.buttonBorder, opacity: pressed ? 0.75 : disabled ? 0.5 : 1 }, style]} {...props}><Text style={[styles.softText, { color: colors.foreground }]}>{children}</Text></Pressable>;
+  const handlePress: PressableProps['onPress'] = onPress ? (event) => {
+    if (disabled) return;
+    if (!suppressClickSound) playSound('tap');
+    onPress(event);
+  } : undefined;
+  return <Pressable {...props} disabled={disabled} onPress={handlePress} style={({ pressed }) => [styles.softButton, { backgroundColor: colors.card, borderColor: colors.buttonBorder, opacity: pressed ? 0.75 : disabled ? 0.5 : 1 }, style]}><Text style={[styles.softText, { color: colors.foreground }]}>{children}</Text></Pressable>;
 }
 
 export function CoinPill({ coins }: { coins: number }) {
@@ -34,6 +49,7 @@ export function Header({ title, onBack, right }: { title: string; onBack?: () =>
   const router = useRouter();
   const pathname = usePathname();
   const handleBack = () => {
+    playSound('tap');
     if (Platform.OS === 'web' && !router.canGoBack()) {
       router.replace(pathname === '/mode' || pathname === '/game' ? '/categories' : '/');
     } else {

@@ -103,10 +103,13 @@ function GameSession({ params }: { params: GameParams }) {
   const selectedCellsRef = useRef<Cell[]>([]);
   const completionStarted = useRef(false);
   const completionStage = useRef(0);
+  const completionSoundPlayed = useRef(false);
   const startTime = useRef(Date.now());
   const foundRef = useRef(foundWords);
   const hintTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const hintSoundUsesRemaining = useRef(hints);
   foundRef.current = foundWords;
+  hintSoundUsesRemaining.current = hints;
 
   const finish = useCallback(async () => {
     if (completionStarted.current) return;
@@ -151,6 +154,10 @@ function GameSession({ params }: { params: GameParams }) {
       if (completionStage.current < 2) {
         await completeLevel(category.id);
         completionStage.current = 2;
+        if (!completionSoundPlayed.current) {
+          completionSoundPlayed.current = true;
+          playSound('complete');
+        }
       }
       if (completionStage.current < 3) {
         await rewardGateway.onPuzzleCompleted({ puzzleId: puzzle.id, categoryId: category.id, mode, score: finalScore });
@@ -207,6 +214,15 @@ function GameSession({ params }: { params: GameParams }) {
     );
   };
 
+  const grantSelection = (cell: Cell | null) => {
+    if (!cell) return;
+    const previous = selectedCellsRef.current;
+    const selection = [cell];
+    selectedCellsRef.current = selection;
+    setSelectedCells(selection);
+    if (!previous.some((item) => sameCell(item, cell))) playSound('drag');
+  };
+
   const updateSelection = (cell: Cell | null) => {
     const current = selectedCellsRef.current;
     const start = current[0];
@@ -216,12 +232,14 @@ function GameSession({ params }: { params: GameParams }) {
     // Only tolerate a one-cell drift after the gesture has established a straight direction.
     const next = exact.length ? exact : nearCurrentLine(start, cell, current, puzzle.size);
     if (next.length && (next.length !== current.length || next.some((item, index) => !sameCell(item, current[index])))) {
+      const addedCells = next.filter((item) => !current.some((selected) => sameCell(selected, item)));
       selectedCellsRef.current = next;
       setSelectedCells(next);
+      addedCells.forEach(() => playSound('drag'));
     }
   };
 
-  const endSelection = () => {
+  const endSelection = (suppressInvalidSound = false) => {
     const selection = selectedCellsRef.current;
     selectedCellsRef.current = [];
     setSelectedCells([]);
@@ -241,7 +259,7 @@ function GameSession({ params }: { params: GameParams }) {
       playSound('bonus');
       setFeedback('bonus');
     } else {
-      playSound('wrong');
+      if (!suppressInvalidSound && selectedWord.length >= 2) playSound('wrong');
       setFeedback('wrong');
     }
   };
@@ -250,17 +268,11 @@ function GameSession({ params }: { params: GameParams }) {
     onStartShouldSetPanResponder: () => true,
     onMoveShouldSetPanResponder: () => true,
     onPanResponderGrant: (event) => {
-      const cell = cellFromEvent(event);
-      if (cell) {
-        const selection = [cell];
-        selectedCellsRef.current = selection;
-        setSelectedCells(selection);
-        playSound('drag');
-      }
+      grantSelection(cellFromEvent(event));
     },
     onPanResponderMove: (event) => updateSelection(cellFromEvent(event)),
-    onPanResponderRelease: endSelection,
-    onPanResponderTerminate: endSelection,
+    onPanResponderRelease: () => endSelection(false),
+    onPanResponderTerminate: () => endSelection(true),
   }), [bonusWords, puzzle]);
 
   const useHint = () => {
@@ -269,6 +281,10 @@ function GameSession({ params }: { params: GameParams }) {
     const word = remaining[Math.floor(Math.random() * remaining.length)];
     const cells = puzzle.placements[word].cells;
     setHints((value) => Math.max(0, value - 1));
+    if (hintSoundUsesRemaining.current > 0) {
+      hintSoundUsesRemaining.current -= 1;
+      playSound('hint');
+    }
     setHintCells(cells);
     if (hintTimeout.current) clearTimeout(hintTimeout.current);
     hintTimeout.current = setTimeout(() => setHintCells([]), 1500);
@@ -319,7 +335,7 @@ function GameSession({ params }: { params: GameParams }) {
     <View style={[styles.words, onboarding && { maxHeight: Math.ceil(onboarding.words.length / 3) * 29, overflow: 'visible' }]}>{puzzle.words.map((word) => <View key={word} style={styles.wordItem}><Feather name={foundWords.includes(word) ? 'check' : 'circle'} size={14} color={foundWords.includes(word) ? colors.success : colors.border} /><Text style={[styles.word, { color: foundWords.includes(word) ? colors.foundWord : colors.foreground, textDecorationLine: foundWords.includes(word) ? 'line-through' : 'none' }]}>{word}</Text></View>)}</View>
     {feedback !== 'idle' && <Text style={[styles.feedback, { color: feedback === 'bonus' ? colors.orange : colors.warning }]}>{feedback === 'bonus' ? '+5 bonus word' : 'That word is not on the list'}</Text>}
     {finishError && <SoftButton onPress={() => { setFinishError(false); completionStarted.current = false; void finish(); }}>{daily ? 'RETRY SAVING DAILY PUZZLE' : 'RETRY SAVING COMPLETED LEVEL'}</SoftButton>}
-    <SoftButton onPress={useHint} disabled={hints === 0} style={styles.hintFooter}>{hints ? `USE HINT  ·  ${hints} LEFT` : 'NO HINTS LEFT'}</SoftButton>
+    <SoftButton onPress={useHint} disabled={hints === 0} suppressClickSound style={styles.hintFooter}>{hints ? `USE HINT  ·  ${hints} LEFT` : 'NO HINTS LEFT'}</SoftButton>
   </Screen>;
 }
 

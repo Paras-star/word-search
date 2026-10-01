@@ -17,7 +17,8 @@ import { PrimaryButton, SoftButton } from '@/components/GameUI';
 import { DUMPLING_BY_ID, RARITY_PRESENTATION } from '@/data/dumplings';
 import { formatTime } from '@/game/scoring';
 import { collectReward, getPendingReward, type DumplingReward } from '@/services/dumplingRewards';
-import { playDumplingSound } from '@/services/dumplingAudio';
+import { playDumplingSound, stopDumplingSounds } from '@/services/dumplingAudio';
+import { playSound } from '@/services/audio';
 import { homeColors } from '@/constants/homePalette';
 
 type RevealStage = 'basket' | 'opening' | 'revealed' | 'collected';
@@ -43,22 +44,30 @@ export default function RewardScreen() {
   const glow = useRef(new Animated.Value(0.2)).current;
   const revealScale = useRef(new Animated.Value(0.2)).current;
   const revealOpacity = useRef(new Animated.Value(0)).current;
+  const openingSoundPlayed = useRef(false);
+  const revealSoundPlayed = useRef(false);
+  const raritySoundPlayed = useRef(false);
+  const mounted = useRef(true);
 
   useEffect(() => {
     let active = true;
+    mounted.current = true;
     getPendingReward()
       .then((pending) => {
         if (!active) return;
         setReward(pending);
         setLoading(false);
-        if (pending) void playDumplingSound('basketAppearance');
       })
       .catch(() => {
         if (!active) return;
         setError('Your saved reward could not be loaded.');
         setLoading(false);
       });
-    return () => { active = false; };
+    return () => {
+      active = false;
+      mounted.current = false;
+      stopDumplingSounds();
+    };
   }, []);
 
   const dumpling = reward ? DUMPLING_BY_ID[reward.dumplingId] : null;
@@ -68,7 +77,24 @@ export default function RewardScreen() {
   const startReveal = () => {
     if (!reward || stage !== 'basket') return;
     setStage('opening');
-    void playDumplingSound('anticipation');
+    if (!openingSoundPlayed.current) {
+      openingSoundPlayed.current = true;
+      void playDumplingSound('opening');
+    }
+    const revealAnimation = Animated.parallel([
+      Animated.timing(basketScale, { toValue: 0.78, duration: 300, useNativeDriver: true }),
+      Animated.timing(basketOpacity, { toValue: 0, duration: 300, useNativeDriver: true }),
+      Animated.spring(revealScale, { toValue: 1, speed: 10, bounciness: 12, useNativeDriver: true }),
+      Animated.timing(revealOpacity, { toValue: 1, duration: 360, useNativeDriver: true }),
+    ]);
+    const startRevealAnimation = revealAnimation.start.bind(revealAnimation);
+    revealAnimation.start = (callback) => {
+      if (mounted.current && !revealSoundPlayed.current) {
+        revealSoundPlayed.current = true;
+        void playDumplingSound('reveal');
+      }
+      startRevealAnimation(callback);
+    };
     Animated.sequence([
       Animated.parallel([
         Animated.sequence([
@@ -84,19 +110,15 @@ export default function RewardScreen() {
         Animated.timing(basketScale, { toValue: 1.18, duration: 260, easing: Easing.out(Easing.back(1.5)), useNativeDriver: true }),
         Animated.timing(glow, { toValue: 1, duration: 260, useNativeDriver: true }),
       ]),
-      Animated.parallel([
-        Animated.timing(basketScale, { toValue: 0.78, duration: 300, useNativeDriver: true }),
-        Animated.timing(basketOpacity, { toValue: 0, duration: 300, useNativeDriver: true }),
-        Animated.spring(revealScale, { toValue: 1, speed: 10, bounciness: 12, useNativeDriver: true }),
-        Animated.timing(revealOpacity, { toValue: 1, duration: 360, useNativeDriver: true }),
-      ]),
+      revealAnimation,
     ]).start(() => {
+      if (!mounted.current) return;
       setStage('revealed');
-      void playDumplingSound('reveal');
-      void playDumplingSound('rarityReveal');
+      if (dumpling && !raritySoundPlayed.current) {
+        raritySoundPlayed.current = true;
+        void playDumplingSound('rarityReveal', dumpling.rarity);
+      }
     });
-    void playDumplingSound('basketMovement');
-    setTimeout(() => void playDumplingSound('opening'), 850);
   };
 
   const handleCollect = async () => {
@@ -106,7 +128,6 @@ export default function RewardScreen() {
       setReward(result.reward);
       setIsDuplicate(result.isDuplicate);
       setStage('collected');
-      await playDumplingSound('collection');
     } catch {
       setError('The reward could not be collected. Please try again.');
     }
@@ -135,7 +156,7 @@ export default function RewardScreen() {
   return (
     <View style={[styles.screen, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
       <View style={styles.topBar}>
-        <Pressable onPress={() => router.replace('/')} hitSlop={12} accessibilityLabel="Return home">
+        <Pressable onPress={() => { playSound('tap'); router.replace('/'); }} hitSlop={12} accessibilityLabel="Return home">
           <Feather name="x" size={24} color={homeColors.ink} />
         </Pressable>
         <Text style={styles.topTitle}>MYSTERY DUMPLING</Text>
@@ -217,9 +238,9 @@ export default function RewardScreen() {
         {error && <Text style={styles.error}>{error}</Text>}
 
         <View style={styles.actions}>
-          {stage === 'basket' && <PrimaryButton onPress={startReveal} style={[styles.actionButton, { backgroundColor: homeColors.teal }]} testID="reward-open">OPEN MYSTERY BASKET</PrimaryButton>}
+          {stage === 'basket' && <PrimaryButton onPress={startReveal} suppressClickSound style={[styles.actionButton, { backgroundColor: homeColors.teal }]} testID="reward-open">OPEN MYSTERY BASKET</PrimaryButton>}
           {stage === 'opening' && <View style={styles.openingPill}><ActivityIndicator color={homeColors.teal} /><Text style={styles.openingText}>A little magic is happening</Text></View>}
-          {stage === 'revealed' && <PrimaryButton onPress={handleCollect} style={[styles.actionButton, { backgroundColor: homeColors.teal }]} testID="reward-collect">COLLECT {dumpling.name.toUpperCase()}</PrimaryButton>}
+          {stage === 'revealed' && <PrimaryButton onPress={handleCollect} suppressClickSound style={[styles.actionButton, { backgroundColor: homeColors.teal }]} testID="reward-collect">COLLECT {dumpling.name.toUpperCase()}</PrimaryButton>}
           {stage === 'collected' && <>
             <PrimaryButton onPress={() => router.replace({ pathname: '/collection', params: !isDuplicate ? { newDumplingId: dumpling.id } : undefined })} style={[styles.actionButton, { backgroundColor: homeColors.teal }]}>VIEW COLLECTION ROOM</PrimaryButton>
             <SoftButton onPress={goToResults} style={styles.continueButton}>CONTINUE</SoftButton>

@@ -1,0 +1,209 @@
+I have uploaded the final 15 MP3 sound effects for Word Hunt: Mystery Dumplings.
+
+Please integrate these sound effects into the game using the existing Expo/React Native audio setup.
+
+IMPORTANT:
+- Use the uploaded MP3 files exactly as provided.
+- Do NOT generate, replace, rename, convert, compress, or modify the audio files.
+- Do NOT change the game's visual design or theme.
+- Do NOT change gameplay logic except where necessary to trigger the correct sound.
+- Do NOT change scoring, coins, hints, puzzle generation, word-selection logic, dumpling logic, navigation, AdMob, UMP consent, Android configuration, EAS configuration, or app icon.
+- Do NOT create an EAS build.
+- Do NOT change versionCode yet.
+- Do NOT remove or replace any existing sound that is already correctly implemented unless necessary to connect these final MP3 files.
+- Keep web/Expo Go behavior safe if native audio functionality is unavailable.
+
+FINAL SOUND FILES:
+
+1. letter-tap.mp3
+2. word-found.mp3
+3. bonus-word.mp3
+4. invalid-selection.mp3
+5. hint-used.mp3
+6. button-click.mp3
+7. coin-reward.mp3
+8. level-complete.mp3
+9. dumpling-opening.mp3
+10. dumpling-reveal.mp3
+11. common-rarity.mp3
+12. uncommon-rarity.mp3
+13. rare-rarity.mp3
+14. epic-rarity.mp3
+15. legendary-rarity.mp3
+
+Please connect them to these exact gameplay events:
+
+### 1. letter-tap.mp3
+Play a very short tap sound whenever the player successfully selects/adds a letter while dragging across the puzzle grid.
+
+Important:
+- It should trigger during active letter selection.
+- Do not play it repeatedly for the same letter if the selection logic fires duplicate events.
+- Do not play it when the player simply touches/releases without selecting a new letter.
+
+### 2. word-found.mp3
+Play when the player successfully finds a normal puzzle word.
+
+Trigger exactly once when the valid word is confirmed.
+
+### 3. bonus-word.mp3
+Play when the player successfully discovers a bonus word.
+
+Trigger exactly once when the bonus word is confirmed.
+
+Do not play both word-found and bonus-word for the same bonus-word discovery.
+
+### 4. invalid-selection.mp3
+Play when the player releases an invalid word selection.
+
+Trigger once per invalid release.
+
+Do not play it for harmless touches or cancellations where no actual word selection was attempted.
+
+### 5. hint-used.mp3
+Play when a hint is successfully consumed/used.
+
+Trigger exactly once per actual hint use.
+
+Do not play it merely because the hint UI is opened.
+
+### 6. button-click.mp3
+Use for appropriate ordinary interactive buttons throughout the game.
+
+Examples include:
+- Play/start buttons
+- Category selection
+- Mode selection
+- Back buttons
+- Other normal UI buttons
+
+Do NOT use button-click for events that already have a dedicated sound such as:
+- finding a word
+- using a hint
+- receiving coins
+- completing a level
+- opening/revealing a dumpling
+
+Avoid excessive or duplicate button sounds.
+
+### 7. coin-reward.mp3
+Play when coins are actually awarded to the player.
+
+Trigger once when the coin reward is granted.
+
+Do not play simply because a screen displaying the current coin balance is opened.
+
+### 8. level-complete.mp3
+Play when a normal puzzle is successfully completed.
+
+Trigger once at the actual completion event.
+
+Do not play repeatedly if the results screen re-renders.
+
+### 9. dumpling-opening.mp3
+Play at the actual beginning of the Mystery Dumpling opening animation/sequence, when the basket/container begins opening.
+
+It should happen before the reveal sound.
+
+### 10. dumpling-reveal.mp3
+Play at the moment the Mystery Dumpling is revealed.
+
+Do not trigger it when the opening sequence merely starts.
+
+### 11. common-rarity.mp3
+Play when the revealed dumpling is confirmed/displayed as Common rarity.
+
+### 12. uncommon-rarity.mp3
+Play when the revealed dumpling is confirmed/displayed as Uncommon rarity.
+
+### 13. rare-rarity.mp3
+Play when the revealed dumpling is confirmed/displayed as Rare rarity.
+
+### 14. epic-rarity.mp3
+Play when the revealed dumpling is confirmed/displayed as Epic rarity.
+
+### 15. legendary-rarity.mp3
+Play when the revealed dumpling is confirmed/displayed as Legendary rarity.
+
+The rarity sound must correspond to the actual rarity received. Only ONE rarity sound should play for each dumpling reveal.
+
+### IMPORTANT DUMPLING SOUND ORDER
+
+Preserve the existing reveal sequence.
+
+The intended audio sequence is:
+
+Dumpling opening starts
+→ dumpling-opening.mp3
+
+Dumpling is revealed
+→ dumpling-reveal.mp3
+
+Rarity is revealed/confirmed
+→ exactly one of:
+common-rarity.mp3
+uncommon-rarity.mp3
+rare-rarity.mp3
+epic-rarity.mp3
+legendary-rarity.mp3
+
+Do not play multiple rarity sounds.
+
+### AUDIO IMPLEMENTATION REQUIREMENTS
+
+First inspect the existing project for any audio implementation, audio utility, sound service, or existing expo-av/expo-audio usage.
+
+Use the project's existing audio architecture if one already exists.
+
+If an audio utility/service is needed, create a small centralized sound service rather than scattering audio-loading logic throughout many screens.
+
+Important requirements:
+- Avoid loading a new audio instance every time a sound is triggered.
+- Avoid memory leaks.
+- Avoid creating overlapping duplicate sounds from repeated React renders.
+- Sounds should not block gameplay if loading fails.
+- If a sound fails to load or play, the game must continue normally.
+- Avoid introducing unnecessary dependencies.
+- Use the correct Expo-compatible audio API already supported by the current project.
+- Keep sound playback lightweight for mobile.
+- Do not interfere with music/audio that may be added later.
+
+### FILE ORGANIZATION
+
+Place the uploaded MP3 files in a clean project asset location appropriate for static game audio, for example:
+
+assets/sounds/
+
+Use the exact filenames listed above.
+
+Do not rename them.
+
+### TESTING
+
+After integration:
+
+1. Run TypeScript checks.
+2. Run all existing tests.
+3. Add focused tests only where practical for the sound-trigger logic.
+4. Verify there are no duplicate triggers caused by React re-renders.
+5. Verify invalid selections only trigger invalid-selection.mp3 once.
+6. Verify normal words and bonus words use different sounds.
+7. Verify exactly one rarity sound plays for each dumpling.
+8. Verify the dumpling opening → reveal → rarity sequence is preserved.
+9. Verify sound failures do not block gameplay.
+10. Verify no unrelated files or functionality were changed.
+
+IMPORTANT:
+Do NOT create an EAS build.
+Do NOT increment versionCode.
+Do NOT commit or push yet.
+
+At the end, report:
+- Which files were added.
+- Which source files were changed.
+- Which audio system/API is being used.
+- How each sound is triggered.
+- Test results.
+- Any issues or limitations found.
+
+Keep this change strictly limited to integrating these 15 sound effects.

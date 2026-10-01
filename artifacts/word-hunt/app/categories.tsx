@@ -8,6 +8,7 @@ import { isCategoryUnlocked } from '@/game/progression';
 import { useGame } from '@/context/GameProvider';
 import { useColors } from '@/hooks/useColors';
 import { AdBanner } from '@/components/AdBanner';
+import { playSound } from '@/services/audio';
 
 export default function CategoriesScreen() {
   const router = useRouter();
@@ -23,7 +24,7 @@ export default function CategoriesScreen() {
     <FlatList data={CATEGORIES} numColumns={2} keyExtractor={(item) => item.id} columnWrapperStyle={styles.columns} contentContainerStyle={styles.list} renderItem={({ item, index }) => {
       const unlocked = isCategoryUnlocked(index, completedLevels, CATEGORIES);
       const completed = completedLevels.includes(item.id);
-      return <Pressable disabled={!unlocked} onPress={() => router.push({ pathname: '/mode', params: { categoryId: item.id } })} style={({ pressed }) => [styles.card, { backgroundColor: unlocked ? colors.card : colors.muted, borderColor: completed ? colors.success : colors.border, opacity: pressed ? 0.75 : unlocked ? 1 : 0.56 }]}>
+      return <Pressable disabled={!unlocked} onPress={() => { playSound('tap'); router.push({ pathname: '/mode', params: { categoryId: item.id } }); }} style={({ pressed }) => [styles.card, { backgroundColor: unlocked ? colors.card : colors.muted, borderColor: completed ? colors.success : colors.border, opacity: pressed ? 0.75 : unlocked ? 1 : 0.56 }]}>
         <View style={[styles.icon, { backgroundColor: unlocked ? colors.accent : colors.border }]}><Text style={styles.emoji}>{item.emoji}</Text></View>
         <Text style={[styles.name, { color: unlocked ? colors.foreground : colors.mutedForeground }]}>{item.name}</Text>
         <View style={styles.status}>{completed ? <><Feather name="check-circle" size={14} color={colors.success} /><Text style={[styles.statusText, { color: colors.success }]}>CLEARED</Text></> : unlocked ? <><SectionLabel>READY</SectionLabel></> : <><Feather name="lock" size={13} color={colors.mutedForeground} /><Text style={[styles.statusText, { color: colors.mutedForeground }]}>LOCKED</Text></>}</View>

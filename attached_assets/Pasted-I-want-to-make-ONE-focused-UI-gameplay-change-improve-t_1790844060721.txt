@@ -1,0 +1,36 @@
+I want to make ONE focused UI/gameplay change: improve the visual highlighting of words after they are successfully found.
+
+Current issue:
+When I find words during a puzzle, the selected/found words appear too similar in color/appearance. I want successfully found words to be clearly distinguishable from other letters and from the currently active selection, so the player can immediately see which words have already been found.
+
+Please do the following:
+
+1. First inspect the existing word-selection and found-word highlighting implementation.
+2. Identify the exact file(s) and logic responsible for:
+   - the currently active letter selection
+   - successfully found words
+   - already-found word highlights
+3. Make the smallest possible change so that successfully found words have a clearly distinct visual treatment/color from:
+   - normal unselected letters
+   - the currently active selection
+   - other non-found letters
+4. Keep the existing Home Page theme and overall game visual style exactly as it is.
+5. Do NOT redesign the grid.
+6. Do NOT change the grid layout, letter positions, fonts, sizes, scoring, word-selection behavior, puzzle logic, hints, sounds, animations, navigation, results screen, or any other gameplay behavior.
+7. Do NOT change the colors/theme of any other screen.
+8. Do NOT modify AdMob, UMP consent, EAS configuration, app.json, package.json, versionCode, or Android configuration.
+9. Do NOT change any dumpling/reward/collection visuals.
+10. The only intended change is the visual distinction of successfully found words while playing a puzzle.
+
+Important:
+The current Google Play Internal Testing build is working correctly. Do NOT start an EAS build and do NOT create a new AAB.
+
+After making the change:
+- Run the relevant TypeScript/tests.
+- Verify that the existing puzzle-selection logic still works.
+- Show me exactly which file(s) were changed and the before/after logic.
+- Make sure the working tree contains only the intended changes.
+- Commit the change with a clear commit message such as:
+  "Improve found word highlighting"
+- Push the commit to origin/feature/game-improvements.
+- Do NOT start an EAS build.

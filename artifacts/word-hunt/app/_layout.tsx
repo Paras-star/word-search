@@ -15,6 +15,9 @@ import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { GameProvider } from '@/context/GameProvider';
 import { prepareAds } from '@/services/ads';
+import { AppState } from 'react-native';
+import { disposeAudio, initializeAudio, setAudioForeground } from '@/services/audio';
+import { stopDumplingSounds } from '@/services/dumplingAudio';
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
@@ -45,6 +48,20 @@ export default function RootLayout() {
   });
 
   useEffect(() => { void prepareAds(); }, []);
+
+  useEffect(() => {
+    setAudioForeground(AppState.currentState !== 'background' && AppState.currentState !== 'inactive');
+    initializeAudio();
+    const subscription = AppState.addEventListener('change', (state) => {
+      setAudioForeground(state === 'active');
+      if (state !== 'active') stopDumplingSounds();
+    });
+    return () => {
+      subscription.remove();
+      stopDumplingSounds();
+      disposeAudio();
+    };
+  }, []);
 
   useEffect(() => {
     if (fontsLoaded || fontError) {

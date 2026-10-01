@@ -8,6 +8,7 @@ import { useColors } from '@/hooks/useColors';
 import { useGame } from '@/context/GameProvider';
 import { dailyWindow, isDailyDatePlayable, localDateKey } from '@/game/daily';
 import { getDailyPuzzle } from '@/game/dailyPuzzle';
+import { playSound } from '@/services/audio';
 
 const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
@@ -63,11 +64,14 @@ export default function DailyScreen() {
   ];
   while (cells.length % 7 !== 0) cells.push(null);
   const completed = new Set(completedDailyPuzzles ?? []);
-  const shiftMonth = (offset: number) => setMonth((previous) => new Date(previous.getFullYear(), previous.getMonth() + offset, 1));
+  const shiftMonth = (offset: number) => {
+    playSound('tap');
+    setMonth((previous) => new Date(previous.getFullYear(), previous.getMonth() + offset, 1));
+  };
 
   return <Screen style={{ paddingTop: insets.top + 8, paddingBottom: insets.bottom + 12 }}>
     <View style={styles.header}>
-      <Pressable onPress={() => router.canGoBack() ? router.back() : router.replace('/')} hitSlop={10} accessibilityRole="button" accessibilityLabel="Back" testID="daily-back" style={({ pressed }) => [styles.backButton, { backgroundColor: colors.card, borderColor: colors.border, opacity: pressed ? 0.7 : 1 }]}>
+      <Pressable onPress={() => { playSound('tap'); router.canGoBack() ? router.back() : router.replace('/'); }} hitSlop={10} accessibilityRole="button" accessibilityLabel="Back" testID="daily-back" style={({ pressed }) => [styles.backButton, { backgroundColor: colors.card, borderColor: colors.border, opacity: pressed ? 0.7 : 1 }]}>
         <Feather name="arrow-left" size={21} color={colors.foreground} />
       </Pressable>
       <Text style={[styles.headerTitle, { color: colors.foreground }]}>Daily Hunt</Text>
@@ -104,7 +108,7 @@ export default function DailyScreen() {
             return <View key={key} style={styles.daySlot}>
               <Pressable
                 disabled={!available}
-                onPress={() => router.push({ pathname: '/game', params: { dailyDate: key } })}
+                onPress={() => { playSound('tap'); router.push({ pathname: '/game', params: { dailyDate: key } }); }}
                 accessibilityRole="button"
                 accessibilityLabel={`${MONTHS[date.getMonth()]} ${date.getDate()}${today ? ', today' : ''}${played ? ', completed' : available ? ', playable' : ', unavailable'}`}
                 accessibilityState={{ disabled: !available }}

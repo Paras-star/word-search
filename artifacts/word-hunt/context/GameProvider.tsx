@@ -2,6 +2,7 @@ import React, { createContext, useCallback, useContext, useEffect, useMemo, useR
 import { AppState, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { homeColors } from '@/constants/homePalette';
 import { advanceOnboarding, awardDailyPuzzle, loadProgress, saveProgress, STARTING_COINS, type GameProgress } from '@/services/storage';
+import { playSound } from '@/services/audio';
 
 type GameContextValue = {
   coins: number;
@@ -89,6 +90,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       const saved = await loadProgress();
       const next = { ...saved, coins: saved.coins + amount };
       await saveProgress(next);
+      if (amount > 0) playSound('coins');
       installProgress(next);
     }),
     completeLevel: (categoryId) => queueSave(async () => {
@@ -109,6 +111,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
         return false;
       }
       await saveProgress(next);
+      playSound('coins');
       installProgress(next);
       return true;
     }),
@@ -122,6 +125,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
         return false;
       }
       await saveProgress(next);
+      playSound('coins');
       installProgress(next);
       return true;
     }),

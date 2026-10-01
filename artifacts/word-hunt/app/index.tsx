@@ -9,6 +9,7 @@ import { useColors } from '@/hooks/useColors';
 import { homeColors } from '@/constants/homePalette';
 import { useGame } from '@/context/GameProvider';
 import { canOpenPrivacyOptions, showPrivacyOptions, subscribeToAds } from '@/services/ads';
+import { playSound } from '@/services/audio';
 
 export default function HomeScreen() {
   const router = useRouter();
@@ -31,7 +32,7 @@ export default function HomeScreen() {
     <View style={styles.topRow}>
       <View style={styles.topActions}>
         <CoinPill coins={coins} />
-        <Pressable onPress={() => router.push('/daily')} hitSlop={6} accessibilityRole="button" accessibilityLabel="Daily word hunt calendar" testID="daily-calendar-button" style={({ pressed }) => [styles.calendarButton, { opacity: pressed ? 0.7 : 1 }]}>
+        <Pressable onPress={() => { playSound('tap'); router.push('/daily'); }} hitSlop={6} accessibilityRole="button" accessibilityLabel="Daily word hunt calendar" testID="daily-calendar-button" style={({ pressed }) => [styles.calendarButton, { opacity: pressed ? 0.7 : 1 }]}>
           <Text style={styles.calendarIcon}>🗓️</Text>
         </Pressable>
       </View>
