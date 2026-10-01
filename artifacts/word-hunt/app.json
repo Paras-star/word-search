@@ -14,7 +14,7 @@
     },
     "android": {
       "package": "com.paras.wordhunt",
-      "versionCode": 2,
+      "versionCode": 3,
       "icon": "./assets/launcher/legacy-icon.png",
       "adaptiveIcon": {
         "foregroundImage": "./assets/launcher/adaptive-icon-foreground.png",
