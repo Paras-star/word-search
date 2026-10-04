@@ -58,7 +58,7 @@ function harness({ os = 'android', missingNative = false, failCreate = false, lo
         setAudioModeAsync: async mode => { modes.push(mode); },
       };
     }
-    if (name.endsWith('.mp3')) {
+    if (name.endsWith('.mp3') || name.endsWith('.m4a') || name.endsWith('.wav')) {
       assert.ok(fs.existsSync(path.resolve(root, 'services', name)), `Missing bundled asset: ${name}`);
       return path.basename(name);
     }
@@ -67,20 +67,66 @@ function harness({ os = 'android', missingNative = false, failCreate = false, lo
   return { service, created, played, warnings, modes };
 }
 
-test('all 15 exact filenames are bundled and players are cached, not recreated per cue', async () => {
+test('all 15 original effects plus extracted chest audio are bundled and cached', async () => {
   const h = harness();
   h.service.initializeAudio();
   h.service.initializeAudio();
-  assert.equal(h.created.length, 15);
-  assert.equal(new Set(h.created.map(player => player.source)).size, 15);
+  assert.equal(h.created.length, 16);
+  assert.equal(h.created.filter(player => player.source.endsWith('.mp3')).length, 15);
+  assert.equal(new Set(h.created.map(player => player.source)).size, 16);
   assert.equal(h.modes.length, 1);
   assert.equal(h.modes[0].interruptionMode, 'mixWithOthers');
   await h.service.startSound('correct');
   await h.service.startSound('correct');
   assert.deepEqual(h.played, ['word-found.mp3', 'word-found.mp3']);
-  assert.equal(h.created.length, 15);
+  assert.equal(h.created.length, 16);
   h.service.disposeAudio();
   assert.ok(h.created.every(player => player.removed));
+});
+
+test('Android chest is preloaded and rewound before interaction; fast start is synchronous without a seek or new player', async () => {
+  const h = harness({ os: 'android' });
+  h.service.initializeAudio();
+  const chest = h.created.find(p => p.source === 'chest-opening.m4a');
+  const originalSeek = chest.seekTo;
+  let seeks = 0;
+  chest.seekTo = seconds => { seeks++; return originalSeek(seconds); };
+  const first = h.service.prepareChestAudio();
+  assert.equal(h.service.prepareChestAudio(), first, 'concurrent preparation shares one operation');
+  await first;
+  assert.equal(seeks, 1);
+  const count = h.created.length;
+  h.service.playPreparedChestSound();
+  assert.deepEqual(h.played, ['chest-opening.m4a'], 'play is invoked in the caller stack, not a promise queue');
+  assert.equal(seeks, 1);
+  assert.equal(h.created.length, count);
+  h.service.stopSounds(['chestOpening']);
+  h.service.playPreparedChestSound();
+  assert.equal(h.played.length, 1, 'cancelled readiness cannot be reused');
+  await h.service.prepareChestAudio();
+  assert.equal(seeks, 2);
+  h.service.playPreparedChestSound();
+  assert.equal(h.played.length, 2);
+  assert.equal(h.created.length, count, 're-entry reuses the one cached player');
+  h.service.disposeAudio();
+  assert.ok(h.created.every(p => p.removed));
+});
+
+test('prepared chest cannot play before its native seek completes', async () => {
+  const h = harness({ os: 'android' });
+  h.service.initializeAudio();
+  const chest = h.created.find(p => p.source === 'chest-opening.m4a');
+  let seekFinished;
+  chest.seekTo = () => new Promise(resolve => { seekFinished = resolve; });
+  const preparing = h.service.prepareChestAudio();
+  await Promise.resolve();
+  h.service.playPreparedChestSound();
+  assert.equal(h.played.length, 0);
+  seekFinished();
+  await preparing;
+  h.service.playPreparedChestSound();
+  assert.equal(h.played.length, 1);
+  h.service.disposeAudio();
 });
 
 test('distinct accepted letters each start a cue through one cached player, including synchronous additions', async () => {
@@ -192,7 +238,7 @@ test('app disposal cancels pending loading and releases all cached players', asy
   assert.equal(h.played.length, 0);
   assert.ok(h.created.every(player => player.removed && player.listeners.size === 0));
   await h.service.startSound('tap');
-  assert.equal(h.created.length, 15);
+  assert.equal(h.created.length, 16);
 });
 
 test('dumpling cue starts preserve opening -> reveal -> exactly one actual rarity', async () => {
@@ -274,7 +320,7 @@ test('browser autoplay rejection is handled and a server render without Audio st
   const requireWeb = name => {
     if (name === 'react-native') return { Platform: { OS: 'web' } };
     if (name === 'expo-asset') return { Asset: { fromModule: source => ({ uri: source }) } };
-    if (name.endsWith('.mp3')) return path.basename(name);
+    if (name.endsWith('.mp3') || name.endsWith('.m4a') || name.endsWith('.wav')) return path.basename(name);
     throw new Error('Native audio must not be imported on web');
   };
   const web = load('services/audio.ts', requireWeb, {

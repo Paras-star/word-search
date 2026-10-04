@@ -155,17 +155,18 @@ test('completion, coin, and dumpling sounds are tied to persisted reward stages'
 
   const rewardSource = fs.readFileSync(path.join(root, 'app/reward.tsx'), 'utf8');
   assert.match(rewardSource, /mounted\.current = false;\s*stopDumplingSounds\(\)/);
-  assert.match(rewardSource, /if \(!mounted\.current\) return;\s*setStage\('revealed'\)/);
-  assert.match(rewardSource, /playDumplingSound\('opening'\)/);
-  assert.match(rewardSource, /revealAnimation\.start = \(callback\) => \{[\s\S]*?playDumplingSound\('reveal'\)/);
-  assert.match(rewardSource, /playDumplingSound\('rarityReveal', dumpling\.rarity\)/);
-  for (const obsolete of ['basketAppearance', 'anticipation', 'basketMovement', 'collection']) {
-    assert.doesNotMatch(rewardSource, new RegExp(`playDumplingSound\\('${obsolete}'`));
+  assert.match(rewardSource, /if \(mounted\.current\) setStage\('revealed'\)/);
+  assert.match(rewardSource, /<ChestReveal opening=\{stage !== 'basket'\}/);
+  const chestSource = fs.readFileSync(path.join(root, 'components/ChestReveal.tsx'), 'utf8');
+  assert.match(chestSource, /const CUE = 'chestOpening'/);
+  assert.match(chestSource, /await startSound\(CUE\)/);
+  assert.match(chestSource, /playDumplingSound\('rarityReveal', d\.rarity\)/);
+  for (const obsolete of ['opening', 'reveal', 'basketAppearance', 'anticipation', 'basketMovement', 'collection']) {
+    assert.doesNotMatch(rewardSource + chestSource, new RegExp(`playDumplingSound\\('${obsolete}'`));
   }
-  assert.doesNotMatch(rewardSource, /setTimeout\([^)]*playDumplingSound/);
   assert.ok(
-    rewardSource.indexOf("playDumplingSound('opening')") < rewardSource.indexOf("playDumplingSound('reveal')")
-      && rewardSource.indexOf("playDumplingSound('reveal')") < rewardSource.indexOf("playDumplingSound('rarityReveal', dumpling.rarity)"),
-    'dumpling audio cues must be requested in opening, reveal, rarity order',
+    chestSource.indexOf('await startSound(CUE)') < chestSource.indexOf('const t0 = Date.now()')
+      && /if \(!mounted\.current \|\| completed\.current\) return/.test(chestSource),
+    'the exact clip starts before the source frame clock and completion is guarded',
   );
 });

@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from 'react';
-import { Alert, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import { Alert, Image, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Screen, PrimaryButton, SoftButton, CoinPill } from '@/components/GameUI';
+import { AudioSettingsModal } from '@/components/AudioSettingsModal';
 import { BrandLoading } from '@/components/BrandLoading';
 import { useColors } from '@/hooks/useColors';
 import { homeColors } from '@/constants/homePalette';
@@ -19,6 +20,7 @@ export default function HomeScreen() {
   const compact = height < 730;
   const { coins, hydrated, onboardingStep } = useGame();
   const [privacyOptionsAvailable, setPrivacyOptionsAvailable] = useState(canOpenPrivacyOptions);
+  const [settingsOpen, setSettingsOpen] = useState(false);
   useEffect(() => subscribeToAds(() => setPrivacyOptionsAvailable(canOpenPrivacyOptions())), []);
   if (!hydrated) return <BrandLoading />;
   const play = () => {
@@ -30,6 +32,15 @@ export default function HomeScreen() {
   };
   return <Screen style={{ paddingTop: insets.top + 10, paddingBottom: insets.bottom + 8, backgroundColor: homeColors.background }}>
     <View style={styles.topRow}>
+      <View style={styles.leftCol}>
+      <Pressable onPress={() => { playSound('tap'); setSettingsOpen(true); }} hitSlop={4} accessibilityRole="button" accessibilityLabel="Audio settings" testID="settings-button" style={({ pressed }) => [styles.gearButton, { opacity: pressed ? 0.7 : 1 }]}>
+        <Text style={styles.calendarIcon}>⚙️</Text>
+      </Pressable>
+      <Pressable onPress={() => { playSound('tap'); router.push('/treasure-chest'); }} hitSlop={6} accessibilityRole="button" accessibilityLabel="Treasure Chest, 700 coins" testID="treasure-chest-button" style={({ pressed }) => [styles.chestButton, { opacity: pressed ? 0.7 : 1 }]}>
+        <Image source={require('../assets/images/chests/treasure-chest.png')} style={styles.chestImage} resizeMode="contain" />
+        <Text style={styles.chestCue}>700</Text>
+      </Pressable>
+      </View>
       <View style={styles.topActions}>
         <CoinPill coins={coins} />
         <Pressable onPress={() => { playSound('tap'); router.push('/daily'); }} hitSlop={6} accessibilityRole="button" accessibilityLabel="Daily word hunt calendar" testID="daily-calendar-button" style={({ pressed }) => [styles.calendarButton, { opacity: pressed ? 0.7 : 1 }]}>
@@ -56,11 +67,17 @@ export default function HomeScreen() {
         style={styles.privacyButton}
       ><Text style={styles.privacyText}>PRIVACY CHOICES</Text></Pressable>}
     </View>
+    <AudioSettingsModal visible={settingsOpen} onClose={() => { playSound('tap'); setSettingsOpen(false); }} />
   </Screen>;
 }
 
 const styles = StyleSheet.create({
-  topRow: { minHeight: 84, flexDirection: 'row', justifyContent: 'flex-end', alignItems: 'flex-start' },
+  topRow: { minHeight: 84, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
+  gearButton: { width: 44, height: 44, borderRadius: 14, borderWidth: 1, borderColor: homeColors.tileBorder, backgroundColor: homeColors.tile, alignItems: 'center', justifyContent: 'center' },
+  leftCol: { alignItems: 'flex-start', gap: 6 },
+  chestButton: { minWidth: 44, height: 40, paddingHorizontal: 6, borderRadius: 13, borderWidth: 1, borderColor: homeColors.tileBorder, backgroundColor: homeColors.tile, flexDirection: 'row', alignItems: 'center', gap: 3 },
+  chestImage: { width: 26, height: 26 },
+  chestCue: { color: homeColors.gold, fontFamily: 'Inter_700Bold', fontSize: 11 },
   topActions: { alignItems: 'center', gap: 4 },
   calendarButton: { width: 42, height: 40, borderRadius: 13, borderWidth: 1, borderColor: homeColors.tileBorder, backgroundColor: homeColors.tile, alignItems: 'center', justifyContent: 'center' },
   calendarIcon: { fontSize: 19 },

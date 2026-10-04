@@ -1,0 +1,203 @@
+I want to add background music and a separate audio-volume settings control to Word Hunt: Mystery Dumplings.
+
+IMPORTANT:
+- Do NOT start an EAS build.
+- Do NOT commit or push yet.
+- Do NOT remove, replace, or modify any of the existing 15 game sound effects.
+- Do NOT change gameplay, scoring, puzzle logic, animations, dumpling artwork, launcher icon, AdMob/UMP, or the current found-word highlighting.
+- Keep all existing functionality intact.
+
+PART 1 — ADD BACKGROUND MUSIC
+
+I have uploaded this MP3:
+
+luceris-relaxing-590397.mp3
+
+Use this exact file as the game's background music.
+
+Requirements:
+1. Verify that the file exists and is a valid playable MP3.
+2. Do not modify, recompress, replace, or alter the supplied audio file.
+3. Add it to the appropriate game audio assets location.
+4. Play it as background music while the user is inside the game.
+5. The background music should loop continuously when it reaches the end.
+6. It should NOT restart every time the user navigates between game screens.
+7. Avoid creating multiple simultaneous background-music players when navigating between screens.
+8. There must only ever be one active background-music instance.
+9. Background music should continue naturally across the main game experience, including category/puzzle/results/reward/collection screens where appropriate.
+10. It should stop/pause appropriately when the app goes into the background and resume appropriately when the app returns to the foreground.
+11. Do not allow background music to continue playing after the app is fully backgrounded.
+12. Handle audio-loading/playback failures gracefully so music problems can never block gameplay.
+13. Preserve the existing native/web audio architecture and make the implementation compatible with the current Expo setup.
+
+PART 2 — ADD SETTINGS BUTTON
+
+Add a settings button represented by:
+
+⚙️
+
+Place it in the existing Home Page/header area in a way that matches the current UI and does not disrupt the existing layout.
+
+Do not redesign the Home Page.
+
+When the user taps ⚙️, open a simple settings panel/modal.
+
+The settings panel should contain TWO independent volume controls.
+
+CONTROL 1 — BACKGROUND MUSIC
+
+Label/symbol:
+
+🎵
+
+Purpose:
+Controls ONLY the volume of the background music.
+
+The user must be able to increase or decrease the music volume.
+
+CONTROL 2 — GAME SOUNDS
+
+Label/symbol:
+
+🔊
+
+Purpose:
+Controls ONLY the volume of the existing 15 game sound effects.
+
+This includes:
+- letter-tap
+- word-found
+- bonus-word
+- invalid-selection
+- hint-used
+- button-click
+- coin-reward
+- level-complete
+- dumpling-opening
+- dumpling-reveal
+- common-rarity
+- uncommon-rarity
+- rare-rarity
+- epic-rarity
+- legendary-rarity
+
+The 🎵 and 🔊 controls must be completely independent.
+
+Changing 🎵 must NOT change the volume of the game sound effects.
+
+Changing 🔊 must NOT change the background music volume.
+
+PART 3 — VOLUME CONTROL DESIGN
+
+Use a clean, simple horizontal slider for each control.
+
+For example:
+
+⚙️ Settings
+
+🎵  Background Music
+[────────●──────]
+Low                         High
+
+🔊  Game Sounds
+[──────●────────]
+Low                         High
+
+Use the existing game's visual theme:
+- warm cream
+- deep teal
+- muted ink
+- gold
+
+Do not introduce a completely new visual style.
+
+Make the sliders touch-friendly on Android.
+
+Include a clear way to close the settings panel, using the existing button/navigation styling.
+
+PART 4 — VOLUME BEHAVIOR
+
+Use sensible default volumes:
+- Background music: approximately 50%
+- Game sounds: approximately 100%
+
+Do not change the actual audio files to control volume.
+
+Apply volume at playback/player level.
+
+The game-sound volume must apply consistently to all existing 15 sound effects, including sounds already cached/loaded.
+
+The background music volume must apply immediately to the currently playing music.
+
+If the user changes a volume while a sound/music is already playing, the change should take effect immediately without restarting the audio.
+
+Allow volume to reach 0 so the user can completely mute either category.
+
+Do not use separate mute logic unless necessary; 0 volume should effectively mute that category.
+
+PART 5 — PERSIST SETTINGS
+
+Save both volume settings locally using the game's existing local persistence approach.
+
+For example:
+- music volume
+- sound effects volume
+
+When the user closes and reopens the app, their chosen volumes should remain.
+
+Do not introduce authentication, cloud storage, or a backend for this.
+
+PART 6 — AUDIO ARCHITECTURE
+
+Please integrate this cleanly with the existing audio services rather than creating a second unrelated audio system.
+
+There are already existing services for the 15 game sounds.
+
+Extend the existing architecture so there are clearly separate controls for:
+
+background music volume
+game sound-effects volume
+
+Do not duplicate audio players unnecessarily.
+
+Make sure the existing audio cancellation/background handling continues to work correctly.
+
+Important:
+- Background music and sound effects must have independent volume controls.
+- Existing sound-event timing must remain unchanged.
+- Do not introduce delays to gameplay because of music loading.
+- Audio failures must never block gameplay.
+
+PART 7 — VALIDATION
+
+After implementation:
+
+1. Verify luceris-relaxing-590397.mp3 is present and valid.
+2. Verify the music file itself remains unchanged.
+3. Verify only one background music player can exist at a time.
+4. Verify the music loops correctly.
+5. Verify navigating between screens does not create duplicate music.
+6. Verify background/foreground handling.
+7. Verify 🎵 changes ONLY background music volume.
+8. Verify 🔊 changes ONLY game sound-effect volume.
+9. Verify all 15 existing sound effects use the game-sound volume.
+10. Verify volume settings persist after app restart.
+11. Verify volume 0 effectively mutes each category.
+12. Verify the settings button ⚙️ does not interfere with existing navigation.
+13. Run TypeScript validation.
+14. Run the complete existing test suite.
+15. Run Expo configuration validation.
+
+Create/update tests for the volume settings and audio separation where appropriate.
+
+At the end, report:
+- which files were changed
+- where the background music file is stored
+- how the music player is managed
+- how the two volume controls are stored/applied
+- validation results
+- test results
+
+Do NOT commit.
+Do NOT push.
+Do NOT start an EAS build.

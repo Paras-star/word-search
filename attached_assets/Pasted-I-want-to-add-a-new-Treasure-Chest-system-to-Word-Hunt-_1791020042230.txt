@@ -1,0 +1,465 @@
+I want to add a new Treasure Chest system to Word Hunt: Mystery Dumplings.
+
+IMPORTANT:
+This is a gameplay/reward feature. Implement it carefully without breaking any existing gameplay, collection, rewards, sounds, audio settings, AdMob/UMP, launcher icon, pastel found-word highlighting, or existing Mystery Dumpling reward system.
+
+DO NOT commit.
+DO NOT push.
+DO NOT start an EAS build.
+
+I want to inspect and test the implementation first.
+
+==================================================
+PART 1 — ASSETS
+==================================================
+
+I have uploaded three chest images:
+
+1. treasure-chest.png
+2. treasure-chest-closed.png
+3. treasure-chest-open.png
+
+Use these exact uploaded assets.
+
+Asset purpose:
+
+- treasure-chest.png
+  → small Treasure Chest icon shown on the Home screen.
+
+- treasure-chest-closed.png
+  → closed chest state for the chest UI and reveal animation.
+
+- treasure-chest-open.png
+  → opened chest state after the chest has been opened.
+
+Do NOT redesign, redraw, recolor, crop, stretch, or otherwise modify these images.
+
+Preserve their transparency.
+
+Do not create replacement artwork.
+
+==================================================
+PART 2 — HOME SCREEN TREASURE CHEST
+==================================================
+
+Add a small Treasure Chest icon on the HOME SCREEN.
+
+Placement:
+
+- On the LEFT SIDE of the Home screen.
+- Below the existing ⚙️ Settings option.
+- It should feel like a small secondary feature button.
+- It must fit naturally into the existing Home Page layout.
+- Do not redesign the Home Page.
+- Do not move or change the existing ⚙️ Settings button.
+- Do not interfere with existing navigation or controls.
+
+Use:
+
+treasure-chest.png
+
+as the icon.
+
+The icon should be clearly tappable.
+
+Add a small, clear visual indication that this is a Treasure Chest reward feature.
+
+Keep the existing warm cream / deep teal / muted ink / gold visual language.
+
+==================================================
+PART 3 — 700 COIN TREASURE CHEST
+==================================================
+
+When the player taps the Treasure Chest icon, open a dedicated Treasure Chest screen/modal.
+
+This chest costs:
+
+700 coins
+
+The player must spend 700 coins to open it.
+
+Before spending the coins, clearly show:
+
+- Treasure Chest
+- Cost: 700 coins
+- The player's current coin balance
+- A clear OPEN / UNLOCK button
+
+Do NOT deduct coins merely by opening the Treasure Chest screen.
+
+Coins should only be deducted after the player explicitly confirms opening the chest.
+
+If the player has fewer than 700 coins:
+
+- Do not allow the chest to open.
+- Do not deduct any coins.
+- Show a clear message that 700 coins are required.
+- Do not allow the player's coin balance to become negative.
+
+If the player has at least 700 coins and confirms:
+
+1. Deduct exactly 700 coins.
+2. Persist the new coin balance immediately.
+3. Start the chest-opening animation.
+4. Reveal exactly ONE dumpling reward.
+5. Save that dumpling as collected.
+6. Add it to the existing Collection system.
+7. Ensure the same dumpling is not incorrectly duplicated as a new collection entry.
+
+==================================================
+PART 4 — 700 COIN CHEST DUMPLING POOL
+==================================================
+
+The 700-coin Treasure Chest should use the EXISTING dumpling catalog and rarity system.
+
+Do NOT create new dumplings.
+
+The reward pool should be weighted toward:
+
+- Rare dumplings — more likely
+- Epic dumplings — less likely
+
+Do NOT include Common or Uncommon dumplings in the 700-coin Treasure Chest unless the existing game architecture absolutely requires it; the intended design is that this is a premium chest containing primarily Rare and some Epic rewards.
+
+Use the existing Rare and Epic dumplings already defined in the game.
+
+The reward selection must be deterministic/testable and use the existing collection data structures.
+
+Do not alter the existing rarity definitions.
+
+Do not alter the existing normal puzzle reward distribution.
+
+Do not alter the existing Mystery Dumpling reward system.
+
+==================================================
+PART 5 — DUPLICATE / COLLECTION BEHAVIOR
+==================================================
+
+The revealed dumpling must be saved using the existing collection system.
+
+If the player receives a dumpling that they already own:
+
+Do NOT create a broken duplicate collection entry.
+
+Instead, handle the duplicate using the game's existing collection/reward architecture if one already exists.
+
+If there is currently no duplicate-reward behavior for this type of reward, implement a simple safe fallback:
+
+- The player still receives the reward.
+- The collection remains valid.
+- No duplicate corrupted entries are created.
+- Do not silently lose the reward.
+
+Most importantly:
+
+A dumpling revealed from the 700-coin chest must appear as collected in the existing Collection screen.
+
+The Collection screen must not require a separate manual refresh to show the newly collected dumpling.
+
+==================================================
+PART 6 — CHEST ANIMATION
+==================================================
+
+The chest opening should feel rewarding and polished.
+
+Use:
+
+treasure-chest-closed.png
+
+for the closed state.
+
+Use:
+
+treasure-chest-open.png
+
+for the opened state.
+
+Do NOT create additional chest artwork.
+
+Use React Native animations for the motion.
+
+Suggested sequence:
+
+1. Chest appears closed.
+2. Brief idle movement.
+3. Player confirms the 700-coin purchase.
+4. Chest begins a subtle shake.
+5. Shake becomes slightly stronger.
+6. Brief anticipation pause.
+7. Transition from closed chest → open chest.
+8. Reveal the dumpling.
+9. Show the dumpling's rarity.
+10. Show the dumpling name.
+11. Confirm that it has been added to Collection.
+
+The animation should feel similar in quality and excitement to the existing Mystery Dumpling reveal experience.
+
+Do NOT make the shaking excessive or childish.
+
+Keep it polished and satisfying.
+
+Do not introduce blinking.
+
+Do not create a video.
+
+Use the existing React Native animation approach.
+
+==================================================
+PART 7 — CHEST REWARD REVEAL
+==================================================
+
+The 700-coin chest reward should use the existing dumpling reveal/collection architecture wherever possible.
+
+The reveal should clearly communicate:
+
+"700 coins spent"
+
+then:
+
+"Treasure Chest"
+
+then the revealed dumpling.
+
+Show:
+
+- Dumpling artwork
+- Dumpling name
+- Rarity
+- Appropriate rarity styling
+- Confirmation that it was added to Collection
+
+Do not create a second incompatible collection system.
+
+Reuse the existing rarity presentation where appropriate.
+
+==================================================
+PART 8 — EXISTING LEVEL-COMPLETE REWARD CHEST
+==================================================
+
+IMPORTANT:
+
+There is ALSO an existing reward chest/reward flow after completing a level.
+
+I want the new chest artwork and animation system to be used for THAT chest as well.
+
+The existing post-level reward chest should use:
+
+treasure-chest-closed.png
+
+for the closed state.
+
+And:
+
+treasure-chest-open.png
+
+for the opened state.
+
+The existing reward logic MUST remain unchanged.
+
+Do not change:
+
+- the number of rewards awarded
+- the existing reward probability/distribution unless explicitly required
+- existing coin rewards
+- existing dumpling collection behavior
+- existing progression
+- existing level completion logic
+
+Only replace/improve the visual chest presentation and animation where appropriate.
+
+The level-complete reward chest and the 700-coin Treasure Chest must share the same chest visual/animation components where practical, but their reward logic must remain separate.
+
+==================================================
+PART 9 — TWO CHEST SYSTEMS MUST REMAIN SEPARATE
+==================================================
+
+There are now TWO uses of the chest:
+
+A) 700-COIN TREASURE CHEST
+
+- Accessible from Home
+- Costs exactly 700 coins
+- Requires explicit confirmation
+- Deducts exactly 700 coins
+- Rewards one Rare/Epic dumpling
+- Saves reward to Collection
+- Uses Treasure Chest animation
+
+B) LEVEL-COMPLETE REWARD CHEST
+
+- Triggered by the existing level completion/reward flow
+- Does NOT cost 700 coins
+- Must NOT deduct 700 coins
+- Keeps its existing reward logic
+- Uses the new closed/open chest artwork and polished chest animation
+
+Do NOT accidentally connect the two reward systems.
+
+==================================================
+PART 10 — SOUNDS
+==================================================
+
+Use the existing audio architecture.
+
+Do not create a second audio system.
+
+The chest should use the existing relevant audio effects where appropriate.
+
+If the current sound library already has:
+
+- dumpling-opening
+- dumpling-reveal
+- rarity sounds
+
+reuse them appropriately.
+
+Do NOT modify the existing 15 MP3 files.
+
+Do NOT change their volume behavior.
+
+Do NOT change the 🎵 Background Music / 🔊 Game Sounds settings.
+
+The new chest should respect the existing game-sound volume setting.
+
+If a dedicated chest-opening sound is genuinely required and there is no suitable existing sound, DO NOT invent or download one yet. Leave that sound unimplemented and report it to me instead.
+
+==================================================
+PART 11 — COIN TRANSACTION SAFETY
+==================================================
+
+This is extremely important.
+
+The 700-coin purchase must be transaction-safe.
+
+The implementation must prevent:
+
+- double-tapping OPEN causing two purchases
+- deducting 700 coins twice
+- granting two dumplings from one purchase
+- opening the chest while the purchase is still processing
+- negative coin balances
+- reward being granted without the coin deduction
+- coin deduction happening without a reward being generated
+
+Disable the purchase/open button immediately when the transaction starts.
+
+Only restore interaction after the transaction/reveal state is safely established.
+
+Persist the coin deduction and reward using the existing local persistence architecture.
+
+==================================================
+PART 12 — NAVIGATION / BACK BEHAVIOR
+==================================================
+
+The player should be able to safely leave the Treasure Chest screen before purchasing.
+
+If the player has NOT confirmed the purchase:
+
+- No coins are deducted.
+- No reward is generated.
+
+If the player HAS confirmed the purchase:
+
+- Do not allow navigation/back behavior to accidentally cancel the transaction or lose the reward.
+- Finish the reward transaction safely.
+- Then allow the player to leave.
+
+Do not leave the player stuck on the chest screen.
+
+==================================================
+PART 13 — COLLECTION UPDATE
+==================================================
+
+After the 700-coin chest reveals a dumpling:
+
+The existing Collection screen must immediately recognize the dumpling as collected.
+
+Use the same persistent collection state used by the existing Mystery Dumpling system.
+
+Do not create a parallel collection database/state.
+
+The dumpling should remain collected after:
+
+- leaving the chest screen
+- restarting the app
+- reopening the game
+
+==================================================
+PART 14 — UI QUALITY
+==================================================
+
+The Treasure Chest screen should feel like it belongs to the existing game.
+
+Use:
+
+- warm cream background
+- deep teal
+- muted ink
+- gold accents
+- existing typography
+- existing button styling
+- existing spacing conventions
+
+Do not redesign the entire game.
+
+The chest itself should remain the visual focus.
+
+Keep the interface clean and mobile-friendly.
+
+==================================================
+PART 15 — TESTING
+==================================================
+
+Add tests for the new Treasure Chest functionality.
+
+At minimum test:
+
+1. Treasure Chest icon appears on Home.
+2. Chest icon opens the correct screen.
+3. 700-coin price is correct.
+4. Player with fewer than 700 coins cannot purchase.
+5. Player with exactly 700 coins can purchase.
+6. Player with more than 700 coins loses exactly 700.
+7. Coins never become negative.
+8. One purchase produces exactly one reward.
+9. Double-tapping cannot produce two rewards.
+10. Reward is saved to Collection.
+11. Reward persists after reload.
+12. Reward pool contains only the intended Rare/Epic dumplings.
+13. Rare rewards are weighted more heavily than Epic rewards.
+14. Existing level-complete reward chest still works.
+15. Level-complete reward chest does not deduct 700 coins.
+16. Chest closed/open assets are correctly referenced.
+17. Chest animation state transitions correctly.
+18. Existing 15 sound effects remain unchanged.
+19. Background music remains unaffected.
+20. 🎵 and 🔊 volume settings remain unaffected.
+21. Existing pastel found-word highlighting remains unaffected.
+22. Existing launcher icon remains unaffected.
+23. Existing AdMob/UMP configuration remains unaffected.
+
+Run the complete existing test suite as well.
+
+==================================================
+PART 16 — VALIDATION REPORT
+==================================================
+
+After implementation, report:
+
+- Every file changed.
+- Every new asset added.
+- Where each chest asset is used.
+- How the 700-coin transaction works.
+- How Rare/Epic reward weighting works.
+- How duplicate collection rewards are handled.
+- How the level-complete chest remains separate.
+- How the animation works.
+- Test results.
+- TypeScript results.
+- Expo configuration results.
+
+Do NOT commit.
+Do NOT push.
+Do NOT start an EAS build.
+
+I want to inspect and test the feature first before we commit all pending changes together.

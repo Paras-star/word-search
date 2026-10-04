@@ -1,0 +1,82 @@
+I tested the Treasure Chest on the actual app and the timing/performance is NOT acceptable yet.
+
+There are noticeable delays at multiple points:
+
+1. The chest itself takes noticeable time to appear/load.
+2. After I tap the chest, there is a noticeable delay before the chest starts opening.
+3. During the opening animation, there is another noticeable delay.
+4. After the chest is fully open, the dumpling takes noticeable time to appear inside the chest.
+
+I want this to feel instant and polished on a real Android device.
+
+IMPORTANT:
+Do NOT change the intended visual sequence or redesign the animation. Keep the chest-opening animation visually matching the provided chest-opening.mp4 as closely as possible.
+
+Fix the PERFORMANCE and TIMING only.
+
+Requirements:
+
+- The chest artwork must be preloaded/cached before the Treasure Chest screen is displayed so there is no visible loading delay when entering the chest.
+- Preload all required chest animation assets/frames before the player can start the opening interaction.
+- Do not wait for frame decoding/loading after the user taps the chest.
+- The tap should trigger the opening animation immediately.
+- There must be no artificial delay between the tap and the first visible opening movement.
+- The opening animation must progress continuously without frame-loading pauses.
+- The dumpling must already be ready in memory before it is revealed.
+- When the animation reaches the intended reveal point, the dumpling should appear immediately inside the open chest with no additional loading delay.
+- Do not asynchronously fetch/load the dumpling at the moment of reveal.
+- Keep the chest visible after opening and reveal the dumpling INSIDE the open chest.
+- Preserve the exact purchase transaction safety:
+  - 700 coins only after confirmation
+  - exactly one deduction
+  - exactly one reward
+  - no reward without deduction
+  - no deduction without reward
+  - rapid taps must not duplicate anything
+- Keep the free level-completion reward chest behavior unchanged.
+- Keep the extracted chest-opening sound synchronized with the animation.
+- Do not change the other 15 game sound effects.
+- Do not change background music or audio settings.
+- Do not change pastel found-word highlighting.
+- Do not change gameplay, scoring, collection logic, rarity weighting, AdMob, icon, navigation, or any other unrelated feature.
+
+Technical goal:
+
+The entire chest-opening experience should be prepared BEFORE interaction wherever possible.
+
+Please specifically investigate whether the current implementation is:
+- decoding 73 frames only after entering/opening the chest,
+- creating Image components only when the animation starts,
+- loading the dumpling artwork only at reveal time,
+- waiting on promises/state updates between animation stages,
+- using React state changes that cause expensive re-renders,
+- or doing any other synchronous/native work on the UI thread during the animation.
+
+If the current 73-frame approach is causing the delays, optimize it rather than simply adding/removing arbitrary timeouts.
+
+Do NOT solve this by making the animation faster while keeping the loading delays. The actual problem is that assets are not ready when needed.
+
+The desired interaction should feel like:
+
+ENTER TREASURE CHEST
+→ chest appears immediately
+
+TAP CHEST
+→ immediate shake/opening response
+→ continuous opening animation
+→ chest remains open
+→ dumpling appears immediately at the intended reveal moment
+
+Please test this specifically on the Android/native path, not only the browser.
+
+Also test rapid repeated taps and entering/leaving/re-entering the Treasure Chest screen to make sure preloading does not create duplicate players, memory leaks, stale animation state, or transaction issues.
+
+Do not commit or push anything yet.
+
+After fixing it, report:
+1. What was causing each of the delays.
+2. Exactly what you changed.
+3. Whether the assets are now preloaded before interaction.
+4. Whether tap-to-animation-start is immediate.
+5. Whether dumpling reveal is immediate.
+6. Test results.

@@ -1,0 +1,48 @@
+The Treasure Chest reveal animation needs one visual correction. Do not change the transaction logic, reward weighting, collection logic, sounds, music, settings, assets, or level-complete reward logic.
+
+Change only the visual reveal sequence:
+
+Desired sequence:
+
+Show treasure-chest-closed.png centered in the main reveal area.
+User taps the Open/Confirm action.
+Chest performs a subtle shake.
+Chest performs a slightly stronger shake/anticipation.
+Transition from treasure-chest-closed.png to treasure-chest-open.png.
+After the chest-open moment, completely remove/hide the chest artwork.
+Then display the rewarded dumpling in the same central position where the chest was.
+The dumpling must replace the chest, not appear above, behind, or floating over the chest.
+Once the dumpling is visible, continue with the existing rarity/name reveal and collection confirmation.
+
+Important visual requirement:
+
+At the final reward stage, there must be no chest visible behind or underneath the dumpling.
+Do not render the dumpling as a child layered on top of the open chest.
+Treat the chest and dumpling as two mutually exclusive visual states:
+CLOSED_CHEST → OPENING_SHAKE → OPEN_CHEST → DUMPLING
+Use the same central reveal container/position so the replacement feels intentional and polished.
+The dumpling should not suddenly jump to a different location when replacing the chest.
+Preserve the existing dumpling artwork exactly as supplied.
+
+Keep the existing chest shake/open animation timing and sounds unless a minimal timing adjustment is necessary to make the replacement transition feel smooth.
+
+Do not modify:
+
+700-coin transaction safety
+recoverable transaction record
+duplicate-reward handling
+Rare/Epic 75%/25% weighting
+collection persistence
+level-complete free chest logic
+existing 15 sound files
+background music/settings
+pastel found-word highlighting
+AdMob/UMP
+app icon
+any other gameplay behavior
+
+After making the change, run the relevant chest animation tests and TypeScript checks, then verify in the browser that the final sequence is visually:
+
+closed chest → small shake → stronger shake → open chest → chest disappears → dumpling appears in the chest's exact position → rarity/name → collection confirmation.
+
+Do not commit, push, or start an EAS build.

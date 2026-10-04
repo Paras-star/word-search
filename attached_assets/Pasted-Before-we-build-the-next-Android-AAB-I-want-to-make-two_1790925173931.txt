@@ -1,0 +1,106 @@
+Before we build the next Android AAB, I want to make two final changes/checks. Do NOT start an EAS build.
+
+PART 1 — AUDIT ALL 15 SOUND EFFECTS
+
+Please thoroughly verify the existing sound-effect integration without redesigning or replacing anything.
+
+Verify all 15 MP3 assets are present and correctly used:
+
+1. letter-tap.mp3
+2. word-found.mp3
+3. bonus-word.mp3
+4. invalid-selection.mp3
+5. hint-used.mp3
+6. button-click.mp3
+7. coin-reward.mp3
+8. level-complete.mp3
+9. dumpling-opening.mp3
+10. dumpling-reveal.mp3
+11. common-rarity.mp3
+12. uncommon-rarity.mp3
+13. rare-rarity.mp3
+14. epic-rarity.mp3
+15. legendary-rarity.mp3
+
+Check:
+- Every file exists in the expected assets/sounds location.
+- Every file is a valid playable MP3 and is not corrupted.
+- Every file is correctly imported/referenced by the audio system.
+- Every gameplay event is mapped to the correct sound.
+- Letter taps play for newly selected letters.
+- Normal word-found and bonus-word sounds remain separate.
+- Invalid selection plays only under the intended conditions.
+- Hint-used plays only when a hint is actually consumed.
+- Button-click is not incorrectly triggered for dedicated gameplay actions.
+- Coin-reward plays only after a successful coin reward.
+- Level-complete plays once per normal puzzle completion.
+- Dumpling sounds preserve the intended order:
+  opening → reveal → rarity.
+- Exactly one matching rarity sound plays for each rarity.
+- Backgrounding/leaving the reward screen does not leave stale queued sounds.
+- Sound failures never block gameplay.
+- Web/native audio guards remain intact.
+
+Also verify that all 15 uploaded MP3 files remain unchanged and that there are no missing or duplicate references.
+
+Do not replace the audio files and do not modify the sound design.
+
+Run the existing audio tests and the full test suite.
+
+PART 2 — CHANGE FOUND-WORD HIGHLIGHTING
+
+I want the found-word grid highlighting changed to match the visual style shown in the reference screenshot I provided.
+
+The current single pale-gold found-word treatment should be replaced with a soft pastel multi-color system.
+
+Desired appearance:
+- Each newly found word/path receives one pastel highlight color.
+- Different found words should use different pastel colors when possible.
+- Colors should be soft, warm, playful, and low-saturation.
+- The colors must remain light enough for the black letters to be clearly readable.
+- The highlight must cover every cell belonging to the found word.
+- The color assigned to a found word must remain stable after rendering/re-rendering.
+- Do not randomly change a word's color after it has already been found.
+- If there are more found words than available colors, cycle through the palette deterministically.
+- Avoid using the same color for adjacent found words when the palette allows it.
+
+Use a palette visually close to the reference screenshot, approximately:
+
+Pastel peach: #F8D7B5
+Pastel pink: #F2B8D0
+Pastel blue: #B8C9EE
+Pastel green: #D5E7B8
+Pastel teal: #B8DDD8
+Pastel purple: #D2C4EE
+Pastel mint: #B9E0D0
+Pastel yellow: #F3DFB0
+
+You may slightly adjust these values if necessary to make the result visually consistent with the existing game's warm cream/deep teal/gold theme, but keep the overall appearance very close to the reference.
+
+Important:
+- Found-word text/cells should remain readable.
+- Keep the green checkmarks in the word list.
+- Keep the struck-through found-word text.
+- Do not change the word-list layout.
+- Do not change active selection styling.
+- Do not change hint styling.
+- Do not change normal unselected cells.
+- Do not change gameplay logic, scoring, word detection, puzzle generation, sounds, animations, navigation, or layout.
+- Do not change the Home Page theme.
+- Do not change any dumpling artwork.
+- Do not change AdMob/UMP.
+- Do not change the launcher icon.
+- Do not change versionCode 3.
+
+The found-word color should be assigned based on the found-word/path identity or stable found-word index, not based on React render order.
+
+After making the change:
+1. Run TypeScript validation.
+2. Run the full existing test suite.
+3. Run Expo configuration validation.
+4. Verify that the sound audit passes.
+5. Verify that the found-word colors are deterministic and applied to all found cells.
+6. Show me exactly which files were changed and why.
+
+Do NOT start an EAS build.
+Do NOT commit or push yet. I want to inspect the result first.

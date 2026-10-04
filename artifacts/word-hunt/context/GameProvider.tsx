@@ -1,8 +1,10 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
-import { AppState, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import { AppState, Pressable, StyleSheet, Text, View } from 'react-native';
 import { homeColors } from '@/constants/homePalette';
 import { advanceOnboarding, awardDailyPuzzle, loadProgress, saveProgress, STARTING_COINS, type GameProgress } from '@/services/storage';
 import { playSound } from '@/services/audio';
+import { withGameStateLock } from '@/services/gameStateLock';
+import { purchaseTreasureChest, type TreasurePurchaseResult } from '@/services/treasureChest';
 
 type GameContextValue = {
   coins: number;
@@ -14,18 +16,10 @@ type GameContextValue = {
   completeLevel: (categoryId: string) => Promise<void>;
   completeOnboardingStep: (step: number) => Promise<boolean>;
   completeDailyPuzzle: (dateKey: string) => Promise<boolean>;
+  purchaseTreasureChest: (requestId: string) => Promise<TreasurePurchaseResult>;
 };
 
 const GameContext = createContext<GameContextValue | null>(null);
-
-async function withProgressLock<T>(operation: () => Promise<T>): Promise<T> {
-  // A provider's promise queue handles repeated taps. Browser tabs need a
-  // shared lock as well so their read/modify/write cycles cannot interleave.
-  if (Platform.OS === 'web' && typeof navigator !== 'undefined' && navigator.locks) {
-    return navigator.locks.request('word-hunt-progress-v2', operation);
-  }
-  return operation();
-}
 
 export function GameProvider({ children }: { children: React.ReactNode }) {
   const [coins, setCoins] = useState(STARTING_COINS);
@@ -74,8 +68,8 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     };
   }, [reload]);
 
-  const queueSave = useCallback(function enqueue<T>(save: () => Promise<T>): Promise<T> {
-    const next = writes.current.catch(() => {}).then(() => withProgressLock(save));
+  const queueSave = useCallback(function enqueue<T>(save: () => Promise<T>, lock = true): Promise<T> {
+    const next = writes.current.catch(() => {}).then(() => lock ? withGameStateLock(save) : save());
     writes.current = next.then(() => {});
     return next;
   }, []);
@@ -86,6 +80,11 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     completedDailyPuzzles,
     onboardingStep,
     hydrated,
+    purchaseTreasureChest: (requestId) => queueSave(async () => {
+      const result = await purchaseTreasureChest(requestId);
+      installProgress(result.progress);
+      return result;
+    }, false), // The purchase service owns the same global lock.
     awardCoins: (amount) => queueSave(async () => {
       const saved = await loadProgress();
       const next = { ...saved, coins: saved.coins + amount };

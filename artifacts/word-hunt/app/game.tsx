@@ -13,6 +13,7 @@ import { getDailyPuzzle } from '@/game/dailyPuzzle';
 import { isCategoryUnlocked } from '@/game/progression';
 import { completionBonus, formatTime, scoreFoundWord } from '@/game/scoring';
 import { homeColors } from '@/constants/homePalette';
+import { buildFoundHighlights } from '@/game/foundHighlights';
 import type { Cell, GameMode, Puzzle } from '@/game/types';
 import { useGame } from '@/context/GameProvider';
 import { rewardGateway } from '@/services/rewardGateway';
@@ -292,22 +293,17 @@ function GameSession({ params }: { params: GameParams }) {
 
   const selectedKeys = useMemo(() => new Set(selectedCells.map(cellKey)), [selectedCells]);
   const hintKeys = useMemo(() => new Set(hintCells.map(cellKey)), [hintCells]);
-  const foundCellColors = useMemo(() => {
-    const indices = new Map<string, number>();
-    Object.values(foundPaths).forEach((cells, index) => {
-      cells.forEach((cell) => {
-        if (!indices.has(cellKey(cell))) indices.set(cellKey(cell), index);
-      });
-    });
-    return indices;
-  }, [foundPaths]);
+  const foundCellColors = useMemo(
+    () => buildFoundHighlights(foundWords, foundPaths).cellColors,
+    [foundWords, foundPaths],
+  );
 
   const getCellStyle = (cell: Cell) => {
     const key = cellKey(cell);
-    const foundIndex = foundCellColors.get(key);
+    const foundColor = foundCellColors.get(key);
     if (selectedKeys.has(key)) return { backgroundColor: colors.primary, borderColor: colors.primary, borderRadius: 4 };
     if (hintKeys.has(key)) return { backgroundColor: colors.accent };
-    if (foundIndex !== undefined) return { backgroundColor: homeColors.goldSoft, borderColor: homeColors.gold };
+    if (foundColor !== undefined) return { backgroundColor: foundColor, borderColor: foundColor };
     return { backgroundColor: colors.card };
   };
 

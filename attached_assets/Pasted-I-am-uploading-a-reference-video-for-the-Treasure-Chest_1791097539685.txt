@@ -1,0 +1,109 @@
+I am uploading a reference video for the Treasure Chest opening animation.
+IMPORTANT: Do NOT treat this as a general visual reference or inspiration. Recreate the chest-opening animation as closely and exactly as technically possible from the video.
+The video contains a Kling watermark in one corner. Do not use, reproduce, display, or incorporate the watermark or anything else from the video besides the chest-opening animation itself. Use only the chest, its opening motion, lighting, glow, particles/effects, timing, and the accompanying sound effect.
+Exact desired behavior
+The video represents:
+CLOSED CHEST → PLAYER CLICKS CHEST → CHEST OPENS → LIGHT/EFFECTS → DUMPLING REVEALED INSIDE THE OPEN CHEST
+I specifically want the implementation to follow the video rather than creating your own interpretation.
+Chest interaction
+Remove the separate “Open Chest” button from the reward-opening interaction.
+The player should simply tap/click directly on the closed chest to open it.
+Flow:
+Closed chest → player taps chest → chest performs the exact opening animation from the video → chest remains open → reward appears inside the open chest.
+There should be no Open Chest button appearing underneath or beside the chest.
+Very important — chest must remain visible
+Unlike the previous implementation, DO NOT remove the chest after opening.
+After the chest opens:
+* Keep treasure-chest-open.png visible.
+* The chest stays in its open position.
+* The dumpling is revealed inside the open chest.
+* Do NOT replace the chest with the dumpling.
+* Do NOT put the dumpling floating above the chest.
+* Do NOT make the chest disappear.
+The final visual state should look like the dumpling has actually been revealed from inside the open treasure chest, matching the video.
+Match the video exactly
+Reproduce the video's:
+* chest opening movement
+* opening timing
+* shake/movement, if present
+* lid movement
+* light intensity
+* light color
+* glow
+* particles/sparkles
+* illumination around the chest
+* reward reveal timing
+* transitions
+* overall pacing
+* visual effects
+* sound effect
+Do not simplify the effects just because this is React Native. Recreate them with React Native animations, opacity, scale, translation, rotation, gradients/glows/particles or other appropriate techniques as closely as possible.
+The goal is for the in-game animation to feel like the same animation shown in the uploaded video, not merely a similar chest-opening animation.
+Sound — replace the existing reveal sound
+The sound in the uploaded video should become the exact chest-opening sound effect used for this interaction.
+Therefore:
+* Remove/disable the previously uploaded chest/dumpling reveal sound that was being used for this chest-opening sequence.
+* Do not layer the old reveal sound underneath the new sound.
+* Do not play both sounds.
+* Extract/use the chest-opening sound from the supplied video only if technically/licensing appropriate for this project; otherwise tell me before substituting anything.
+* Preserve the sound's timing relative to the chest animation as closely as possible.
+* Do not modify any of the other 15 existing game sound files.
+The important distinction is that the uploaded video's audio should drive the chest-opening moment rather than the old generic reveal sound.
+Reward reveal
+After the chest reaches the fully open state and the video's light/effects happen:
+* Reveal exactly one rewarded dumpling.
+* The dumpling should visually appear inside the open chest, following the video's reveal timing and positioning.
+* Keep the open chest visible behind/below it.
+* Then continue to the existing rarity/name/collection confirmation UI as appropriate.
+Do NOT change any underlying reward logic
+Keep all existing treasure-chest transaction logic exactly as it currently works:
+* 700-coin cost
+* exact deduction
+* insufficient-funds protection
+* recoverable transaction record
+* duplicate transaction protection
+* exactly one reward
+* Rare/Epic reward pool
+* 75% Rare / 25% Epic weighting
+* collection persistence
+* duplicate collection handling
+Only change the interaction and visual/audio presentation of the opening sequence.
+Level-complete chest
+The existing free level-complete reward chest should use the same chest-opening presentation where appropriate, but must remain free.
+It must not call the 700-coin purchase flow or deduct 700 coins.
+Assets
+Continue using the supplied:
+* treasure-chest.png
+* treasure-chest-closed.png
+* treasure-chest-open.png
+Do not alter the original chest artwork.
+Critical constraints
+Do not change:
+* background music
+* volume settings
+* pastel found-word highlighting
+* gameplay
+* scoring
+* dumpling collection
+* dumpling artwork
+* rarity logic
+* AdMob/UMP
+* app icon
+* existing game sounds other than replacing the chest-opening/reveal sound described above
+Do not add a new Open Chest button.
+Do not use the Kling watermark or any other unrelated element from the video.
+First inspect the uploaded video carefully and identify the exact chest-opening sequence, timing, effects, and audio. Then implement that sequence as closely as possible in the existing shared chest animation component.
+After implementation:
+1. Test tapping directly on the closed chest.
+2. Verify the chest opens without an Open Chest button.
+3. Verify the chest remains visible after opening.
+4. Verify the dumpling appears inside the open chest.
+5. Verify the lighting/effects match the video.
+6. Verify the new chest sound replaces the old chest reveal sound and is not layered with it.
+7. Verify paid chest still deducts exactly 700 coins once.
+8. Verify level-complete chest remains free.
+9. Run the relevant tests and TypeScript checks.
+Do not commit, push, or start an EAS build.
+Do not make any unrelated changes.
+
+

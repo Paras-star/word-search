@@ -1,8 +1,10 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { DUMPLINGS, DUMPLING_BY_ID, type Dumpling, type DumplingRarity } from '@/data/dumplings';
 import type { PuzzleCompletion } from '@/services/rewardGateway';
+import { DUMPLING_STORAGE_KEY, readSavedGameItem } from './storage';
+import { withGameStateLock } from './gameStateLock';
 
-const STORAGE_KEY = '@word-hunt/dumpling-rewards-v1';
+const STORAGE_KEY = DUMPLING_STORAGE_KEY;
 
 export type RewardCollectionState = 'earned' | 'collected';
 
@@ -13,9 +15,11 @@ export type DumplingReward = {
   earnedAt: string;
   collectionState: RewardCollectionState;
   puzzleId: string;
+  // Preserve the result of a paid purchase across lost-response retries.
+  treasureDuplicate?: boolean;
 };
 
-type RewardStore = {
+export type RewardStore = {
   rewards: DumplingReward[];
   ownedDumplingIds: string[];
   pendingRewardId: string | null;
@@ -67,8 +71,8 @@ function parseStore(value: string | null): RewardStore {
   }
 }
 
-async function loadStore(): Promise<RewardStore> {
-  return parseStore(await AsyncStorage.getItem(STORAGE_KEY));
+export async function loadRewardStore(): Promise<RewardStore> {
+  return parseStore(await readSavedGameItem(STORAGE_KEY));
 }
 
 async function saveStore(store: RewardStore): Promise<void> {
@@ -100,50 +104,54 @@ function createRewardId(puzzleId: string): string {
 }
 
 export async function generateAndPersistReward(completion: PuzzleCompletion): Promise<DumplingReward> {
-  const store = await loadStore();
-  const existingPending = store.pendingRewardId
-    ? store.rewards.find((reward) => reward.id === store.pendingRewardId && reward.collectionState === 'earned')
-    : undefined;
-  if (existingPending) return existingPending;
+  return withGameStateLock(async () => {
+    const store = await loadRewardStore();
+    const existingPending = store.pendingRewardId
+      ? store.rewards.find((reward) => reward.id === store.pendingRewardId && reward.collectionState === 'earned')
+      : undefined;
+    if (existingPending) return existingPending;
 
-  const dumpling = chooseDumpling(Math.random(), store.ownedDumplingIds);
-  const reward: DumplingReward = {
-    id: createRewardId(completion.puzzleId),
-    dumplingId: dumpling.id,
-    rarity: dumpling.rarity,
-    earnedAt: new Date().toISOString(),
-    collectionState: 'earned',
-    puzzleId: completion.puzzleId,
-  };
-  await saveStore({
-    ...store,
-    rewards: [...store.rewards, reward],
-    pendingRewardId: reward.id,
+    const dumpling = chooseDumpling(Math.random(), store.ownedDumplingIds);
+    const reward: DumplingReward = {
+      id: createRewardId(completion.puzzleId),
+      dumplingId: dumpling.id,
+      rarity: dumpling.rarity,
+      earnedAt: new Date().toISOString(),
+      collectionState: 'earned',
+      puzzleId: completion.puzzleId,
+    };
+    await saveStore({
+      ...store,
+      rewards: [...store.rewards, reward],
+      pendingRewardId: reward.id,
+    });
+    return reward;
   });
-  return reward;
 }
 
 export async function getPendingReward(): Promise<DumplingReward | null> {
-  const store = await loadStore();
+  const store = await loadRewardStore();
   if (!store.pendingRewardId) return null;
   return store.rewards.find((reward) => reward.id === store.pendingRewardId) ?? null;
 }
 
 export async function collectReward(rewardId: string): Promise<{ reward: DumplingReward; isDuplicate: boolean }> {
-  const store = await loadStore();
-  const reward = store.rewards.find((item) => item.id === rewardId);
-  if (!reward) throw new Error('Reward not found');
-  const isDuplicate = store.ownedDumplingIds.includes(reward.dumplingId);
-  const collectedReward: DumplingReward = { ...reward, collectionState: 'collected' };
-  await saveStore({
-    rewards: store.rewards.map((item) => item.id === rewardId ? collectedReward : item),
-    ownedDumplingIds: isDuplicate ? store.ownedDumplingIds : [...store.ownedDumplingIds, reward.dumplingId],
-    pendingRewardId: store.pendingRewardId === rewardId ? null : store.pendingRewardId,
+  return withGameStateLock(async () => {
+    const store = await loadRewardStore();
+    const reward = store.rewards.find((item) => item.id === rewardId);
+    if (!reward) throw new Error('Reward not found');
+    const isDuplicate = store.ownedDumplingIds.includes(reward.dumplingId);
+    const collectedReward: DumplingReward = { ...reward, collectionState: 'collected' };
+    await saveStore({
+      rewards: store.rewards.map((item) => item.id === rewardId ? collectedReward : item),
+      ownedDumplingIds: isDuplicate ? store.ownedDumplingIds : [...store.ownedDumplingIds, reward.dumplingId],
+      pendingRewardId: store.pendingRewardId === rewardId ? null : store.pendingRewardId,
+    });
+    return { reward: collectedReward, isDuplicate };
   });
-  return { reward: collectedReward, isDuplicate };
 }
 
 export async function getCollection(): Promise<{ ownedDumplingIds: string[]; rewards: DumplingReward[] }> {
-  const store = await loadStore();
+  const store = await loadRewardStore();
   return { ownedDumplingIds: store.ownedDumplingIds, rewards: store.rewards };
 }

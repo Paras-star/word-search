@@ -1,0 +1,91 @@
+I have uploaded a video named chest-opening.mp4. I want you to use this video as the exact animation and visual source, not merely as a loose reference.
+IMPORTANT — USE ONLY THE CHEST FROM THE VIDEO
+Analyze chest-opening.mp4 frame by frame and recreate the chest-opening animation as closely and exactly as possible in our game.
+The video contains a Kling watermark in one corner. Do NOT reproduce, display, or incorporate the Kling watermark or any other unrelated element from the video.
+Extract/recreate only the chest animation, lighting, glow, particles, effects, timing, movement, and opening behavior. Nothing else from the video should appear in the game.
+Do not use the entire video as a video player/background. Recreate the animation using our existing game assets and React Native animation/rendering so it works properly inside the game.
+EXACT CHEST SEQUENCE
+The desired sequence is:
+Closed chest → player clicks the chest → chest performs the same opening animation as the video → chest opens → chest remains visibly open → dumpling is revealed inside the open chest
+The chest must NOT disappear after opening.
+The final state should look like the dumpling is actually being revealed inside the open chest, with the open chest remaining visible underneath/around it exactly as demonstrated by the video.
+REMOVE THE CURRENT "OPEN CHEST" BUTTON
+There should be no separate "Open Chest" button during the reward reveal.
+The player should simply tap/click the chest itself to initiate the purchase/reveal sequence.
+Therefore:
+- Before purchase: show the closed chest.
+- Player taps the chest.
+- Perform the existing 700-coin confirmation/transaction behavior safely.
+- Once the purchase is confirmed, begin the chest-opening animation.
+- The chest itself is the interactive opening element.
+- Do not require another "Open Chest" button.
+- When the reward appears, there must not be an "Open Chest" button underneath it or anywhere competing with the reveal.
+Keep the existing transaction safety exactly as it is: one purchase, exactly 700 coins, one reward, no double taps, no negative balance, recoverable transaction, and collection persistence.
+SOUND — IMPORTANT
+I want the chest-opening sound effect to match the sound in chest-opening.mp4 exactly.
+Remove/stop using the previously uploaded chest/dumpling reveal sound that was being used for this chest-opening moment.
+Do not alter any of the other existing 15 game sound files.
+The sound from chest-opening.mp4 should be isolated/extracted and used only for this chest-opening animation, if technically possible and appropriate for our app's bundled audio.
+Do not use the video's other audio or any unrelated sound.
+Preserve the exact timing between the chest movement and its sound.
+LIGHTING AND EFFECTS
+Match the video as closely as possible, including:
+- chest movement
+- opening speed
+- anticipation
+- shake intensity
+- lid movement
+- glow/light
+- brightness changes
+- particles
+- sparkles
+- illumination inside the chest
+- timing of the light effects
+- timing of the reward reveal
+- easing and overall rhythm
+Do not simplify these effects just because the video is being used as a reference. Reproduce the visual behavior as closely as our React Native implementation allows.
+However, do not copy the Kling watermark or any unrelated content.
+DUMPLING REVEAL
+Once the chest reaches the same open state shown in the video:
+- Keep the chest open and visible.
+- Reveal the awarded dumpling inside the open chest.
+- Do not place the dumpling above the chest as a separate floating object.
+- Do not replace the chest with the dumpling.
+- The open chest remains part of the final reveal composition.
+- Apply the existing rarity/name presentation after the dumpling is revealed.
+The dumpling should visually feel like it is coming from / being revealed inside the chest, while preserving the exact visual character of the supplied dumpling artwork.
+DO NOT BREAK EXISTING FEATURES
+Do not change:
+- 700-coin purchase logic
+- transaction recovery
+- duplicate reward handling
+- Rare/Epic reward weighting
+- collection persistence
+- level-complete free reward logic
+- background music
+- volume settings
+- other 15 game sounds
+- pastel found-word highlighting
+- gameplay
+- AdMob/UMP
+- app icon
+- existing dumpling artwork
+The level-complete reward chest should continue to work as a free reward and should not gain the 700-coin purchase behavior.
+If the shared chest animation component is currently used by both paid and level-complete rewards, preserve the separation between their reward logic and only adapt the visual animation where appropriate.
+VALIDATION
+After implementing this:
+1. Verify that chest-opening.mp4 was actually inspected and used as the exact animation source.
+2. Verify that no Kling watermark appears anywhere in the game.
+3. Verify that the chest remains visible after opening.
+4. Verify that the dumpling appears inside the open chest.
+5. Verify that tapping the chest starts the opening interaction and there is no separate "Open Chest" button.
+6. Verify the extracted chest-opening audio is synchronized with the animation.
+7. Verify the old chest-opening/reveal sound is no longer used for this moment.
+8. Verify the other 15 MP3 files remain byte-for-byte unchanged.
+9. Verify 700 coins are deducted exactly once.
+10. Verify exactly one reward is granted and saved to Collection.
+11. Verify rapid repeated taps cannot trigger multiple purchases/rewards.
+12. Verify the level-complete chest remains free.
+13. Run the relevant tests and TypeScript checks.
+Do not commit, push, or start an EAS build.
+After implementation, show me the updated browser preview and briefly report exactly what changed.

@@ -1,0 +1,14 @@
+{
+  "source": "chest-opening_1791097630989.mp4",
+  "sourceSha256": "3788a1d439cf986d5529b1c12e0dda58ac379b5bebb82bb3ce681f1a9b29dde7",
+  "frameCount": 73,
+  "fps": 24,
+  "frameSize": 384,
+  "atlasGrid": 4,
+  "durationMs": 3042,
+  "dumplingRevealMs": 2458,
+  "watermarkExcludedFromY": 360,
+  "frontRimY": 203,
+  "decodedAudioSha256": "a075dd847d9a70c0502ca73ebad02a793673f8dea8f85e00456cf7ed1b63934e",
+  "audioReencoded": false
+}

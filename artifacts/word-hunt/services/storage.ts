@@ -7,6 +7,36 @@ const KEYS = {
   completed: '@word-hunt/completed-levels',
 } as const;
 export const STARTING_COINS = 50;
+export const PROGRESS_STORAGE_KEY = KEYS.progress;
+export const DUMPLING_STORAGE_KEY = '@word-hunt/dumpling-rewards-v1';
+export const TREASURE_TRANSACTION_KEY = '@word-hunt/treasure-transaction-v1';
+
+// One durable record commits both sides of a purchase. Until the projections
+// finish, every reader uses this record rather than partially updated keys.
+export type TreasureTransaction = { version: 1; progress: string; collection: string };
+
+export async function readTreasureTransaction(): Promise<TreasureTransaction | null> {
+  const raw = await AsyncStorage.getItem(TREASURE_TRANSACTION_KEY);
+  if (raw === null) return null;
+  const value = JSON.parse(raw) as Partial<TreasureTransaction> | null;
+  if (!value || value.version !== 1 || typeof value.progress !== 'string' || typeof value.collection !== 'string') {
+    throw new Error('Saved treasure transaction could not be read. Your data has not been reset.');
+  }
+  parseProgress(value.progress);
+  const collection = JSON.parse(value.collection);
+  if (!collection || !Array.isArray(collection.rewards) || !Array.isArray(collection.ownedDumplingIds)
+    || !collection.ownedDumplingIds.every((id: unknown) => typeof id === 'string')
+    || (collection.pendingRewardId !== null && typeof collection.pendingRewardId !== 'string')) {
+    throw new Error('Saved treasure collection could not be read. Your data has not been reset.');
+  }
+  return value as TreasureTransaction;
+}
+
+export async function readSavedGameItem(key: typeof PROGRESS_STORAGE_KEY | typeof DUMPLING_STORAGE_KEY): Promise<string | null> {
+  const transaction = await readTreasureTransaction();
+  if (transaction) return key === PROGRESS_STORAGE_KEY ? transaction.progress : transaction.collection;
+  return AsyncStorage.getItem(key);
+}
 
 export type GameProgress = {
   coins: number;
@@ -54,7 +84,7 @@ function parseProgress(raw: string): GameProgress {
 }
 
 export async function loadProgress(): Promise<GameProgress> {
-  const saved = await AsyncStorage.getItem(KEYS.progress);
+  const saved = await readSavedGameItem(PROGRESS_STORAGE_KEY);
   if (saved !== null) return parseProgress(saved);
 
   const [coins, completed] = await AsyncStorage.multiGet([KEYS.coins, KEYS.completed]);

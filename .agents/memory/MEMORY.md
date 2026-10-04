@@ -1,8 +1,12 @@
-- [Mystery Dumpling visual constraints](mystery-dumpling-visual-constraints.md) — preserve supplied artwork; the collection is now a rarity-ordered gallery, not a room map.
-- [TypeScript isolated-file checks](typescript-isolated-file-checks.md) — selected-file checks need the app compiler, explicit config bypass, and temporary relative imports.
+- [Mystery Dumpling visual constraints](mystery-dumpling-visual-constraints.md) — video-authoritative inside-chest reveals; immutable collectible art and rarity-ordered gallery.
+- [TypeScript check quirks](typescript-isolated-file-checks.md) — isolated compiler checks need explicit configuration; default-import mocks must survive test-runner interop differences.
 - [Android puzzle-grid confirmation](android-puzzle-grid-confirmation.md) — explicit-row grid and touch mapping were confirmed working across all levels on a physical Android phone.
 - [Expo Go progress persistence](expo-go-progress-persistence.md) — on-device testing retained progress after normal reopening and a QR re-scan; don't assume a scan resets it.
 - [Expo build port collision](expo-build-port-collision.md) — local production builds can conflict with the mockup preview server's Metro port; use an isolated port for smoke builds.
 - [Scoped workspace dependencies](scoped-workspace-dependencies.md) — package installer rejects workspace filter flags; scope artifact dependencies explicitly to avoid root pollution.
 - [Expo Doctor package age](expo-doctor-package-age.md) — SDK patch recommendations can precede the package firewall's maturity window; do not bypass it.
 - [Home theme preservation](home-theme-preservation.md) — theme changes on other screens must not alter the Home screen's existing shared-component colors.
+- [Uploaded audio preservation](audio-asset-preservation.md) — preserve the original effects and supplied music byte-for-byte; volume changes belong at playback level.
+- [Expo preview audio codecs](expo-preview-audio-codecs.md) — valid AAC timed out in preview; an exact-sample float WAV enabled browser playback without altering native audio.
+- [Treasure transaction safety](treasure-transaction-safety.md) — recoverable local commits protect paid rewards; shared chest visuals must not charge the free puzzle flow.
+- [Native chest performance](chest-native-performance.md) — real Android performance is authoritative; retain bounded decoded preparation without speeding up the source sequence.

@@ -1,9 +1,7 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Animated,
-  Easing,
-  Image,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -17,7 +15,8 @@ import { PrimaryButton, SoftButton } from '@/components/GameUI';
 import { DUMPLING_BY_ID, RARITY_PRESENTATION } from '@/data/dumplings';
 import { formatTime } from '@/game/scoring';
 import { collectReward, getPendingReward, type DumplingReward } from '@/services/dumplingRewards';
-import { playDumplingSound, stopDumplingSounds } from '@/services/dumplingAudio';
+import { ChestReveal } from '@/components/ChestReveal';
+import { stopDumplingSounds } from '@/services/dumplingAudio';
 import { playSound } from '@/services/audio';
 import { homeColors } from '@/constants/homePalette';
 
@@ -38,15 +37,7 @@ export default function RewardScreen() {
   const [loading, setLoading] = useState(true);
   const [isDuplicate, setIsDuplicate] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const shake = useRef(new Animated.Value(0)).current;
-  const basketScale = useRef(new Animated.Value(1)).current;
-  const basketOpacity = useRef(new Animated.Value(1)).current;
   const glow = useRef(new Animated.Value(0.2)).current;
-  const revealScale = useRef(new Animated.Value(0.2)).current;
-  const revealOpacity = useRef(new Animated.Value(0)).current;
-  const openingSoundPlayed = useRef(false);
-  const revealSoundPlayed = useRef(false);
-  const raritySoundPlayed = useRef(false);
   const mounted = useRef(true);
 
   useEffect(() => {
@@ -77,49 +68,8 @@ export default function RewardScreen() {
   const startReveal = () => {
     if (!reward || stage !== 'basket') return;
     setStage('opening');
-    if (!openingSoundPlayed.current) {
-      openingSoundPlayed.current = true;
-      void playDumplingSound('opening');
-    }
-    const revealAnimation = Animated.parallel([
-      Animated.timing(basketScale, { toValue: 0.78, duration: 300, useNativeDriver: true }),
-      Animated.timing(basketOpacity, { toValue: 0, duration: 300, useNativeDriver: true }),
-      Animated.spring(revealScale, { toValue: 1, speed: 10, bounciness: 12, useNativeDriver: true }),
-      Animated.timing(revealOpacity, { toValue: 1, duration: 360, useNativeDriver: true }),
-    ]);
-    const startRevealAnimation = revealAnimation.start.bind(revealAnimation);
-    revealAnimation.start = (callback) => {
-      if (mounted.current && !revealSoundPlayed.current) {
-        revealSoundPlayed.current = true;
-        void playDumplingSound('reveal');
-      }
-      startRevealAnimation(callback);
-    };
-    Animated.sequence([
-      Animated.parallel([
-        Animated.sequence([
-          Animated.timing(shake, { toValue: 1, duration: 85, useNativeDriver: true }),
-          Animated.timing(shake, { toValue: -1, duration: 85, useNativeDriver: true }),
-          Animated.timing(shake, { toValue: 1, duration: 70, useNativeDriver: true }),
-          Animated.timing(shake, { toValue: -1, duration: 70, useNativeDriver: true }),
-          Animated.timing(shake, { toValue: 0, duration: 90, useNativeDriver: true }),
-        ]),
-        Animated.timing(glow, { toValue: 0.75, duration: 400, useNativeDriver: true }),
-      ]),
-      Animated.parallel([
-        Animated.timing(basketScale, { toValue: 1.18, duration: 260, easing: Easing.out(Easing.back(1.5)), useNativeDriver: true }),
-        Animated.timing(glow, { toValue: 1, duration: 260, useNativeDriver: true }),
-      ]),
-      revealAnimation,
-    ]).start(() => {
-      if (!mounted.current) return;
-      setStage('revealed');
-      if (dumpling && !raritySoundPlayed.current) {
-        raritySoundPlayed.current = true;
-        void playDumplingSound('rarityReveal', dumpling.rarity);
-      }
-    });
   };
+  const onRevealed = useCallback(() => { if (mounted.current) setStage('revealed'); }, []);
 
   const handleCollect = async () => {
     if (!reward || stage !== 'revealed') return;
@@ -188,34 +138,7 @@ export default function RewardScreen() {
             />
           ))}
 
-          {!isRevealed && (
-            <Animated.View
-              style={[
-                styles.basket,
-                {
-                  opacity: basketOpacity,
-                  transform: [
-                    { translateX: shake.interpolate({ inputRange: [-1, 0, 1], outputRange: [-9, 0, 9] }) },
-                    { rotate: shake.interpolate({ inputRange: [-1, 0, 1], outputRange: ['-3deg', '0deg', '3deg'] }) },
-                    { scale: basketScale },
-                  ],
-                },
-              ]}
-            >
-              <View style={styles.basketLid}><View style={styles.basketHandle} /></View>
-              <View style={styles.basketBody}>
-                {[0, 1, 2, 3].map((line) => <View key={line} style={[styles.basketStripe, { top: 22 + line * 25 }]} />)}
-                <View style={styles.mysterySeal}><Feather name="help-circle" size={34} color={homeColors.goldSoft} /></View>
-              </View>
-            </Animated.View>
-          )}
-
-          <Animated.View
-            pointerEvents={isRevealed ? 'auto' : 'none'}
-            style={[styles.reveal, { opacity: revealOpacity, transform: [{ scale: revealScale }] }]}
-          >
-            <Image source={dumpling.asset} style={styles.dumplingImage} resizeMode="contain" />
-          </Animated.View>
+          <ChestReveal opening={stage !== 'basket'} dumpling={dumpling} onRevealed={onRevealed} onPress={startReveal} disabled={stage !== 'basket'} testID="reward-chest-tap" accessibilityLabel="Tap the chest to reveal your reward" />
         </View>
 
         <View style={styles.copyBlock}>
@@ -225,9 +148,9 @@ export default function RewardScreen() {
           <Text style={styles.title}>{isRevealed ? dumpling.name : 'A surprise is waiting'}</Text>
           <Text style={styles.copy}>
             {stage === 'basket'
-              ? 'Your reward was generated and safely saved. Tap below when you are ready.'
+              ? 'Tap the chest to reveal your reward'
               : stage === 'opening'
-                ? 'The basket is opening…'
+                ? 'The chest is opening…'
                 : stage === 'collected'
                   ? isDuplicate ? 'A duplicate reward was recorded. Your original remains safe in the room.' : 'This dumpling now lives in your Collection Room.'
                   : 'Collect it to add it permanently to your room.'}
@@ -238,7 +161,6 @@ export default function RewardScreen() {
         {error && <Text style={styles.error}>{error}</Text>}
 
         <View style={styles.actions}>
-          {stage === 'basket' && <PrimaryButton onPress={startReveal} suppressClickSound style={[styles.actionButton, { backgroundColor: homeColors.teal }]} testID="reward-open">OPEN MYSTERY BASKET</PrimaryButton>}
           {stage === 'opening' && <View style={styles.openingPill}><ActivityIndicator color={homeColors.teal} /><Text style={styles.openingText}>A little magic is happening</Text></View>}
           {stage === 'revealed' && <PrimaryButton onPress={handleCollect} suppressClickSound style={[styles.actionButton, { backgroundColor: homeColors.teal }]} testID="reward-collect">COLLECT {dumpling.name.toUpperCase()}</PrimaryButton>}
           {stage === 'collected' && <>
@@ -265,7 +187,7 @@ const styles = StyleSheet.create({
   savedPill: { flexDirection: 'row', gap: 4, alignItems: 'center', backgroundColor: homeColors.goldSoft, paddingHorizontal: 8, paddingVertical: 5, borderRadius: 10 },
   savedText: { color: homeColors.teal, fontFamily: 'Inter_700Bold', fontSize: 9, letterSpacing: 0.8 },
   content: { alignItems: 'center', paddingBottom: 24 },
-  rewardStage: { width: '100%', aspectRatio: 1.06, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
+  rewardStage: { width: '100%', aspectRatio: 1, maxWidth: 380, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
   starPattern: { position: 'absolute', top: 0, right: 0, bottom: 0, left: 0 },
   glow: { position: 'absolute', width: '62%', aspectRatio: 1, borderRadius: 999 },
   particle: { position: 'absolute', width: 7, height: 7, borderRadius: 4, shadowColor: homeColors.gold, shadowOpacity: 0.9, shadowRadius: 5 },
