@@ -16,11 +16,13 @@ import * as SplashScreen from 'expo-splash-screen';
 import { GameProvider } from '@/context/GameProvider';
 import { prepareAds } from '@/services/ads';
 import { AppState, Platform } from 'react-native';
+import { Image as NativeImage } from 'react-native';
+import { Asset } from 'expo-asset';
 import { disposeAudio, initializeAudio, resumeBackgroundMusic, setAudioForeground, startBackgroundMusic } from '@/services/audio';
 import { flushAudioSettings, initializeAudioSettings } from '@/services/audioSettings';
 import { stopDumplingSounds } from '@/services/dumplingAudio';
-import { prepareChestAssets } from '@/services/chestPreparation';
-import { prepareChestAudio } from '@/services/audio';
+import { prepareClosedChest } from '@/services/chestPreparation';
+import { CHEST_CLOSED } from '@/components/chestAnimationData';
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
@@ -56,20 +58,19 @@ export default function RootLayout() {
 
   useEffect(() => {
     let mounted = true;
-    const chestAssets = Platform.OS === 'web' ? Promise.resolve() : prepareChestAssets();
-    // Attach the handler immediately; slow audio settings must not leave an
-    // image preparation rejection unhandled.
-    void chestAssets.catch(() => {});
+    // Warm only the independent first-frame image while Home is being loaded.
+    // The animation sheets, collectibles and chest audio are NOT splash gates.
+    const closedChest = Platform.OS === 'web'
+      ? NativeImage.prefetch(Asset.fromModule(CHEST_CLOSED).uri)
+      : prepareClosedChest();
+    void closedChest.catch(error => {
+      console.warn('[Word Hunt chest] Closed image preparation failed; chest retry is available.', error);
+    }).finally(() => { if (mounted) setChestPrepared(true); });
     setAudioForeground(AppState.currentState !== 'background' && AppState.currentState !== 'inactive');
     void initializeAudioSettings().then(() => {
       if (!mounted) return;
       initializeAudio();
       void startBackgroundMusic();
-      if (Platform.OS !== 'web') {
-        void Promise.all([chestAssets, prepareChestAudio()]).catch(error => {
-          console.warn('[Word Hunt chest] Startup preparation failed; chest retry is available.', error);
-        }).finally(() => { if (mounted) setChestPrepared(true); });
-      }
     });
     const subscription = AppState.addEventListener('change', (state) => {
       setAudioForeground(state === 'active');

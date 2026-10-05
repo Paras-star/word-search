@@ -29,31 +29,43 @@ test('decoded native cache is single-flight and bounded; re-entry does not decod
       decoded.push({ source, options }); return { source, bitmap: true };
     } } };
     if (name === '@/data/dumplings') return { DUMPLINGS: dumplings };
-    if (name === '@/components/chestAnimationData') return { CHEST_ATLASES: [0, 1, 2, 3, 4], CHEST_FRONT: 5 };
+    if (name === '@/components/chestAnimationData') return { CHEST_ATLASES: [0, 1, 2, 3, 4], CHEST_FRONT: 5, CHEST_CLOSED: 6 };
     throw Error(name);
   });
   const first = cache.prepareChestAssets();
   assert.equal(cache.prepareChestAssets(), first);
   const refs = await first;
-  assert.equal(decoded.length, 36);
+  assert.equal(decoded.length, 37);
+  assert.equal(decoded[0].source, 6, 'small closed frame is decoded before any opening resources');
   assert.equal(refs.atlases.length, 5);
   assert.equal(refs.dumplings.size, 30);
-  assert.ok(decoded.slice(6).every(x => x.options.maxWidth === 384 && x.options.maxHeight === 384));
+  assert.ok(decoded.slice(7).every(x => x.options.maxWidth === 384 && x.options.maxHeight === 384));
   for (let i = 0; i < 25; i++) assert.equal(await cache.prepareChestAssets(), refs);
-  assert.equal(decoded.length, 36);
+  assert.equal(decoded.length, 37);
   assert.equal(cache.getPreparedChest(), refs);
+  assert.equal((await cache.prepareClosedChest()).source, 6);
+  assert.equal(cache.getPreparedClosedChest().source, 6);
+  assert.equal(decoded.length, 37);
 });
 
-function nativeHarness({ preparationFails = false } = {}) {
+function nativeHarness({ preparationFails = false, cold = false, displayClosed = true } = {}) {
   let index = 0, dirty = false, tree, effects = [], renders = 0, opening = false, now = 0;
   let callbacks = 0, plays = 0, taps = 0, failure = preparationFails;
   const hooks = [], shared = [], listeners = new Set(), timers = new Map(), jsQueue = [];
+  const idleQueue = new Map(), loadedAtlases = new Set();
+  let assetPreparations = 0, audioPreparations = 0;
+  let nextIdle = 0, resolveAssets;
   const cached = { atlases: Array.from({ length: 5 }, (_, i) => ({ bitmap: i })), front: { bitmap: 'front' },
     dumplings: new Map([['d', { bitmap: 'dumpling' }]]) };
+  const closed = { bitmap: 'closed' };
+  const assetPromise = cold ? new Promise(resolve => { resolveAssets = resolve; }) : Promise.resolve(cached);
   const react = {
     useRef: value => { const n = index++; return hooks[n] ||= { current: value }; },
     useState: initial => { const n = index++; if (!hooks[n]) hooks[n] = { value: typeof initial === 'function' ? initial() : initial };
-      return [hooks[n].value, value => { hooks[n].value = value; dirty = true; }]; },
+      return [hooks[n].value, value => {
+        hooks[n].value = typeof value === 'function' ? value(hooks[n].value) : value;
+        dirty = true;
+      }]; },
     useCallback: (fn, deps) => { const n = index++; if (!hooks[n] || deps.some((d, i) => d !== hooks[n].deps[i])) hooks[n] = { fn, deps }; return hooks[n].fn; },
     useEffect: (fn, deps) => { const n = index++; const old = hooks[n];
       if (!old || deps.some((d, i) => d !== old.deps[i])) effects.push(() => { old?.cleanup?.(); hooks[n] = { deps, cleanup: fn() }; }); },
@@ -98,22 +110,30 @@ function nativeHarness({ preparationFails = false } = {}) {
     if (name === 'expo-image') return { Image: 'PreparedImage' };
     if (name === 'react-native-reanimated') return reanimated;
     if (name === '@/services/chestPreparation') return {
-      getPreparedChest: () => cached, prepareChestAssets: () => failure ? Promise.reject(Error('Decode failed')) : Promise.resolve(cached),
+      getPreparedChest: () => cold ? null : cached, getPreparedClosedChest: () => closed,
+      prepareChestAssets: () => { assetPreparations++; return failure ? Promise.reject(Error('Decode failed')) : assetPromise; },
     };
+    if (name === '@/services/chestEntryScheduling') return { afterChestDisplay: work => {
+      const id = ++nextIdle; idleQueue.set(id, work);
+      return () => idleQueue.delete(id);
+    } };
     if (name === '@/services/audio') return {
-      prepareChestAudio: async () => {}, playPreparedChestSound: () => { plays++; }, stopSounds: () => {},
+      prepareChestAudio: async () => { audioPreparations++; }, playPreparedChestSound: () => { plays++; }, stopSounds: () => {},
     };
     if (name === '@/services/dumplingAudio') return { playDumplingSound: () => Promise.resolve() };
     if (name === './ChestFrameRenderer.native') return renderer;
-    if (name === './chestAnimationData') return { CHEST_DURATION_MS: 3042, DUMPLING_REVEAL_MS: 2458 };
+    if (name === './chestAnimationData') return { CHEST_DURATION_MS: 3042, DUMPLING_REVEAL_MS: 2458, CHEST_CLOSED: 6 };
     throw Error(name);
   }, {
     setTimeout: (fn, ms) => { const id = timers.size + 1; timers.set(id, { fn, at: now + ms }); return id; },
     clearTimeout: id => timers.delete(id),
+    requestIdleCallback: fn => { const id = ++nextIdle; idleQueue.set(id, fn); return id; },
+    cancelIdleCallback: id => idleQueue.delete(id),
   });
   const h = {
     get tree() { return tree; }, get renders() { return renders; }, get plays() { return plays; },
     get callbacks() { return callbacks; }, get taps() { return taps; }, cached,
+    get assetPreparations() { return assetPreparations; }, get audioPreparations() { return audioPreparations; },
     render(next = opening) {
       opening = next; index = 0; dirty = false; renders++;
       tree = component.ChestReveal({ opening, dumpling: { id: 'd', rarity: 'Rare' }, testID: 'tap',
@@ -121,9 +141,34 @@ function nativeHarness({ preparationFails = false } = {}) {
       const batch = effects; effects = []; batch.forEach(fn => fn());
       return tree;
     },
-    async flushJS() {
+    async flushJS({ idle = true, paint = true } = {}) {
       jsQueue.splice(0).forEach(fn => fn());
-      for (let i = 0; i < 12; i++) { await Promise.resolve(); if (dirty) h.render(); }
+      for (let i = 0; i < 24; i++) {
+        await Promise.resolve();
+        if (idle) h.idleTurn();
+        if (dirty) h.render();
+        if (paint) h.loadAtlases();
+      }
+    },
+    displayClosed() { find(tree, 'chest-closed-frame').props.children.props.onDisplay(); },
+    resolvePreparation() { resolveAssets?.(cached); },
+    idleTurn() {
+      const batch = [...idleQueue.values()]; idleQueue.clear(); batch.forEach(fn => fn());
+    },
+    get pendingIdle() { return idleQueue.size; },
+    get rendererCount() {
+      const sprite = find(tree, 'chest-reveal-slot').props.children[0];
+      return sprite ? sprite.props.children[0].props.atlases.length : 0;
+    },
+    loadAtlases() {
+      const sprite = find(tree, 'chest-reveal-slot').props.children[0];
+      if (!sprite) return;
+      const native = sprite.props.children[0];
+      const rendered = native.type(native.props);
+      for (const atlas of rendered.props.children) if (!loadedAtlases.has(atlas.props.index)) {
+        loadedAtlases.add(atlas.props.index);
+        atlas.type(atlas.props).props.children.props.onLoad();
+      }
     },
     advanceUI(ms) {
       now += ms;
@@ -135,24 +180,27 @@ function nativeHarness({ preparationFails = false } = {}) {
       }
     },
     atlasStyles() {
-      const sprite = find(tree, 'chest-reveal-slot').props.children.props.children[0];
+      const sprite = find(tree, 'chest-reveal-slot').props.children[0].props.children[0];
       const rendered = sprite.type(sprite.props);
       return rendered.props.children.map(atlas => atlas.type(atlas.props).props.style.at(-1).read());
     },
     emit(state) { for (const fn of listeners) fn(state); },
-    retry() { failure = false; find(tree, 'chest-retry').props.onPress(); },
+    retry() { failure = false; loadedAtlases.clear(); find(tree, 'chest-retry').props.onPress(); },
     unmount() { hooks.forEach(hook => hook?.cleanup?.()); },
   };
   h.render();
   find(tree, 'tap').props.onLayout({ nativeEvent: { layout: { width: 324 } } });
+  if (displayClosed) h.displayClosed();
   return h;
 }
 
 test('Android keeps reward and rim mounted before opening; clock/play start without awaiting anything and frames advance with JS blocked', async () => {
   const h = nativeHarness();
-  assert.ok(find(h.tree, 'chest-revealed-artwork'), 'artwork exists even on the closed chest');
-  assert.equal(find(h.tree, 'chest-revealed-artwork').props.children.props.source, h.cached.dumplings.get('d'));
+  assert.ok(find(h.tree, 'chest-closed-frame'), 'small closed chest exists on the first render');
+  assert.equal(find(h.tree, 'chest-revealed-artwork'), null, 'large renderer is not mounted in the entry commit');
   await h.flushJS();
+  assert.ok(find(h.tree, 'chest-revealed-artwork'), 'artwork is mounted and ready before opening');
+  assert.equal(find(h.tree, 'chest-revealed-artwork').props.children.props.source, h.cached.dumplings.get('d'));
   assert.equal(find(h.tree, 'tap').props.disabled, false);
   h.render(true);
   assert.equal(h.plays, 1, 'sound starts in the opening commit without microtask/seek');
@@ -174,6 +222,80 @@ test('Android keeps reward and rim mounted before opening; clock/play start with
   for (let i = 0; i < 25; i++) h.render(true);
   assert.equal(h.plays, 1);
   assert.equal(h.callbacks, 1);
+  h.unmount();
+});
+
+test('cold native entry shows the closed chest even while full preparation is unresolved', async () => {
+  const h = nativeHarness({ cold: true });
+  assert.ok(find(h.tree, 'chest-closed-frame'));
+  assert.equal(h.rendererCount, 0);
+  await h.flushJS();
+  assert.equal(h.rendererCount, 0, 'opening assets cannot block or replace the closed visual');
+  assert.equal(find(h.tree, 'tap').props.disabled, true);
+  assert.equal(h.plays, 0);
+  h.resolvePreparation();
+  await h.flushJS();
+  assert.equal(h.rendererCount, 5);
+  assert.equal(find(h.tree, 'tap').props.disabled, false);
+  h.unmount();
+});
+
+test('native renderer mounts incrementally only after closed-frame display, layout and idle time', async () => {
+  const h = nativeHarness({ displayClosed: false });
+  await h.flushJS();
+  assert.equal(h.rendererCount, 0, 'no animation images before the closed chest is displayed');
+  assert.equal(h.assetPreparations, 0, 'no bitmap preparation before static-chest display');
+  assert.equal(h.audioPreparations, 0, 'audio readiness cannot gate the first chest visual');
+  h.displayClosed();
+  await h.flushJS({ idle: false, paint: false });
+  assert.equal(h.rendererCount, 0, 'idle work does not run in the initial visual commit');
+  assert.equal(h.pendingIdle, 1);
+  h.idleTurn();
+  await h.flushJS({ idle: false, paint: false });
+  assert.equal(h.assetPreparations, 1);
+  assert.equal(h.audioPreparations, 1);
+  for (let count = 1; count <= 5; count++) {
+    h.idleTurn();
+    await h.flushJS({ idle: false, paint: false });
+    assert.equal(h.rendererCount, count);
+    assert.equal(find(h.tree, 'chest-closed-frame').props.style.at(-1).read().opacity, 1);
+    assert.equal(find(h.tree, 'tap').props.disabled, true, 'tap waits for native image load confirmation');
+    h.loadAtlases();
+    await h.flushJS({ idle: false, paint: false });
+  }
+  assert.equal(find(h.tree, 'tap').props.disabled, false);
+  h.render(true);
+  assert.equal(h.plays, 1);
+  h.advanceUI(1);
+  assert.equal(find(h.tree, 'chest-closed-frame').props.style.at(-1).read().opacity, 0,
+    'the cover is removed by the native clock, without a React render');
+  h.unmount();
+});
+
+test('leaving before idle renderer preparation cancels its scheduled mount', async () => {
+  const h = nativeHarness();
+  await h.flushJS({ idle: false, paint: false });
+  assert.equal(h.pendingIdle, 1);
+  h.unmount();
+  assert.equal(h.pendingIdle, 0);
+  assert.equal(h.assetPreparations, 0);
+  assert.equal(h.plays, 0);
+});
+
+test('closed-frame display failures remain explicit and retry can recover the native view', async () => {
+  const h = nativeHarness();
+  await h.flushJS();
+  find(h.tree, 'chest-closed-frame').props.children.props.onError();
+  await h.flushJS();
+  assert.ok(find(h.tree, 'chest-retry'));
+  assert.equal(find(h.tree, 'tap').props.disabled, true);
+  h.retry();
+  await h.flushJS();
+  assert.equal(h.rendererCount, 0, 'retry waits for the remounted closed image to display');
+  h.displayClosed();
+  await h.flushJS();
+  assert.equal(find(h.tree, 'tap').props.disabled, false);
+  assert.equal(h.plays, 0);
   h.unmount();
 });
 

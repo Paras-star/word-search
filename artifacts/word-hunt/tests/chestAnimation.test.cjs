@@ -16,10 +16,14 @@ function sprite(tree) {
   return [tree.props?.children].flat().map(sprite).find(Boolean) ?? null;
 }
 
-async function harness({ decode = true, soundStalls = false, assetFails = false } = {}) {
+async function harness({ decode = true, soundStalls = false, assetFails = false, assetStalls = false, displayClosed = true } = {}) {
   let now = 0, tick = 0, index = 0, hooks = [], effects = [], dirty = false;
   let opening = false, callbackCount = 0, taps = 0, tree, resolveSound;
   const timers = new Map(), calls = [], appListeners = new Set();
+  let assetLoads = 0, resolveAssets;
+  const stalledAssets = new Promise(resolve => { resolveAssets = resolve; });
+  const idleQueue = new Map();
+  let idleId = 0;
   const schedule = (cb, duration) => {
     const id = ++tick; timers.set(id, { at: now + duration, cb }); return id;
   };
@@ -31,7 +35,10 @@ async function harness({ decode = true, soundStalls = false, assetFails = false 
     useRef: initial => { const slot = index++; return hooks[slot] ??= { current: initial }; },
     useState: initial => {
       const slot = index++, state = hooks[slot] ??= { value: initial };
-      return [state.value, value => { if (state.value !== value) { state.value = value; dirty = true; } }];
+      return [state.value, value => {
+        const next = typeof value === 'function' ? value(state.value) : value;
+        if (state.value !== next) { state.value = next; dirty = true; }
+      }];
     },
     useCallback: (callback, deps) => {
       const slot = index++, old = hooks[slot];
@@ -66,13 +73,19 @@ async function harness({ decode = true, soundStalls = false, assetFails = false 
     if (name === 'react/jsx-runtime') return { jsx: (type, props) => ({ type, props }), jsxs: (type, props) => ({ type, props }) };
     if (name === 'react-native') return native;
     if (name === 'expo-asset') return { Asset: { loadAsync: async sources => {
+      assetLoads++;
       assert.equal(sources.length, 6);
       if (assetFails) throw Error('Asset unavailable');
+      if (assetStalls) await stalledAssets;
       return sources;
     } } };
+    if (name === '@/services/chestEntryScheduling') return { afterChestDisplay: work => {
+      const id = ++idleId; idleQueue.set(id, work);
+      return () => idleQueue.delete(id);
+    } };
     if (name === './ChestFrameRenderer') return { ChestFrameRenderer: 'Sprite' };
     if (name === './chestAnimationData') return {
-      CHEST_ATLASES: [0, 1, 2, 3, 4], CHEST_FRONT: 'front.png',
+      CHEST_ATLASES: [0, 1, 2, 3, 4], CHEST_FRONT: 'front.png', CHEST_CLOSED: 'closed.png',
       CHEST_DURATION_MS: 3042, CHEST_FPS: 24, CHEST_FRAME_COUNT: 73, DUMPLING_REVEAL_MS: 2458,
     };
     if (name === '@/services/audio') return {
@@ -95,14 +108,22 @@ async function harness({ decode = true, soundStalls = false, assetFails = false 
     get tree() { return tree; },
     get callbackCount() { return callbackCount; },
     get taps() { return taps; },
+    get assetLoads() { return assetLoads; },
+    get pendingIdle() { return idleQueue.size; },
+    displayClosed() { find(tree, 'chest-closed-frame').props.onLoad(); },
+    resolveAssets() { resolveAssets(); },
     render(next = opening) {
       opening = next; dirty = false; index = 0;
       tree = m.exports.ChestReveal({ opening, dumpling, onRevealed, onPress, testID: 'test-chest-tap' });
       const pending = effects; effects = []; pending.forEach(run => run());
       return tree;
     },
-    async flush() {
-      for (let i = 0; i < 12; i++) { await Promise.resolve(); if (dirty) h.render(); }
+    async flush({ idle = true } = {}) {
+      for (let i = 0; i < 12; i++) {
+        await Promise.resolve();
+        if (idle) { const batch = [...idleQueue.values()]; idleQueue.clear(); batch.forEach(work => work()); }
+        if (dirty) h.render();
+      }
     },
     decode() { sprite(tree)?.props.onReady(); find(tree, 'chest-front-rim')?.props.onLoad(); },
     advance(duration) {
@@ -120,10 +141,44 @@ async function harness({ decode = true, soundStalls = false, assetFails = false 
     retryAssets: () => { assetFails = false; find(tree, 'chest-retry').props.onPress(); },
     unmount: () => hooks.forEach(hook => hook?.cleanup?.()),
   };
-  h.render(false); await h.flush();
+  h.render(false);
+  if (displayClosed) h.displayClosed();
+  await h.flush();
   if (decode) { h.decode(); await h.flush(); }
   return h;
 }
+
+test('fallback first render includes the exact static chest and does not start animation loading before display', async () => {
+  const h = await harness({ displayClosed: false, decode: false });
+  assert.equal(find(h.tree, 'chest-closed-frame').props.source, 'closed.png');
+  assert.equal(h.assetLoads, 0);
+  assert.equal(sprite(h.tree), null);
+  assert.doesNotMatch(JSON.stringify(h.tree), /Loading chest/);
+  h.displayClosed();
+  await h.flush({ idle: false });
+  assert.equal(h.assetLoads, 0, 'asset loading yields the initial chest paint');
+  h.unmount();
+  assert.equal(h.pendingIdle, 0, 'rapid exit cancels queued initialization');
+});
+
+test('five seconds of unresolved animation assets cannot hide the already-visible static chest', async () => {
+  const h = await harness({ assetStalls: true, decode: false });
+  assert.equal(h.assetLoads, 1);
+  assert.equal(sprite(h.tree), null);
+  h.advance(5000); await h.flush();
+  const closed = find(h.tree, 'chest-closed-frame');
+  assert.equal(closed.props.source, 'closed.png');
+  assert.equal(closed.props.style.at(-1).opacity, 1);
+  assert.equal(find(h.tree, 'test-chest-tap').props.disabled, true);
+  assert.doesNotMatch(JSON.stringify(h.tree), /Loading chest/);
+  h.resolveAssets(); await h.flush(); h.decode(); await h.flush();
+  assert.equal(find(h.tree, 'test-chest-tap').props.disabled, false);
+  h.render(true); await h.flush(); h.advance(3042);
+  assert.equal(sprite(h.tree).props.frame, 72);
+  assert.equal(find(h.tree, 'chest-closed-frame').props.style.at(-1).opacity, 0);
+  assert.equal(h.callbackCount, 1);
+  h.unmount();
+});
 
 test('closed frame is interactive only after every atlas and front rim decode; idle is silent', async () => {
   const h = await harness({ decode: false });

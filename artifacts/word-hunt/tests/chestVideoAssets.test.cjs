@@ -65,6 +65,17 @@ test('all 73 source frames are present with a transparent watermark-exclusion ba
   }
 });
 
+test('the small idle chest is pixel-identical to frame zero of the supplied animation', () => {
+  const atlas = png(path.join(dir, 'chest-atlas-0.png'));
+  const closed = png(path.join(dir, 'chest-closed-frame.png'));
+  assert.equal(closed.width, 384);
+  assert.equal(closed.height, 384);
+  for (let y = 0; y < 384; y++) {
+    assert.deepEqual(closed.pixels.subarray(y * 384 * 4, (y + 1) * 384 * 4),
+      atlas.pixels.subarray(y * 1536 * 4, y * 1536 * 4 + 384 * 4));
+  }
+});
+
 test('front rim is a separate exact-art occlusion layer, with no lid or watermark', () => {
   const front = png(path.join(dir, 'chest-front.png'));
   assert.equal(front.width, 384);

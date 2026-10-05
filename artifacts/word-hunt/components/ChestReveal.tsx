@@ -5,8 +5,9 @@ import { type Dumpling } from '@/data/dumplings';
 import { playDumplingSound } from '@/services/dumplingAudio';
 import { startSound, stopSounds } from '@/services/audio';
 import { ChestFrameRenderer } from './ChestFrameRenderer';
+import { afterChestDisplay } from '@/services/chestEntryScheduling';
 import {
-  CHEST_ATLASES, CHEST_DURATION_MS, CHEST_FPS, CHEST_FRAME_COUNT, CHEST_FRONT, DUMPLING_REVEAL_MS,
+  CHEST_ATLASES, CHEST_CLOSED, CHEST_DURATION_MS, CHEST_FPS, CHEST_FRAME_COUNT, CHEST_FRONT, DUMPLING_REVEAL_MS,
 } from './chestAnimationData';
 
 const CUE = 'chestOpening';
@@ -23,6 +24,8 @@ type Props = {
 };
 
 export function ChestReveal({ opening, dumpling, onRevealed, onPress, disabled, testID, accessibilityLabel }: Props) {
+  const [closedReady, setClosedReady] = useState(false);
+  const [closedRetry, setClosedRetry] = useState(0);
   const [ready, setReady] = useState(false);
   const [decoded, setDecoded] = useState(false);
   const [frontDecoded, setFrontDecoded] = useState(false);
@@ -80,7 +83,6 @@ export function ChestReveal({ opening, dumpling, onRevealed, onPress, disabled, 
 
   useEffect(() => {
     mounted.current = true;
-    load();
     const sub = AppState.addEventListener('change', s => {
       if (s === 'active' && started.current && !completed.current) finishRef.current();
     });
@@ -93,6 +95,11 @@ export function ChestReveal({ opening, dumpling, onRevealed, onPress, disabled, 
       if (cueStarted.current) stopSounds([CUE]);
     };
   }, [load]);
+
+  useEffect(() => {
+    if (!closedReady) return;
+    return afterChestDisplay(load);
+  }, [closedReady, load]);
 
   useEffect(() => {
     if (!opening || !dumpling || !ready || !decoded || !frontDecoded || started.current) return;
@@ -116,7 +123,7 @@ export function ChestReveal({ opening, dumpling, onRevealed, onPress, disabled, 
     })();
   }, [opening, dumpling, ready, decoded, frontDecoded]);
 
-  const interactive = !!onPress && !disabled && ready && decoded && frontDecoded && !opening;
+  const interactive = !!onPress && !disabled && closedReady && ready && decoded && frontDecoded && !failed && !opening;
   return (
     <View style={styles.stage} testID="chest-stage">
       <Pressable
@@ -136,11 +143,21 @@ export function ChestReveal({ opening, dumpling, onRevealed, onPress, disabled, 
             </Animated.View>
           )}
           {ready && <Image source={CHEST_FRONT} resizeMode="contain" style={[StyleSheet.absoluteFill, styles.fill, { opacity: showDumpling ? 1 : 0 }]} testID="chest-front-rim" onLoad={() => { if (mounted.current) setFrontDecoded(true); }} onError={() => { if (mounted.current) { setFailed(true); setReady(false); setFrontDecoded(false); } }} />}
+          <Image key={closedRetry} source={CHEST_CLOSED} resizeMode="contain" fadeDuration={0}
+            style={[StyleSheet.absoluteFill, styles.fill, { opacity: frame > 0 || completed.current ? 0 : 1 }]}
+            testID="chest-closed-frame"
+            onLoad={() => { if (mounted.current) setClosedReady(true); }}
+            onError={() => { if (mounted.current) { setClosedReady(false); setFailed(true); } }} />
         </View>
       </Pressable>
-      {!failed && (!decoded || !frontDecoded) && <Text style={styles.loading}>Loading chest…</Text>}
       {failed && (
-        <Pressable onPress={load} accessibilityRole="button" testID="chest-retry" style={styles.retry}>
+        <Pressable onPress={() => {
+          if (closedReady) load();
+          else {
+            setFailed(false);
+            setClosedRetry(count => count + 1);
+          }
+        }} accessibilityRole="button" testID="chest-retry" style={styles.retry}>
           <Text style={styles.retryText}>Chest could not load. Tap to retry</Text>
         </Pressable>
       )}
@@ -155,5 +172,4 @@ const styles = StyleSheet.create({
   dumpling: { position: 'absolute', width: '46%', height: '46%', left: '27%', top: '18%' },
   retry: { position: 'absolute', bottom: 8, paddingHorizontal: 14, paddingVertical: 8, borderRadius: 14, backgroundColor: 'rgba(255,255,255,0.9)' },
   retryText: { fontFamily: 'Inter_700Bold', fontSize: 12, color: '#59686b' },
-  loading: { position: 'absolute', bottom: 8, fontFamily: 'Inter_600SemiBold', fontSize: 12, color: '#59686b' },
 });

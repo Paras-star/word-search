@@ -4,9 +4,12 @@ import { Image, type ImageRef } from 'expo-image';
 import Animated, { useAnimatedStyle, type SharedValue } from 'react-native-reanimated';
 import { CHEST_FPS, CHEST_FRAME_COUNT } from './chestAnimationData';
 
-type AtlasProps = { source: ImageRef; index: number; clock: SharedValue<number>; size: SharedValue<number> };
+type AtlasProps = {
+  source: ImageRef; index: number; clock: SharedValue<number>; size: SharedValue<number>;
+  onLoad: (index: number) => void; onError: () => void;
+};
 
-function Atlas({ source, index, clock, size }: AtlasProps) {
+function Atlas({ source, index, clock, size, onLoad, onError }: AtlasProps) {
   const motion = useAnimatedStyle(() => {
     const frame = Math.min(CHEST_FRAME_COUNT - 1, Math.floor(clock.value * CHEST_FPS / 1000));
     const tile = frame % 16;
@@ -20,18 +23,21 @@ function Atlas({ source, index, clock, size }: AtlasProps) {
   });
   return (
     <Animated.View style={[styles.atlas, motion]}>
-      <Image source={source} style={styles.fill} contentFit="fill" transition={0} />
+      <Image source={source} style={styles.fill} contentFit="fill" transition={0}
+        onLoad={() => onLoad(index)} onError={onError} />
     </Animated.View>
   );
 }
 
 /** Bitmaps never change during playback; only UI-thread transforms/opacity do. */
-export function ChestFrameRenderer({ atlases, clock, size }: {
+export function ChestFrameRenderer({ atlases, clock, size, onLoad, onError }: {
   atlases: ImageRef[]; clock: SharedValue<number>; size: SharedValue<number>;
+  onLoad: (index: number) => void; onError: () => void;
 }) {
   return (
     <View style={styles.viewport} pointerEvents="none" testID="chest-video-frames">
-      {atlases.map((source, index) => <Atlas key={index} source={source} index={index} clock={clock} size={size} />)}
+      {atlases.map((source, index) => <Atlas key={index} source={source} index={index}
+        clock={clock} size={size} onLoad={onLoad} onError={onError} />)}
     </View>
   );
 }

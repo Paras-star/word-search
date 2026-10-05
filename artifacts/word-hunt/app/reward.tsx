@@ -85,11 +85,7 @@ export default function RewardScreen() {
 
   const goToResults = () => router.replace({ pathname: '/results', params });
 
-  if (loading) {
-    return <View style={styles.loading}><ActivityIndicator size="large" color={homeColors.teal} /></View>;
-  }
-
-  if (!reward || !dumpling) {
+  if (!loading && (!reward || !dumpling)) {
     return (
       <View style={[styles.screen, { paddingTop: insets.top + 24, paddingBottom: insets.bottom + 24 }]}>
         <View style={styles.emptyCard}>
@@ -138,14 +134,14 @@ export default function RewardScreen() {
             />
           ))}
 
-          <ChestReveal opening={stage !== 'basket'} dumpling={dumpling} onRevealed={onRevealed} onPress={startReveal} disabled={stage !== 'basket'} testID="reward-chest-tap" accessibilityLabel="Tap the chest to reveal your reward" />
+          <ChestReveal opening={stage !== 'basket'} dumpling={dumpling} onRevealed={onRevealed} onPress={startReveal} disabled={loading || !reward || !dumpling || stage !== 'basket'} testID="reward-chest-tap" accessibilityLabel="Tap the chest to reveal your reward" />
         </View>
 
         <View style={styles.copyBlock}>
           <Text style={[styles.kicker, { color: presentation.glow }]}>
-            {stage === 'basket' ? 'PUZZLE COMPLETE' : stage === 'opening' ? 'OPENING…' : stage === 'collected' ? 'COLLECTED' : `YOU FOUND ${dumpling.rarity.toUpperCase()}`}
+            {stage === 'basket' ? 'PUZZLE COMPLETE' : stage === 'opening' ? 'OPENING…' : stage === 'collected' ? 'COLLECTED' : `YOU FOUND ${dumpling?.rarity.toUpperCase()}`}
           </Text>
-          <Text style={styles.title}>{isRevealed ? dumpling.name : 'A surprise is waiting'}</Text>
+          <Text style={styles.title}>{isRevealed ? dumpling?.name : 'A surprise is waiting'}</Text>
           <Text style={styles.copy}>
             {stage === 'basket'
               ? 'Tap the chest to reveal your reward'
@@ -155,15 +151,15 @@ export default function RewardScreen() {
                   ? isDuplicate ? 'A duplicate reward was recorded. Your original remains safe in the room.' : 'This dumpling now lives in your Collection Room.'
                   : 'Collect it to add it permanently to your room.'}
           </Text>
-          {isRevealed && <View style={[styles.rarityPill, { borderColor: presentation.color, backgroundColor: `${presentation.color}2A` }]}><View style={[styles.rarityDot, { backgroundColor: presentation.glow }]} /><Text style={[styles.rarityText, { color: presentation.glow }]}>{dumpling.rarity.toUpperCase()}</Text></View>}
+          {isRevealed && dumpling && <View style={[styles.rarityPill, { borderColor: presentation.color, backgroundColor: `${presentation.color}2A` }]}><View style={[styles.rarityDot, { backgroundColor: presentation.glow }]} /><Text style={[styles.rarityText, { color: presentation.glow }]}>{dumpling.rarity.toUpperCase()}</Text></View>}
         </View>
 
         {error && <Text style={styles.error}>{error}</Text>}
 
         <View style={styles.actions}>
           {stage === 'opening' && <View style={styles.openingPill}><ActivityIndicator color={homeColors.teal} /><Text style={styles.openingText}>A little magic is happening</Text></View>}
-          {stage === 'revealed' && <PrimaryButton onPress={handleCollect} suppressClickSound style={[styles.actionButton, { backgroundColor: homeColors.teal }]} testID="reward-collect">COLLECT {dumpling.name.toUpperCase()}</PrimaryButton>}
-          {stage === 'collected' && <>
+          {stage === 'revealed' && dumpling && <PrimaryButton onPress={handleCollect} suppressClickSound style={[styles.actionButton, { backgroundColor: homeColors.teal }]} testID="reward-collect">COLLECT {dumpling.name.toUpperCase()}</PrimaryButton>}
+          {stage === 'collected' && dumpling && <>
             <PrimaryButton onPress={() => router.replace({ pathname: '/collection', params: !isDuplicate ? { newDumplingId: dumpling.id } : undefined })} style={[styles.actionButton, { backgroundColor: homeColors.teal }]}>VIEW COLLECTION ROOM</PrimaryButton>
             <SoftButton onPress={goToResults} style={styles.continueButton}>CONTINUE</SoftButton>
           </>}

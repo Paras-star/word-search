@@ -7,6 +7,8 @@ export const CHEST_ATLASES = [
   require('../assets/chest-animation/chest-atlas-4.png'),
 ] as const;
 export const CHEST_FRONT = require('../assets/chest-animation/chest-front.png');
+// Exact top-left tile (frame 0), not a replacement chest illustration.
+export const CHEST_CLOSED = require('../assets/chest-animation/chest-closed-frame.png');
 export const CHEST_FRAME_COUNT = 73;
 export const CHEST_FPS = 24;
 export const CHEST_FRAME_SIZE = 384;
