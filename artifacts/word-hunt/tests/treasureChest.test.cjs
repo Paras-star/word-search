@@ -328,7 +328,7 @@ const protectedGroups = {
   launcher: [['assets/launcher'], '136ee046e2237636381c94267ca00af85a447c1035dbd85d122b836c890191c9'],
   gameplay: [['game', 'app/game.tsx'], 'e5c6932148a1e27e10ee2ca918e267a2d034cb7cf5e771de86c0893e310431e1'],
   adsConfig: [['services/ads.ts', 'services/ads.native.ts', 'services/adConfig.ts', 'app.json'], 'f679803aac49bfc6152c26549377ce03ddc9695569f4f6e0df3cc881a2b5f171'],
-  audioSettings: [['services/audio.ts', 'services/audioSettings.ts', 'services/dumplingAudio.ts', 'hooks/useAudioSettings.ts', 'components/AudioSettingsModal.tsx', 'components/VolumeSlider.tsx'], '89c8476007cc11b322a9c6f42a7710476a39d77a7b205d659bad480d14bc2894'],
+  audioSettings: [['services/audio.ts', 'services/audioSettings.ts', 'services/dumplingAudio.ts', 'hooks/useAudioSettings.ts', 'components/AudioSettingsModal.tsx', 'components/VolumeSlider.tsx'], 'ce037e12d11344d59da5762ed49f72219a4eb1657b12f8436af8343b61875ff6'],
 };
 function walk(relative) {
   return fs.statSync(path.join(root, relative)).isDirectory()

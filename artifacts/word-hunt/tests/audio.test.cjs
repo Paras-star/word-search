@@ -23,9 +23,11 @@ function harness({ os = 'android', missingNative = false, failCreate = false, lo
     if (failCreate) throw new Error('Failed to create player');
     const listeners = new Set();
     const player = {
-      source, isLoaded: loaded, pauses: 0, removed: false,
+      source, isLoaded: loaded, pauses: 0, seeks: 0, removed: false,
+      get currentStatus() { return { isLoaded: player.isLoaded }; },
       seekTo: async (seconds) => {
         assert.equal(seconds, 0);
+        player.seeks += 1;
         if (failSeek) throw new Error('Seek failure');
       },
       play: () => {
@@ -82,6 +84,51 @@ test('all 15 original effects plus extracted chest audio are bundled and cached'
   assert.equal(h.created.length, 16);
   h.service.disposeAudio();
   assert.ok(h.created.every(player => player.removed));
+});
+
+test('Android one-shot sounds replay after STATE_ENDED using the same cached player', async () => {
+  const h = harness({ os: 'android' });
+  try {
+    await h.service.startSound('correct');
+    assert.deepEqual(h.played, ['word-found.mp3']);
+    assert.equal(h.created.length, 1);
+    const player = h.created[0];
+    assert.equal(player.seeks, 1);
+    let ended = false;
+    Object.defineProperty(player, 'currentStatus', {
+      get: () => ({
+        isLoaded: ended || player.isLoaded,
+        playbackState: ended ? 'ended' : 'ready',
+      }),
+    });
+    const seekTo = player.seekTo;
+    player.seekTo = async (seconds) => {
+      await seekTo(seconds);
+      ended = false;
+      player.isLoaded = true;
+    };
+    for (const playback of [2, 3]) {
+      ended = true;
+      player.isLoaded = false;
+      // Android emits completion once; it does not resend it to later listeners.
+      for (const callback of [...player.listeners]) {
+        callback({ ...player.currentStatus, didJustFinish: true });
+      }
+      assert.equal(player.isLoaded, false);
+      assert.equal(player.currentStatus.isLoaded, true);
+      await h.service.startSound('correct');
+      assert.equal(player.seeks, playback, `playback ${playback} must rewind the ended player`);
+      assert.equal(player.pauses, playback);
+      assert.deepEqual(h.played, Array(playback).fill('word-found.mp3'));
+      assert.equal(h.created.length, 1, 'replay must reuse the cached player');
+      assert.equal(h.created[0], player);
+      assert.equal(player.removed, false);
+      assert.equal(player.listeners.size, 0);
+    }
+    assert.deepEqual(h.warnings, []);
+  } finally {
+    h.service.disposeAudio();
+  }
 });
 
 test('Android chest is preloaded and rewound before interaction; fast start is synchronous without a seek or new player', async () => {

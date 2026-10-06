@@ -21,6 +21,7 @@ function harness({ os = 'android', loaded = true, rejectPlay = false, missingNat
   function create(source) {
     const listeners = new Set();
     const player = { source, isLoaded: loaded, readyState: loaded ? 2 : 0, currentTime: 0,
+      get currentStatus() { return { isLoaded: player.isLoaded }; },
       volume: 1, loop: false, starts: 0, pauses: 0, seeks: 0, removed: false, playing: false,
       seekTo: async () => { player.seeks++; player.currentTime = 0; },
       play: () => {

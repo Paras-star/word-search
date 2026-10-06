@@ -106,7 +106,11 @@ function createPlayer(source: number): Player | null {
   if (!audio) return null;
   const player = audio.createAudioPlayer(source, { updateInterval: 100 });
   return {
-    get isLoaded() { return player.isLoaded; },
+    get isLoaded() {
+      return Platform.OS === 'android'
+        ? player.currentStatus.isLoaded
+        : player.isLoaded;
+    },
     get volume() { return player.volume; },
     set volume(value) { player.volume = value; },
     get loop() { return player.loop; },
