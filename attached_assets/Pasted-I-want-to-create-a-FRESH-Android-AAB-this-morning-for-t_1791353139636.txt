@@ -1,0 +1,144 @@
+I want to create a FRESH Android AAB this morning for the final Word Hunt: Mystery Dumplings build.
+
+Before starting any new build, perform a read-only verification of the current project and the existing EAS build from last night.
+
+IMPORTANT:
+Do not modify app source code, assets, dependencies, app.json, eas.json, version, versionCode, or GitHub.
+Do not create commits or push anything.
+Do not link GitHub to EAS.
+Do not submit anything to Google Play.
+
+APPROVED SOURCE COMMIT:
+72d345d7e4996842c36a528d89374790b380ff5f
+"Fix Android one-shot sound replay"
+
+APP DIRECTORY:
+~/workspace/artifacts/word-hunt
+
+AUTHORITATIVE CONFIG:
+~/workspace/artifacts/word-hunt/app.json
+~/workspace/artifacts/word-hunt/eas.json
+
+FIRST: CHECK THE OLD BUILD
+
+The previous build was:
+
+Build ID:
+b6dbafd0-5ff6-43d2-b60b-414cd111a032
+
+It was submitted on the previous night and was still "in queue" when checked this morning.
+
+Check its current EAS status.
+
+If it is still in queue after all this time, do NOT create another build until you report its current status to me. If it has finished, report its final status and AAB URL.
+
+SECOND: VERIFY THE FINAL APP SOURCE
+
+Verify that the approved commit contains ALL of the final approved improvements, not merely the Android sound fix.
+
+Specifically verify:
+
+1. Android one-shot sound replay fix
+2. All 15 game sound effects
+3. Background music using luceris-relaxing-590397.mp3
+4. Music volume control
+5. Game sound volume control
+6. Saved audio settings
+7. Home settings button
+8. Treasure Chest Home entry
+9. Treasure Chest cost = 700 coins
+10. Treasure Chest transaction safety
+11. Rare/Epic reward weighting = 75%/25%
+12. Preference for unowned dumplings
+13. Free Treasure Chest reward after level completion
+14. Video-derived Treasure Chest opening animation
+15. Original chest-opening audio
+16. Immediate closed-chest frame / no 4–5 second loading delay
+17. 30-dumpling collection system
+18. Correct rarity distribution:
+    - 12 Common
+    - 7 Uncommon
+    - 5 Rare
+    - 4 Epic
+    - 2 Legendary
+19. Transparent individual dumpling assets
+20. Dumpling PNGs do not display baked-in names
+21. Found-word highlighting
+22. Final app icon
+23. Android versionCode = 3
+24. App version = 2.0.0
+25. Package = com.paras.wordhunt
+26. AdMob integration and UMP consent configuration
+27. Production Android buildType = app-bundle
+
+Also verify the final automated test suite still passes and that TypeScript/Expo configuration validation passes.
+
+THIRD: VERIFY BUILD CONFIGURATION
+
+Confirm:
+
+- branch = feature/game-improvements
+- approved source = 72d345d7e4996842c36a528d89374790b380ff5f
+- version = 2.0.0
+- versionCode = 3
+- package = com.paras.wordhunt
+- production buildType = app-bundle
+- SDK = 57
+- nested app.json is authoritative
+- nested eas.json is authoritative
+- no root app.json/eas.json is being used
+
+The uploaded instruction attachment/checkpoint must NOT be included in the app source.
+
+FOURTH: ONLY AFTER THESE CHECKS
+
+If the old build is still stuck in queue, report that first.
+
+If it is appropriate to create a fresh build, use the EAS CLI from:
+
+cd ~/workspace/artifacts/word-hunt
+
+and run:
+
+npx eas-cli@24.10.0 build --platform android --profile production
+
+Do NOT use the connected Expo build route.
+
+Do NOT change any project configuration to make the build work.
+
+FIFTH: AFTER THE NEW AAB FINISHES
+
+I want you to verify the ACTUAL AAB, not just the source code.
+
+Confirm that the generated AAB contains evidence of the final improvements, including at minimum:
+
+- version 2.0.0
+- versionCode 3
+- package com.paras.wordhunt
+- settings UI
+- background music asset
+- game sound assets
+- Treasure Chest assets/animation
+- final app icon
+- AdMob configuration
+- the latest approved application source
+
+If possible, inspect the AAB contents directly rather than assuming that because the source was correct, the AAB must be correct.
+
+FINAL REPORT MUST INCLUDE:
+
+A. Old build status
+B. New build ID
+C. New build status
+D. AAB download URL
+E. Source Git commit used
+F. Version
+G. versionCode
+H. package name
+I. Test results
+J. AAB verification results
+K. A clear YES/NO answer:
+
+"Does this new AAB contain the final approved improvements and changes?"
+
+Do not submit the AAB to Google Play.
