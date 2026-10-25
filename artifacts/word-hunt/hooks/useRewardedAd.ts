@@ -19,8 +19,10 @@ export function useRewardedAd(placement: RewardedPlacement) {
     void prepareAds().catch(() => {});
     const unsubscribe = subscribeToAds(() => {
       if (!mounted.current) return;
-      setReady(isRewardedReady());
+      const available = isRewardedReady();
+      setReady(available);
       setLoading(isRewardedLoading());
+      if (available) setStatus(current => current === 'unavailable' ? 'idle' : current);
     });
     return () => {
       mounted.current = false;
@@ -31,10 +33,16 @@ export function useRewardedAd(placement: RewardedPlacement) {
 
   const flash = (next: RewardedUiStatus) => {
     if (!mounted.current) return;
-    setStatus(next);
+    setStatus(next === 'unavailable' && isRewardedReady() ? 'idle' : next);
     if (clearTimer.current) clearTimeout(clearTimer.current);
     clearTimer.current = setTimeout(() => { if (mounted.current) setStatus('idle'); }, 2600);
   };
+
+  const dismiss = useCallback(() => {
+    if (clearTimer.current) clearTimeout(clearTimer.current);
+    clearTimer.current = null;
+    if (mounted.current) setStatus('idle');
+  }, []);
 
   /** onEarned must be captured by the caller at tap time. Returns the service result, or null if ignored. */
   const watch = useCallback(async (onEarned: EarnedHandler) => {
@@ -47,12 +55,12 @@ export function useRewardedAd(placement: RewardedPlacement) {
       flash(result === 'earned' ? 'earned' : result === 'unavailable' ? 'unavailable' : result === 'save-failed' ? 'failed' : 'closed');
       return result;
     } catch {
-      flash('failed');
+      flash('unavailable');
       return null;
     } finally {
       inFlight.current = false;
     }
   }, [placement]);
 
-  return { status, pending: status === 'pending', ready, loading, watch };
+  return { status, pending: status === 'pending', ready, loading, watch, dismiss };
 }

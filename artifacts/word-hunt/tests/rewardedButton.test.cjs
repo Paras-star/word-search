@@ -30,7 +30,7 @@ function nodes(tree) {
   if (!tree || typeof tree !== 'object') return [];
   return [tree, ...(tree.props?.children ?? []).flat(Infinity).flatMap(nodes)];
 }
-const message = 'Ads not ready - please try later';
+const message = 'No ads at the moment';
 
 for (const variant of ['artwork', 'bar']) {
   test(`${variant} shows the exact unavailable-ad message and announces it accessibly`, () => {
@@ -38,6 +38,9 @@ for (const variant of ['artwork', 'bar']) {
     const tree = render({ variant, source: 'local-artwork', status: 'unavailable', label: 'WATCH AD ·', reward: '+3 HINTS', onPress() {} });
     const text = nodes(tree).filter(node => node.type === 'Text').flatMap(node => node.props.children);
     assert.ok(text.includes(message));
+    assert.equal(nodes(tree).some(node => node.type === 'Image' || node.type === 'Feather'), false,
+      'the reward artwork/icon must be replaced, not left above the message');
+    assert.equal(text.includes('WATCH AD ·'), false);
     assert.deepEqual(announcements, [message]);
   });
 
@@ -50,7 +53,7 @@ for (const variant of ['artwork', 'bar']) {
     assert.deepEqual(announcements, ['+3 HINTS added']);
   });
 
-  test(`${variant} blocks taps during loading and presentation but permits unavailable-ad retries`, () => {
+  test(`${variant} blocks taps during loading and presentation; tapping the unavailable message only dismisses it`, () => {
     const { render } = buttonHarness();
     let taps = 0;
     for (const state of [{ status: 'idle', loading: true }, { status: 'pending' }, { status: 'idle', disabled: true }]) {
@@ -60,39 +63,37 @@ for (const variant of ['artwork', 'bar']) {
       button.props.onPress();
     }
     assert.equal(taps, 0);
-    const tree = render({ variant, source: 'local-artwork', status: 'unavailable', label: 'WATCH AD', reward: '+3 HINTS', onPress: () => taps++ });
+    let dismissals = 0;
+    const tree = render({ variant, source: 'local-artwork', status: 'unavailable', label: 'WATCH AD', reward: '+3 HINTS', onPress: () => taps++, onDismiss: () => dismissals++ });
     const button = nodes(tree).find(node => node.type === 'Pressable');
-    assert.equal(button.props.disabled, false);
+    assert.notEqual(button.props.disabled, true);
     button.props.onPress();
-    assert.equal(taps, 1);
+    assert.equal(taps, 0);
+    assert.equal(dismissals, 1);
   });
 }
 
 test('the artwork button renders the exact local source proportionally with no cropping', () => {
   const { render } = buttonHarness();
   const source = { uri: 'local-artwork' };
-  const tree = render({ variant: 'artwork', source, artworkSize: 168, status: 'idle', label: 'FREE COINS', reward: '+100 COINS', onPress() {} });
+  const tree = render({ variant: 'artwork', source, artworkSize: 64, status: 'idle', label: 'FREE COINS', reward: '+100 COINS', onPress() {} });
   const image = nodes(tree).find(node => node.type === 'Image');
   assert.equal(image.props.source, source);
   assert.equal(image.props.resizeMode, 'contain');
   assert.equal(image.props.style.width, image.props.style.height);
-  assert.equal(image.props.style.width, 168);
+  assert.equal(image.props.style.width, 64);
   const button = nodes(tree).find(node => node.type === 'Pressable');
   assert.ok(nodes(button).includes(image), 'the full artwork must be inside the tap target');
 });
 
-test('artwork feedback reserves the same two-line space even while idle to avoid moving the Home layout', () => {
+test('artwork and replacement message occupy the exact same fixed-size slot without below-button feedback', () => {
   const { render } = buttonHarness();
   for (const status of ['idle', 'pending', 'unavailable', 'earned']) {
-    const tree = render({ variant: 'artwork', source: 'local-artwork', status, label: 'FREE COINS', reward: '+100 COINS', onPress() {} });
-    const slot = nodes(tree).find(node => node.type === 'View' && Array.isArray(node.props.style)
-      && node.props.style.some(style => style?.minHeight === 32));
-    assert.ok(slot, `${status} must retain the feedback slot`);
-    const text = nodes(slot).find(node => node.type === 'Text');
-    if (text) {
-      assert.equal(text.props.numberOfLines, 2);
-      assert.equal(text.props.style[0].lineHeight, 14);
-      assert.ok(text.props.numberOfLines * text.props.style[0].lineHeight <= 32);
-    }
+    const tree = render({ variant: 'artwork', source: 'local-artwork', artworkSize: 64, status, label: 'FREE COINS', reward: '+100 COINS', onPress() {} });
+    assert.equal(tree.type, 'View');
+    assert.ok(tree.props.style.some(style => style?.width === 64 && style?.height === 64));
+    const children = tree.props.children.flat(Infinity).filter(Boolean);
+    assert.equal(children.length, 1, 'feedback cannot introduce a second layout child underneath the action');
+    assert.equal(children[0].type, 'Pressable');
   }
 });

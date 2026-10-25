@@ -71,7 +71,7 @@ test('reward UI guards repeated taps and disables controls for load/presentation
   const button = read('components/RewardedAdButton.tsx');
   assert.match(button, /status === 'pending' \|\| loading/);
   assert.match(button, /disabled=\{blocked\}/);
-  assert.match(button, /UNAVAILABLE_MESSAGE = 'Ads not ready - please try later'/);
+  assert.match(button, /UNAVAILABLE_MESSAGE = 'No ads at the moment'/);
   assert.match(button, /unavailable: UNAVAILABLE_MESSAGE/);
   assert.match(button, /announceForAccessibility\(UNAVAILABLE_MESSAGE\)/);
   assert.match(button, /accessibilityLiveRegion="polite"/);

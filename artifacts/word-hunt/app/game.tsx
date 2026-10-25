@@ -342,6 +342,7 @@ function GameSession({ params }: { params: GameParams }) {
         loading={hintAd.loading}
         reward={`+${REWARDED_HINTS} HINTS`}
         status={hintAd.status}
+        onDismiss={hintAd.dismiss}
         emphasized={hints === 0}
         disabled={foundWords.length === puzzle.words.length}
         onPress={watchHintAd}

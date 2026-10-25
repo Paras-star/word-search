@@ -48,11 +48,12 @@ export default function HomeScreen() {
       <RewardedAdButton
         variant="artwork"
         source={require('../assets/images/rewards/free-coins.png')}
-        artworkSize={compact ? 144 : 168}
+        artworkSize={64}
         label="FREE COINS"
         reward={`+${HOME_REWARDED_COINS} COINS`}
         loading={coinAd.loading}
         status={coinAd.status}
+        onDismiss={coinAd.dismiss}
         onPress={() => { playSound('tap'); void coinAd.watch(createCoinReward(awardCoins)); }}
         accessibilityLabel={`Free coins: watch an ad for ${HOME_REWARDED_COINS} coins`}
         style={styles.freeCoins}
