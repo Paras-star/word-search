@@ -12,26 +12,36 @@ test('Home wires a separate 100-coin action below the unchanged 700-coin chest',
   assert.ok(source.indexOf('testID="treasure-chest-button"') < source.indexOf('testID="home-rewarded-coins-button"'));
   assert.match(source, /createCoinReward\(awardCoins\)/);
   assert.match(source, /reward=\{`\+\$\{HOME_REWARDED_COINS\} COINS`\}/);
+  assert.match(source, /variant="artwork"/);
+  assert.match(source, /source=\{require\('\.\.\/assets\/images\/rewards\/free-coins\.png'\)\}/);
+  const bytes = fs.readFileSync(path.join(root, 'assets/images/rewards/free-coins.png'));
+  assert.equal(crypto.createHash('sha256').update(bytes).digest('hex'), 'ce74abcbfc675936782ce8e86db614fc0dc27e7029170b4465838f955fbf6e67',
+    'the supplied transparent artwork must remain byte-identical');
+  assert.equal(bytes.readUInt32BE(16), 500);
+  assert.equal(bytes.readUInt32BE(20), 500);
+  assert.equal(bytes[25], 6, 'original RGBA transparency is retained');
 });
 
-test('gameplay uses existing hint state, active-puzzle focus guard, and distinct free/rewarded controls', () => {
+test('gameplay has one rewarded hint control and an additive, non-tappable hint balance', () => {
   const source = read('app/game.tsx');
   assert.match(source, /const \[hints, setHints\] = useState\(3\)/);
-  assert.match(source, /testID="use-hint-button"/);
+  assert.doesNotMatch(source, /testID="(?:use-hint-button|hint-button)"|USE HINT|NO HINTS LEFT|onPress=\{useHint\}/);
   assert.match(source, /testID="hint-rewarded-button"/);
-  assert.match(source, /label="WATCH AD"/);
+  assert.equal((source.match(/<RewardedAdButton/g) ?? []).length, 1);
+  assert.match(source, /<View accessible accessibilityRole="text"[^>]*testID="hint-balance"/);
+  assert.match(source, /label="WATCH AD ·"/);
   assert.match(source, /setHints\(\(prev\) => prev \+ amount\)/);
   assert.match(source, /activePuzzleKey\.current = null/);
   assert.match(source, /completionStarted\.current \? null : activePuzzleKey\.current/);
   assert.match(source, /completionStarted\.current \|\| adPaused\.current/);
   assert.match(source, /startTime\.current \+= Date\.now\(\) - pausedAt/);
   assert.doesNotMatch(source, /showInterstitialAtTransition/);
+  assert.doesNotMatch(source, /setHintCells|setHints\(3\)|setHints\(\(value\) => Math\.max/);
 });
 
-test('the original free hint, level completion and touch mapping implementations are preserved exactly', () => {
+test('level completion and touch mapping remain byte-identical after removing the free-hint action', () => {
   const source = read('app/game.tsx');
   const hashes = {
-    '  const useHint =': 'd548618fca6137b1e71cf619994be04395adfd65ff07cbe7bda2c99a72f0f78f',
     '  const finish =': 'bfb066693b950f7470ca02d1d50b39d1b6e5108b06e6c6a00ed06fcf56e524b2',
     '  const cellFromEvent =': '15eeee31f7a4a81ed2fea14d53ee15d63a7beebb40f86f4f41486faede201846',
   };
@@ -61,6 +71,8 @@ test('reward UI guards repeated taps and disables controls for load/presentation
   const button = read('components/RewardedAdButton.tsx');
   assert.match(button, /status === 'pending' \|\| loading/);
   assert.match(button, /disabled=\{blocked\}/);
-  assert.match(button, /AD NOT READY/);
+  assert.match(button, /UNAVAILABLE_MESSAGE = 'Ads not ready - please try later'/);
+  assert.match(button, /unavailable: UNAVAILABLE_MESSAGE/);
+  assert.match(button, /announceForAccessibility\(UNAVAILABLE_MESSAGE\)/);
   assert.match(button, /accessibilityLiveRegion="polite"/);
 });

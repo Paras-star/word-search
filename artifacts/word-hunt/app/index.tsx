@@ -21,6 +21,7 @@ export default function HomeScreen() {
   const insets = useSafeAreaInsets();
   const { height } = useWindowDimensions();
   const compact = height < 730;
+  const compactPreview = height < 850;
   const { coins, hydrated, onboardingStep, awardCoins } = useGame();
   const coinAd = useRewardedAd('home-coins');
   const [privacyOptionsAvailable, setPrivacyOptionsAvailable] = useState(canOpenPrivacyOptions);
@@ -45,12 +46,16 @@ export default function HomeScreen() {
         <Text style={styles.chestCue}>700</Text>
       </Pressable>
       <RewardedAdButton
-        label="WATCH AD"
+        variant="artwork"
+        source={require('../assets/images/rewards/free-coins.png')}
+        artworkSize={compact ? 144 : 168}
+        label="FREE COINS"
         reward={`+${HOME_REWARDED_COINS} COINS`}
         loading={coinAd.loading}
         status={coinAd.status}
         onPress={() => { playSound('tap'); void coinAd.watch(createCoinReward(awardCoins)); }}
-        accessibilityLabel={`Watch an ad for ${HOME_REWARDED_COINS} coins`}
+        accessibilityLabel={`Free coins: watch an ad for ${HOME_REWARDED_COINS} coins`}
+        style={styles.freeCoins}
         testID="home-rewarded-coins-button"
       />
       </View>
@@ -65,7 +70,7 @@ export default function HomeScreen() {
       <View style={styles.badge}><Text style={styles.badgeText}>FIND YOUR FOCUS</Text></View>
       <Text style={[styles.title, compact && styles.titleCompact]}>Word Hunt : Mystery Dumpling</Text>
       <Text style={[styles.subtitle, compact && styles.subtitleCompact]}>Spot the hidden words.{'\n'}Build your streak.</Text>
-      <View style={[styles.previewGrid, compact && styles.previewGridCompact]}>{['W', 'O', 'R', 'D', 'H', 'U', 'N', 'T', 'F'].map((letter, index) => <View key={`${letter}-${index}`} style={[styles.previewCell, compact && styles.previewCellCompact, index === 4 && styles.highlightCell]}><Text style={[styles.previewLetter, { color: index === 4 ? '#FFFFFF' : homeColors.ink }]}>{letter}</Text></View>)}</View>
+      <View style={[styles.previewGrid, compactPreview && styles.previewGridCompact]}>{['W', 'O', 'R', 'D', 'H', 'U', 'N', 'T', 'F'].map((letter, index) => <View key={`${letter}-${index}`} style={[styles.previewCell, compactPreview && styles.previewCellCompact, index === 4 && styles.highlightCell]}><Text style={[styles.previewLetter, { color: index === 4 ? '#FFFFFF' : homeColors.ink }]}>{letter}</Text></View>)}</View>
     </ScrollView>
     <View style={styles.actions}>
       <PrimaryButton onPress={play} testID="play-button" style={styles.playButton}>PLAY</PrimaryButton>
@@ -91,11 +96,12 @@ const styles = StyleSheet.create({
   chestButton: { minWidth: 44, height: 40, paddingHorizontal: 6, borderRadius: 13, borderWidth: 1, borderColor: homeColors.tileBorder, backgroundColor: homeColors.tile, flexDirection: 'row', alignItems: 'center', gap: 3 },
   chestImage: { width: 26, height: 26 },
   chestCue: { color: homeColors.gold, fontFamily: 'Inter_700Bold', fontSize: 11 },
+  freeCoins: { marginLeft: -10, marginTop: -6 },
   topActions: { alignItems: 'center', gap: 4 },
   calendarButton: { width: 42, height: 40, borderRadius: 13, borderWidth: 1, borderColor: homeColors.tileBorder, backgroundColor: homeColors.tile, alignItems: 'center', justifyContent: 'center' },
   calendarIcon: { fontSize: 19 },
   heroScroll: { flex: 1 },
-  hero: { flexGrow: 1, justifyContent: 'center', alignItems: 'center', paddingVertical: 12 },
+  hero: { flexGrow: 1, justifyContent: 'center', alignItems: 'center', paddingVertical: 4 },
   heroCompact: { paddingVertical: 4 },
   badge: { borderRadius: 12, paddingHorizontal: 12, paddingVertical: 7, marginBottom: 14, backgroundColor: homeColors.goldSoft },
   badgeText: { color: homeColors.gold, fontFamily: 'Inter_700Bold', fontSize: 11, letterSpacing: 1.3 },
@@ -103,7 +109,7 @@ const styles = StyleSheet.create({
   titleCompact: { fontSize: 32, lineHeight: 36 },
   subtitle: { color: homeColors.softInk, fontFamily: 'Inter_500Medium', fontSize: 16, lineHeight: 24, textAlign: 'center', marginTop: 16 },
   subtitleCompact: { marginTop: 10, fontSize: 14, lineHeight: 21 },
-  previewGrid: { width: 174, height: 174, flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 27, transform: [{ rotate: '4deg' }] },
+  previewGrid: { width: 174, height: 174, flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 20, transform: [{ rotate: '4deg' }] },
   previewGridCompact: { width: 144, height: 144, marginTop: 14 },
   previewCell: { width: 54, height: 54, borderRadius: 12, borderWidth: 1, borderColor: homeColors.tileBorder, backgroundColor: homeColors.tile, alignItems: 'center', justifyContent: 'center' },
   previewCellCompact: { width: 44, height: 44 },

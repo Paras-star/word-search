@@ -304,6 +304,49 @@ test('hint benefit adds exactly three through existing state without consuming a
   assert.equal(hints, 6);
 });
 
+for (const startingHints of [0, 3]) {
+  test(`earned hint rewards accumulate from ${startingHints} without overwriting or consuming the balance`, async () => {
+    const { ads, created, events } = harness();
+    let hints = startingHints;
+    const balances = [];
+    for (let i = 0; i < 3; i++) {
+      await ads.prepareAds();
+      const grant = benefits().createHintReward('same-puzzle', () => 'same-puzzle', amount => {
+        hints += amount;
+      });
+      const pending = ads.watchRewarded(grant, 'puzzle-hints');
+      const ad = created.rewarded[i];
+      assert.equal(hints, startingHints + i * 3, 'opening an ad must not change the balance');
+      ad.emit(events.EARNED_REWARD);
+      ad.emit(events.EARNED_REWARD);
+      ad.emit(events.CLOSED);
+      assert.equal(await pending, 'earned');
+      assert.equal(grant(), false, 'the same earned benefit cannot be reused');
+      balances.push(hints);
+    }
+    assert.deepEqual(balances, [startingHints + 3, startingHints + 6, startingHints + 9]);
+  });
+}
+
+test('one earned ad grants only its selected benefit, never both coins and hints', async () => {
+  const { ads, created, events } = harness();
+  let coins = 50, hints = 3;
+  await ads.prepareAds();
+  const home = ads.watchRewarded(benefits().createCoinReward(async amount => { coins += amount; }), 'home-coins');
+  created.rewarded[0].emit(events.EARNED_REWARD);
+  created.rewarded[0].emit(events.EARNED_REWARD);
+  created.rewarded[0].emit(events.CLOSED);
+  assert.equal(await home, 'earned');
+  assert.deepEqual({ coins, hints }, { coins: 150, hints: 3 });
+  await ads.prepareAds();
+  const puzzle = ads.watchRewarded(benefits().createHintReward('puzzle', () => 'puzzle', amount => { hints += amount; }), 'puzzle-hints');
+  created.rewarded[1].emit(events.EARNED_REWARD);
+  created.rewarded[1].emit(events.EARNED_REWARD);
+  created.rewarded[1].emit(events.CLOSED);
+  assert.equal(await puzzle, 'earned');
+  assert.deepEqual({ coins, hints }, { coins: 150, hints: 6 });
+});
+
 for (const nextPuzzle of [null, 'different-puzzle']) {
   test(`a delayed hint reward does not reach a blurred, completed or different puzzle (${nextPuzzle})`, async () => {
     const { ads, created, events } = harness();

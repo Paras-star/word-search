@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { PanResponder, Platform, Pressable, StyleSheet, Text, View, useWindowDimensions, type GestureResponderEvent } from 'react-native';
+import { PanResponder, Platform, StyleSheet, Text, View, useWindowDimensions, type GestureResponderEvent } from 'react-native';
 import { Redirect, useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import { Header, Screen, CoinPill, SoftButton } from '@/components/GameUI';
@@ -100,7 +100,6 @@ function GameSession({ params }: { params: GameParams }) {
   const [selectedCells, setSelectedCells] = useState<Cell[]>([]);
   const [feedback, setFeedback] = useState<'idle' | 'wrong' | 'bonus'>('idle');
   const [finishError, setFinishError] = useState(false);
-  const [hintCells, setHintCells] = useState<Cell[]>([]);
   const gridBoundsRef = useRef<GridBounds | null>(null);
   const measurementVersion = useRef(0);
   const gridContentRef = useRef<View>(null);
@@ -110,10 +109,7 @@ function GameSession({ params }: { params: GameParams }) {
   const completionSoundPlayed = useRef(false);
   const startTime = useRef(Date.now());
   const foundRef = useRef(foundWords);
-  const hintTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const hintSoundUsesRemaining = useRef(hints);
   foundRef.current = foundWords;
-  hintSoundUsesRemaining.current = hints;
   const hintAd = useRewardedAd('puzzle-hints');
   // Only the focused, mounted, unfinished puzzle may receive a rewarded-hint grant.
   const activePuzzleKey = useRef<string | null>(null);
@@ -215,8 +211,6 @@ function GameSession({ params }: { params: GameParams }) {
     return () => clearInterval(timer);
   }, [category.id, mode, router, score]);
 
-  useEffect(() => () => { if (hintTimeout.current) clearTimeout(hintTimeout.current); }, []);
-
   useEffect(() => { if (foundWords.length === puzzle.words.length) void finish(); }, [finish, foundWords.length, puzzle.words.length]);
 
   const refreshGridBounds = () => {
@@ -303,23 +297,7 @@ function GameSession({ params }: { params: GameParams }) {
     onPanResponderTerminate: () => endSelection(true),
   }), [bonusWords, puzzle]);
 
-  const useHint = () => {
-    if (hints <= 0 || foundWords.length === puzzle.words.length) return;
-    const remaining = puzzle.words.filter((word) => !foundWords.includes(word));
-    const word = remaining[Math.floor(Math.random() * remaining.length)];
-    const cells = puzzle.placements[word].cells;
-    setHints((value) => Math.max(0, value - 1));
-    if (hintSoundUsesRemaining.current > 0) {
-      hintSoundUsesRemaining.current -= 1;
-      playSound('hint');
-    }
-    setHintCells(cells);
-    if (hintTimeout.current) clearTimeout(hintTimeout.current);
-    hintTimeout.current = setTimeout(() => setHintCells([]), 1500);
-  };
-
   const selectedKeys = useMemo(() => new Set(selectedCells.map(cellKey)), [selectedCells]);
-  const hintKeys = useMemo(() => new Set(hintCells.map(cellKey)), [hintCells]);
   const foundCellColors = useMemo(
     () => buildFoundHighlights(foundWords, foundPaths).cellColors,
     [foundWords, foundPaths],
@@ -329,7 +307,6 @@ function GameSession({ params }: { params: GameParams }) {
     const key = cellKey(cell);
     const foundColor = foundCellColors.get(key);
     if (selectedKeys.has(key)) return { backgroundColor: colors.primary, borderColor: colors.primary, borderRadius: 4 };
-    if (hintKeys.has(key)) return { backgroundColor: colors.accent };
     if (foundColor !== undefined) return { backgroundColor: foundColor, borderColor: foundColor };
     return { backgroundColor: colors.card };
   };
@@ -348,7 +325,7 @@ function GameSession({ params }: { params: GameParams }) {
 
   return <Screen style={styles.screen}>
     <Header title={category.name} onBack={() => daily ? (router.canGoBack() ? router.back() : router.replace('/daily')) : onboarding ? router.replace('/') : router.back()} right={<CoinPill coins={coins} />} />
-    <View style={styles.metaRow}><View><Text style={[styles.scoreLabel, { color: colors.mutedForeground }]}>SCORE</Text><Text style={[styles.score, { color: colors.foreground }]}>{score}</Text></View><View style={[styles.timerPill, { backgroundColor: mode === 'time' && timeLeft < 30 ? colors.accent : colors.card, borderColor: mode === 'time' && timeLeft < 30 ? colors.warning : colors.border }]}><Feather name="clock" size={16} color={mode === 'time' && timeLeft < 30 ? colors.warning : colors.primary} /><Text style={[styles.timerText, { color: mode === 'time' && timeLeft < 30 ? colors.warning : colors.foreground }]}>{formatTime(mode === 'time' ? timeLeft : elapsed)}</Text></View><Pressable onPress={useHint} disabled={hints === 0} style={[styles.hintButton, { backgroundColor: hints ? colors.primary : colors.border }]} testID="hint-button"><Feather name="zap" size={16} color="#FFFFFF" /><Text style={styles.hintText}>{hints}</Text></Pressable></View>
+    <View style={styles.metaRow}><View><Text style={[styles.scoreLabel, { color: colors.mutedForeground }]}>SCORE</Text><Text style={[styles.score, { color: colors.foreground }]}>{score}</Text></View><View style={[styles.timerPill, { backgroundColor: mode === 'time' && timeLeft < 30 ? colors.accent : colors.card, borderColor: mode === 'time' && timeLeft < 30 ? colors.warning : colors.border }]}><Feather name="clock" size={16} color={mode === 'time' && timeLeft < 30 ? colors.warning : colors.primary} /><Text style={[styles.timerText, { color: mode === 'time' && timeLeft < 30 ? colors.warning : colors.foreground }]}>{formatTime(mode === 'time' ? timeLeft : elapsed)}</Text></View><View accessible accessibilityRole="text" accessibilityLabel={`${hints} ${hints === 1 ? 'hint' : 'hints'} banked`} style={[styles.hintButton, { backgroundColor: colors.card, borderColor: colors.border }]} testID="hint-balance"><Feather name="zap" size={15} color={colors.primary} /><Text style={[styles.hintText, { color: colors.foreground }]}>{hints}</Text></View></View>
     {onboarding && <Text style={[styles.tutorialHelp, { color: colors.mutedForeground }]}>
       {requestedStep === 0 ? 'Touch the first letter, drag in a straight line through a word below, then release.' : `Find all ${onboarding.words.length} words to earn 10 coins.`}
     </Text>}
@@ -358,14 +335,10 @@ function GameSession({ params }: { params: GameParams }) {
     <View style={[styles.words, onboarding && { maxHeight: Math.ceil(onboarding.words.length / 3) * 29, overflow: 'visible' }]}>{puzzle.words.map((word) => <View key={word} style={styles.wordItem}><Feather name={foundWords.includes(word) ? 'check' : 'circle'} size={14} color={foundWords.includes(word) ? colors.success : colors.border} /><Text style={[styles.word, { color: foundWords.includes(word) ? colors.foundWord : colors.foreground, textDecorationLine: foundWords.includes(word) ? 'line-through' : 'none' }]}>{word}</Text></View>)}</View>
     {feedback !== 'idle' && <Text style={[styles.feedback, { color: feedback === 'bonus' ? colors.orange : colors.warning }]}>{feedback === 'bonus' ? '+5 bonus word' : 'That word is not on the list'}</Text>}
     {finishError && <SoftButton onPress={() => { setFinishError(false); completionStarted.current = false; void finish(); }}>{daily ? 'RETRY SAVING DAILY PUZZLE' : 'RETRY SAVING COMPLETED LEVEL'}</SoftButton>}
-    <View style={styles.hintFooterRow}>
-      <Pressable onPress={useHint} disabled={hints === 0} testID="use-hint-button" accessibilityRole="button" accessibilityLabel={hints ? `Use hint, ${hints} left` : 'No hints left'} accessibilityState={{ disabled: hints === 0 }} style={({ pressed }) => [styles.hintFooter, { backgroundColor: colors.card, borderColor: colors.buttonBorder, opacity: pressed ? 0.75 : hints === 0 ? 0.5 : 1 }]}>
-        <Feather name="zap" size={14} color={colors.primary} />
-        <Text style={[styles.hintFooterText, { color: colors.foreground }]} numberOfLines={1}>{hints ? `USE HINT · ${hints} LEFT` : 'NO HINTS LEFT'}</Text>
-      </Pressable>
+    <View style={[styles.hintFooterRow, { paddingBottom: bottom }]}>
       <RewardedAdButton
         variant="bar"
-        label="WATCH AD"
+        label="WATCH AD ·"
         loading={hintAd.loading}
         reward={`+${REWARDED_HINTS} HINTS`}
         status={hintAd.status}
@@ -388,8 +361,8 @@ const styles = StyleSheet.create({
   score: { fontFamily: 'Inter_700Bold', fontSize: 27, marginTop: 2 },
   timerPill: { flexDirection: 'row', alignItems: 'center', gap: 7, borderWidth: 1, borderRadius: 18, paddingHorizontal: 13, paddingVertical: 10 },
   timerText: { fontFamily: 'Inter_700Bold', fontSize: 16 },
-  hintButton: { minWidth: 50, height: 42, borderRadius: 15, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 },
-  hintText: { color: '#FFFFFF', fontFamily: 'Inter_700Bold', fontSize: 15 },
+  hintButton: { minWidth: 50, height: 42, borderRadius: 15, borderWidth: 1, paddingHorizontal: 10, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 },
+  hintText: { fontFamily: 'Inter_700Bold', fontSize: 15 },
   gridWrap: { aspectRatio: 1, alignSelf: 'center' },
   grid: { flex: 1, borderWidth: 1, borderRadius: 18, overflow: 'hidden', padding: 3, backgroundColor: homeColors.tile },
   gridContent: { flex: 1 },
@@ -404,8 +377,6 @@ const styles = StyleSheet.create({
   wordItem: { flexDirection: 'row', alignItems: 'center', gap: 5, width: '31%', minHeight: 22 },
   word: { fontFamily: 'Inter_600SemiBold', fontSize: 11 },
   feedback: { textAlign: 'center', fontFamily: 'Inter_600SemiBold', fontSize: 12, marginTop: 5 },
-  hintFooterRow: { flexDirection: 'row', alignItems: 'stretch', gap: 8, marginTop: 'auto', paddingTop: 10 },
-  hintFooter: { minHeight: 44, flex: 1, flexBasis: 0, paddingHorizontal: 8, borderRadius: 14, borderWidth: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 },
-  hintFooterText: { fontFamily: 'Inter_600SemiBold', fontSize: 12.5, letterSpacing: 0.2 },
-  hintAd: { flex: 1, flexBasis: 0 },
+  hintFooterRow: { marginTop: 'auto', paddingTop: 10 },
+  hintAd: { width: '100%', minHeight: 48 },
 });

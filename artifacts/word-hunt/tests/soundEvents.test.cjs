@@ -109,39 +109,49 @@ test('normal and bonus discoveries use one distinct cue each', () => {
   assert.deepEqual(bonusWord.sounds, ['bonus']);
 });
 
-test('a consumed hint cues once and a depleted hint does not cue', () => {
-  const sounds = [];
-  let hints = 1;
-  const useHint = callback('useHint', {
-    hints,
-    foundWords: [],
-    puzzle: { words: ['CAT'], placements: { CAT: { cells: [{ row: 0, col: 0 }] } } },
-    setHints: update => { hints = update(hints); },
-    setHintCells: () => {},
-    hintSoundUsesRemaining: { current: 1 },
-    hintTimeout: { current: null },
-    clearTimeout: () => {},
-    setTimeout: () => 1,
-    playSound: sound => sounds.push(sound),
-  });
-  useHint();
-  useHint(); // A rapid duplicate from the same render must not sound without another hint.
-  assert.equal(hints, 0);
-  assert.deepEqual(sounds, ['hint']);
-
-  const depletedHint = callback('useHint', {
-    hints,
-    foundWords: [],
-    puzzle: { words: ['CAT'], placements: { CAT: { cells: [] } } },
-    setHints: () => assert.fail('A depleted hint should not be consumed'),
-    setHintCells: () => {},
-    hintTimeout: { current: null },
-    clearTimeout: () => {},
-    setTimeout: () => 1,
-    playSound: sound => sounds.push(sound),
-  });
-  depletedHint();
-  assert.deepEqual(sounds, ['hint']);
+test('rewarded hints bank without consumption, automatic highlighting, or a hint-use sound', async () => {
+  const benefits = { exports: {} };
+  const compiled = ts.transpileModule(fs.readFileSync(path.join(root, 'services/rewardedBenefits.ts'), 'utf8'), {
+    compilerOptions: { target: ts.ScriptTarget.ES2020, module: ts.ModuleKind.CommonJS },
+  }).outputText;
+  new Function('exports', compiled)(benefits.exports);
+  for (const startingHints of [0, 3]) {
+    const sounds = [];
+    let hints = startingHints, earned, settle, requests = 0;
+    const adPaused = { current: false };
+    const watchHintAd = callback('watchHintAd', {
+      adPaused,
+      hintAd: {
+        loading: false,
+        watch: onEarned => {
+          requests++;
+          earned = onEarned;
+          return new Promise(resolve => { settle = resolve; });
+        },
+      },
+      completionStarted: { current: false },
+      foundWords: [],
+      puzzle: { id: 'active', words: ['CAT'] },
+      activePuzzleKey: { current: 'active' },
+      createHintReward: benefits.exports.createHintReward,
+      setHints: update => { hints = update(hints); },
+      playSound: sound => sounds.push(sound),
+      startTime: { current: Date.now() },
+    });
+    watchHintAd();
+    watchHintAd();
+    assert.equal(requests, 1);
+    assert.equal(hints, startingHints);
+    assert.equal(adPaused.current, true);
+    assert.equal(earned(), true);
+    assert.equal(earned(), false);
+    assert.equal(hints, startingHints + 3);
+    settle('earned');
+    await Promise.resolve();
+    assert.equal(adPaused.current, false);
+    assert.deepEqual(sounds, ['tap']);
+  }
+  assert.doesNotMatch(gameSource, /setHintCells|const useHint =|onPress=\{useHint\}/);
 });
 
 test('completion, coin, and dumpling sounds are tied to persisted reward stages', () => {

@@ -55,11 +55,14 @@ test('found cells use each requested pastel for both fill and border, distinct f
   });
 });
 
-test('active selection and hint precedence remain unchanged on found cells', () => {
+test('active selection keeps precedence and banked hints do not add automatic highlight overlays', () => {
   assert.deepEqual(style({ found: true, selected: true }), {
     backgroundColor: colors.primary, borderColor: colors.primary, borderRadius: 4,
   });
-  assert.deepEqual(style({ found: true, hint: true }), { backgroundColor: colors.accent });
+  assert.deepEqual(style({ found: true, hint: true }), {
+    backgroundColor: FOUND_WORD_COLORS[0], borderColor: FOUND_WORD_COLORS[0],
+  });
+  assert.deepEqual(style({ hint: true }), { backgroundColor: colors.card });
   assert.deepEqual(style(), { backgroundColor: colors.card });
 });
 
