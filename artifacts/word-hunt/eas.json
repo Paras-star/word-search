@@ -8,8 +8,10 @@
       }
     },
     "production": {
+      "pnpm": "10.26.1",
       "android": {
-        "buildType": "app-bundle"
+        "buildType": "app-bundle",
+        "image": "ubuntu-26.04-jdk-17-ndk-r27b-sdk-57"
       }
     }
   }
