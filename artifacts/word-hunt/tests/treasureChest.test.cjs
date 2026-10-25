@@ -326,8 +326,10 @@ const protectedGroups = {
   sounds: [['assets/sounds'], '3058dc05d908de8cf76afbbee5614ec973b8faaf1f80cd0c5e93006a3323b0e6'],
   dumplings: [['assets/images/dumplings', 'data/dumplings.ts'], '3929ecc5225a9d7d0d4bfdffcedda08517997aa5c0c4e5423c5e77facef7a30f'],
   launcher: [['assets/launcher'], '136ee046e2237636381c94267ca00af85a447c1035dbd85d122b836c890191c9'],
-  gameplay: [['game', 'app/game.tsx'], 'e5c6932148a1e27e10ee2ca918e267a2d034cb7cf5e771de86c0893e310431e1'],
-  adsConfig: [['services/ads.ts', 'services/ads.native.ts', 'services/adConfig.ts', 'app.json'], '7f7b4409f1a9c5f4b55c5f0e1e4e030f581c7fc19c760008185315cddd868099'],
+  // Authorized rewarded-hint UI and ad lifecycle changes; rewardedUi.test.cjs
+  // additionally locks the original hint, completion and touch-map functions.
+  gameplay: [['game', 'app/game.tsx'], 'b5414ff6285af427a9c0bbe69cc237143adf66b83e3d58df06b2b461f3ac1f65'],
+  adsConfig: [['services/ads.ts', 'services/ads.native.ts', 'services/adConfig.ts', 'app.json'], 'c92e39b08380baf8c18b29b8715ee3c8303ba404be392a46e0bc2ab62327798b'],
   audioSettings: [['services/audio.ts', 'services/audioSettings.ts', 'services/dumplingAudio.ts', 'hooks/useAudioSettings.ts', 'components/AudioSettingsModal.tsx', 'components/VolumeSlider.tsx'], 'ce037e12d11344d59da5762ed49f72219a4eb1657b12f8436af8343b61875ff6'],
 };
 function walk(relative) {

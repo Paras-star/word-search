@@ -15,6 +15,7 @@ import {
   showInterstitialAtTransition, subscribeToAds, watchRewardedForCoins,
 } from '@/services/ads';
 import { REWARDED_COINS } from '@/services/adConfig';
+import { logAd } from '@/services/adDiagnostics';
 
 export default function ResultsScreen() {
   const router = useRouter();
@@ -45,11 +46,15 @@ export default function ResultsScreen() {
   const proceed = (destination: '/' | { pathname: '/mode'; params: { categoryId: string } }) => {
     if (navigating.current) return;
     navigating.current = true;
+    const navigate = () => {
+      logAd('results-navigation', { gameOver, independentOfAdReward: true });
+      router.replace(destination);
+    };
     // The ad is optional; an unavailable or failed ad must not trap navigation.
-    if (gameOver) { router.replace(destination); return; }
+    if (gameOver) { navigate(); return; }
     void showInterstitialAtTransition().then(
-      () => router.replace(destination),
-      () => router.replace(destination),
+      navigate,
+      navigate,
     );
   };
   const watchAd = async () => {

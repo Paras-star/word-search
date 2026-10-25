@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { PanResponder, Platform, Pressable, StyleSheet, Text, View, useWindowDimensions, type GestureResponderEvent } from 'react-native';
-import { Redirect, useLocalSearchParams, useRouter } from 'expo-router';
+import { Redirect, useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import { Header, Screen, CoinPill, SoftButton } from '@/components/GameUI';
 import { CATEGORIES, getCategory } from '@/data/categories';
@@ -19,6 +19,9 @@ import { useGame } from '@/context/GameProvider';
 import { rewardGateway } from '@/services/rewardGateway';
 import { playSound } from '@/services/audio';
 import { useColors } from '@/hooks/useColors';
+import { useRewardedAd } from '@/hooks/useRewardedAd';
+import { RewardedAdButton } from '@/components/RewardedAdButton';
+import { createHintReward, REWARDED_HINTS } from '@/services/rewardedBenefits';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 function cellKey(cell: Cell) { return `${cell.row}-${cell.col}`; }
@@ -111,6 +114,30 @@ function GameSession({ params }: { params: GameParams }) {
   const hintSoundUsesRemaining = useRef(hints);
   foundRef.current = foundWords;
   hintSoundUsesRemaining.current = hints;
+  const hintAd = useRewardedAd('puzzle-hints');
+  // Only the focused, mounted, unfinished puzzle may receive a rewarded-hint grant.
+  const activePuzzleKey = useRef<string | null>(null);
+  const adPaused = useRef(false);
+  useFocusEffect(useCallback(() => {
+    activePuzzleKey.current = puzzle.id;
+    return () => { activePuzzleKey.current = null; };
+  }, [puzzle.id]));
+  const watchHintAd = () => {
+    if (adPaused.current || hintAd.loading || completionStarted.current || foundWords.length === puzzle.words.length) return;
+    const onEarned = createHintReward(
+      puzzle.id,
+      () => completionStarted.current ? null : activePuzzleKey.current,
+      (amount) => setHints((prev) => prev + amount),
+    );
+    adPaused.current = true;
+    const pausedAt = Date.now();
+    playSound('tap');
+    void hintAd.watch(onEarned).finally(() => {
+      adPaused.current = false;
+      // Keep the ad presentation out of classic-mode final-time bookkeeping.
+      startTime.current += Date.now() - pausedAt;
+    });
+  };
 
   const finish = useCallback(async () => {
     if (completionStarted.current) return;
@@ -172,7 +199,7 @@ function GameSession({ params }: { params: GameParams }) {
 
   useEffect(() => {
     const timer = setInterval(() => {
-      if (completionStarted.current) return;
+      if (completionStarted.current || adPaused.current) return;
       if (mode === 'classic') setElapsed((value) => value + 1);
       else setTimeLeft((value) => {
         if (value <= 1) {
@@ -331,7 +358,25 @@ function GameSession({ params }: { params: GameParams }) {
     <View style={[styles.words, onboarding && { maxHeight: Math.ceil(onboarding.words.length / 3) * 29, overflow: 'visible' }]}>{puzzle.words.map((word) => <View key={word} style={styles.wordItem}><Feather name={foundWords.includes(word) ? 'check' : 'circle'} size={14} color={foundWords.includes(word) ? colors.success : colors.border} /><Text style={[styles.word, { color: foundWords.includes(word) ? colors.foundWord : colors.foreground, textDecorationLine: foundWords.includes(word) ? 'line-through' : 'none' }]}>{word}</Text></View>)}</View>
     {feedback !== 'idle' && <Text style={[styles.feedback, { color: feedback === 'bonus' ? colors.orange : colors.warning }]}>{feedback === 'bonus' ? '+5 bonus word' : 'That word is not on the list'}</Text>}
     {finishError && <SoftButton onPress={() => { setFinishError(false); completionStarted.current = false; void finish(); }}>{daily ? 'RETRY SAVING DAILY PUZZLE' : 'RETRY SAVING COMPLETED LEVEL'}</SoftButton>}
-    <SoftButton onPress={useHint} disabled={hints === 0} suppressClickSound style={styles.hintFooter}>{hints ? `USE HINT  ·  ${hints} LEFT` : 'NO HINTS LEFT'}</SoftButton>
+    <View style={styles.hintFooterRow}>
+      <Pressable onPress={useHint} disabled={hints === 0} testID="use-hint-button" accessibilityRole="button" accessibilityLabel={hints ? `Use hint, ${hints} left` : 'No hints left'} accessibilityState={{ disabled: hints === 0 }} style={({ pressed }) => [styles.hintFooter, { backgroundColor: colors.card, borderColor: colors.buttonBorder, opacity: pressed ? 0.75 : hints === 0 ? 0.5 : 1 }]}>
+        <Feather name="zap" size={14} color={colors.primary} />
+        <Text style={[styles.hintFooterText, { color: colors.foreground }]} numberOfLines={1}>{hints ? `USE HINT · ${hints} LEFT` : 'NO HINTS LEFT'}</Text>
+      </Pressable>
+      <RewardedAdButton
+        variant="bar"
+        label="WATCH AD"
+        loading={hintAd.loading}
+        reward={`+${REWARDED_HINTS} HINTS`}
+        status={hintAd.status}
+        emphasized={hints === 0}
+        disabled={foundWords.length === puzzle.words.length}
+        onPress={watchHintAd}
+        accessibilityLabel={`Watch an ad for ${REWARDED_HINTS} extra hints`}
+        testID="hint-rewarded-button"
+        style={styles.hintAd}
+      />
+    </View>
   </Screen>;
 }
 
@@ -359,5 +404,8 @@ const styles = StyleSheet.create({
   wordItem: { flexDirection: 'row', alignItems: 'center', gap: 5, width: '31%', minHeight: 22 },
   word: { fontFamily: 'Inter_600SemiBold', fontSize: 11 },
   feedback: { textAlign: 'center', fontFamily: 'Inter_600SemiBold', fontSize: 12, marginTop: 5 },
-  hintFooter: { minHeight: 44, marginTop: 'auto' },
+  hintFooterRow: { flexDirection: 'row', alignItems: 'stretch', gap: 8, marginTop: 'auto', paddingTop: 10 },
+  hintFooter: { minHeight: 44, flex: 1, flexBasis: 0, paddingHorizontal: 8, borderRadius: 14, borderWidth: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 },
+  hintFooterText: { fontFamily: 'Inter_600SemiBold', fontSize: 12.5, letterSpacing: 0.2 },
+  hintAd: { flex: 1, flexBasis: 0 },
 });

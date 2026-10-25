@@ -6,8 +6,10 @@ const ts = require('typescript');
 
 function harness(options = {}) {
   const created = { rewarded: [], interstitial: [] };
-  const events = { LOADED: 'loaded', CLOSED: 'closed', ERROR: 'error', EARNED_REWARD: 'earned' };
+  const events = { LOADED: 'loaded', CLOSED: 'closed', ERROR: 'error', EARNED_REWARD: 'earned', OPENED: 'opened', IMPRESSION: 'impression' };
   const stats = { gather: 0, cached: 0, initialized: 0, privacyForms: 0 };
+  const logs = [];
+  const clock = { now: Date.now() };
   const timers = [];
   const schedule = options.fakeTimers
     ? (callback, delay) => {
@@ -16,22 +18,35 @@ function harness(options = {}) {
       return timer;
     }
     : setTimeout;
-  const cancel = options.fakeTimers ? (timer) => { timer.cancelled = true; } : clearTimeout;
+  const cancel = options.fakeTimers ? (timer) => { if (timer) timer.cancelled = true; } : clearTimeout;
   const info = options.info ?? { canRequestAds: true, privacyOptionsRequirementStatus: 'NOT_REQUIRED' };
-  function makeAd(kind) {
+  function makeAd(kind, unitId) {
     const callbacks = new Map();
     const ad = {
       loaded: false,
+      unitId,
+      showCalls: 0,
       addAdEventListener(event, callback) {
         if (!callbacks.has(event)) callbacks.set(event, new Set());
         callbacks.get(event).add(callback);
         return () => callbacks.get(event).delete(callback);
       },
-      emit(event) { for (const callback of [...(callbacks.get(event) ?? [])]) callback(); },
-      load() { this.loaded = true; this.emit(events.LOADED); },
-      show: () => kind === 'interstitial' && options.interstitialShowNeverSettles
-        ? new Promise(() => {}) : Promise.resolve(),
-      destroy() { this.destroyed = true; },
+      emit(event, payload) { for (const callback of [...(callbacks.get(event) ?? [])]) callback(payload); },
+      load() {
+        if (options.loadThrows) throw { code: 'network-error' };
+        if (options.autoLoad !== false) { this.loaded = true; this.emit(events.LOADED); }
+      },
+      show() {
+        this.showCalls++;
+        if (options.showThrows === kind) throw { code: 'show-failed' };
+        if (options.showRejects === kind) return Promise.reject({ code: 'show-failed' });
+        return kind === 'interstitial' && options.interstitialShowNeverSettles
+          ? new Promise(() => {}) : Promise.resolve();
+      },
+      destroy() {
+        this.destroyed = true;
+        if (options.cleanupThrows) throw new Error('native cleanup');
+      },
     };
     created[kind].push(ad);
     return ad;
@@ -39,7 +54,7 @@ function harness(options = {}) {
   const sdk = {
     default: () => ({ initialize: async () => {
       stats.initialized++;
-      if (options.initializeError) throw new Error('AdMob initialization failed');
+      if (options.initializeError || stats.initialized <= (options.initializeFailures ?? 0)) throw new Error('AdMob initialization failed');
       return [];
     } }),
     AdsConsentPrivacyOptionsRequirementStatus: { REQUIRED: 'REQUIRED' },
@@ -62,8 +77,8 @@ function harness(options = {}) {
     TestIds: { BANNER: 'test-banner', INTERSTITIAL: 'test-interstitial', REWARDED: 'test-rewarded' },
     AdEventType: events,
     RewardedAdEventType: events,
-    InterstitialAd: { createForAdRequest: () => makeAd('interstitial') },
-    RewardedAd: { createForAdRequest: () => makeAd('rewarded') },
+    InterstitialAd: { createForAdRequest: (id) => makeAd('interstitial', id) },
+    RewardedAd: { createForAdRequest: (id) => makeAd('rewarded', id) },
   };
   const source = fs.readFileSync(path.resolve(__dirname, '../services/ads.native.ts'), 'utf8');
   const code = ts.transpileModule(source, {
@@ -75,12 +90,22 @@ function harness(options = {}) {
     if (name === 'expo-constants') return { __esModule: true, default: { executionEnvironment: 'standalone' }, ExecutionEnvironment: { StoreClient: 'storeClient' } };
     if (name === './adConfig') return { ANDROID_AD_UNITS: { banner: 'live-banner', interstitial: 'live-interstitial', rewarded: 'live-rewarded' }, REWARDED_COINS: 50, INTERSTITIAL_EVERY_PUZZLES: 3, MIN_INTERSTITIAL_INTERVAL_MS: 120000 };
     if (name === 'react-native-google-mobile-ads') return sdk;
+    if (name === './adDiagnostics') {
+      const diagnostics = { exports: {} };
+      const source = fs.readFileSync(path.resolve(__dirname, '../services/adDiagnostics.ts'), 'utf8');
+      const compiled = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020 } }).outputText;
+      new Function('exports', 'setTimeout', 'console', compiled)(
+        diagnostics.exports, schedule, { info: (...args) => logs.push(args) },
+      );
+      return diagnostics.exports;
+    }
     throw new Error(`Unexpected import ${name}`);
   };
-  new Function('require', 'module', 'exports', '__DEV__', 'setTimeout', 'clearTimeout', code)(
-    mockRequire, module, module.exports, true, schedule, cancel,
+  class Clock extends Date { static now() { return clock.now; } }
+  new Function('require', 'module', 'exports', '__DEV__', 'setTimeout', 'clearTimeout', 'Date', code)(
+    mockRequire, module, module.exports, options.dev ?? true, schedule, cancel, Clock,
   );
-  return { ads: module.exports, created, events, stats, timers };
+  return { ads: module.exports, created, events, stats, timers, logs, clock };
 }
 
 test('refreshes UMP consent before SDK initialization or ad loading', async () => {
@@ -109,17 +134,17 @@ test('interstitial resolves after a stalled show and retains frequency rules', a
   await ads.prepareAds();
   for (let i = 0; i < 3; i++) ads.registerCompletedPuzzle(`puzzle-${i}`);
   const pending = ads.showInterstitialAtTransition();
-  assert.equal(timers.length, 1);
-  assert.equal(timers[0].delay, 60_000);
-  assert.equal(timers[0].cancelled, false);
-  timers[0].callback();
+  const showTimers = timers.filter(timer => timer.delay === 60_000);
+  assert.equal(showTimers.length, 1);
+  assert.equal(showTimers[0].cancelled, false);
+  showTimers[0].callback();
   await pending;
-  assert.equal(timers[0].cancelled, true);
+  assert.equal(showTimers[0].cancelled, true);
   assert.equal(created.interstitial[0].destroyed, true);
   await ads.prepareAds();
   for (let i = 3; i < 6; i++) ads.registerCompletedPuzzle(`puzzle-${i}`);
   await ads.showInterstitialAtTransition();
-  assert.equal(timers.length, 1); // The minimum interval still blocks another show.
+  assert.equal(timers.filter(timer => timer.delay === 60_000).length, 1); // Minimum interval still blocks another show.
 });
 
 test('interstitial close resolves promptly and cancels the fail-safe timer', async () => {
@@ -129,7 +154,7 @@ test('interstitial close resolves promptly and cancels the fail-safe timer', asy
   const pending = ads.showInterstitialAtTransition();
   created.interstitial[0].emit(events.CLOSED);
   await pending;
-  assert.equal(timers[0].cancelled, true);
+  assert.equal(timers.find(timer => timer.delay === 60_000).cancelled, true);
   assert.equal(created.interstitial[0].destroyed, true);
 });
 
@@ -233,4 +258,306 @@ test('a failed coin save does not claim a successful reward', async () => {
   created.rewarded[0].emit(events.EARNED_REWARD);
   created.rewarded[0].emit(events.CLOSED);
   assert.equal(await pending, 'save-failed');
+});
+
+function benefits() {
+  const source = fs.readFileSync(path.resolve(__dirname, '../services/rewardedBenefits.ts'), 'utf8');
+  const compiled = ts.transpileModule(source, {
+    compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020 },
+  }).outputText;
+  const exports = {};
+  new Function('exports', compiled)(exports);
+  return exports;
+}
+
+test('Home grants exactly 100 persisted coins only after earned, ignoring duplicate taps and callbacks', async () => {
+  const { ads, created, events } = harness();
+  await ads.prepareAds();
+  let coins = 0, saves = 0;
+  const grant = benefits().createCoinReward(async amount => { coins += amount; saves++; });
+  const pending = ads.watchRewarded(grant, 'home-coins');
+  assert.equal(await ads.watchRewarded(grant, 'home-coins'), 'unavailable');
+  assert.equal(coins, 0);
+  assert.equal(created.rewarded[0].showCalls, 1);
+  created.rewarded[0].emit(events.EARNED_REWARD);
+  created.rewarded[0].emit(events.EARNED_REWARD);
+  created.rewarded[0].emit(events.CLOSED);
+  assert.equal(await pending, 'earned');
+  await grant();
+  assert.equal(coins, 100);
+  assert.equal(saves, 1);
+  assert.equal(created.rewarded.length, 2, 'a new ad is prepared after dismissal');
+});
+
+test('hint benefit adds exactly three through existing state without consuming a free hint', async () => {
+  const { ads, created, events } = harness();
+  await ads.prepareAds();
+  let hints = 3;
+  const grant = benefits().createHintReward('active-puzzle', () => 'active-puzzle', amount => { hints += amount; });
+  const pending = ads.watchRewarded(grant, 'puzzle-hints');
+  assert.equal(hints, 3);
+  created.rewarded[0].emit(events.EARNED_REWARD);
+  created.rewarded[0].emit(events.EARNED_REWARD);
+  created.rewarded[0].emit(events.CLOSED);
+  assert.equal(await pending, 'earned');
+  grant();
+  assert.equal(hints, 6);
+});
+
+for (const nextPuzzle of [null, 'different-puzzle']) {
+  test(`a delayed hint reward does not reach a blurred, completed or different puzzle (${nextPuzzle})`, async () => {
+    const { ads, created, events } = harness();
+    await ads.prepareAds();
+    let hints = 0, active = 'original-puzzle';
+    const grant = benefits().createHintReward('original-puzzle', () => active, amount => { hints += amount; });
+    const pending = ads.watchRewarded(grant, 'puzzle-hints');
+    active = nextPuzzle;
+    created.rewarded[0].emit(events.EARNED_REWARD);
+    created.rewarded[0].emit(events.CLOSED);
+    assert.equal(await pending, 'cancelled');
+    assert.equal(hints, 0);
+  });
+}
+
+for (const placement of ['home-coins', 'puzzle-hints']) {
+  test(`${placement} grants nothing when closed without earned or when late earned follows dismissal`, async () => {
+    const { ads, created, events } = harness();
+    await ads.prepareAds();
+    let granted = 0;
+    const pending = ads.watchRewarded(() => { granted++; }, placement);
+    const ad = created.rewarded[0];
+    ad.emit(events.CLOSED);
+    ad.emit(events.EARNED_REWARD);
+    assert.equal(await pending, 'closed');
+    assert.equal(granted, 0);
+  });
+}
+
+for (const option of ['showThrows', 'showRejects']) {
+  test(`rewarded ${option} grants no benefit and reloads`, async () => {
+    const { ads, created } = harness({ [option]: 'rewarded' });
+    await ads.prepareAds();
+    let granted = 0;
+    assert.equal(await ads.watchRewarded(() => { granted++; }, 'home-coins'), 'unavailable');
+    assert.equal(granted, 0);
+    await Promise.resolve();
+    assert.equal(created.rewarded[0].destroyed, true);
+    assert.equal(created.rewarded.length, 2);
+  });
+}
+
+test('an unavailable/loading rewarded ad grants nothing and cannot be presented', async () => {
+  const { ads, created } = harness({ autoLoad: false, fakeTimers: true });
+  await ads.prepareAds();
+  assert.equal(ads.isRewardedLoading(), true);
+  let granted = 0;
+  assert.equal(await ads.watchRewarded(() => { granted++; }, 'puzzle-hints'), 'unavailable');
+  assert.equal(created.rewarded[0].showCalls, 0);
+  assert.equal(granted, 0);
+});
+
+test('rewarded load failure cannot grant a reward and schedules a retry', async () => {
+  const { ads, created, events, timers } = harness({ fakeTimers: true });
+  await ads.prepareAds();
+  created.rewarded[0].emit(events.ERROR, { code: 'no-fill' });
+  let granted = 0;
+  assert.equal(await ads.watchRewarded(() => { granted++; }, 'home-coins'), 'unavailable');
+  assert.equal(granted, 0);
+  assert.equal(created.rewarded[0].showCalls, 0);
+  assert.ok(timers.some(timer => timer.delay === 2000 && !timer.cancelled));
+});
+
+test('a rewarded presentation timeout releases its guard without granting a reward', async () => {
+  const { ads, created, timers } = harness({ fakeTimers: true });
+  await ads.prepareAds();
+  let granted = 0;
+  const pending = ads.watchRewarded(() => { granted++; }, 'home-coins');
+  timers.find(timer => timer.delay === 120_000).callback();
+  assert.equal(await pending, 'unavailable');
+  assert.equal(granted, 0);
+  assert.equal(created.rewarded[0].destroyed, true);
+  assert.equal(ads.isRewardedReady(), true);
+});
+
+test('failed initialization can succeed on a later preparation instead of caching failure forever', async () => {
+  const { ads, stats, created, logs } = harness({ initializeFailures: 1 });
+  await ads.prepareAds();
+  assert.equal(created.interstitial.length, 0);
+  await ads.prepareAds();
+  assert.equal(stats.initialized, 2);
+  assert.equal(created.interstitial.length, 1);
+  assert.ok(logs.some(([, event]) => event === 'initialize-error'));
+  assert.ok(logs.some(([, event]) => event === 'initialize-success'));
+});
+
+test('interstitial registration counts distinct nonempty puzzle IDs only and retains three-completion threshold', async () => {
+  const { ads, created, logs } = harness();
+  await ads.prepareAds();
+  ads.registerCompletedPuzzle('');
+  ads.registerCompletedPuzzle('one');
+  ads.registerCompletedPuzzle('one');
+  ads.registerCompletedPuzzle('two');
+  await ads.showInterstitialAtTransition();
+  assert.equal(created.interstitial[0].showCalls, 0);
+  assert.equal(logs.filter(([, event]) => event === 'completion-registered').length, 2);
+  assert.ok(logs.some(([, event, fields]) => event === 'interstitial-skipped' && fields.reason === 'completion-threshold'));
+});
+
+test('a loading interstitial can become ready during the bounded Results transition wait', async () => {
+  const { ads, created, events, logs } = harness({ autoLoad: false, fakeTimers: true });
+  await ads.prepareAds();
+  for (const id of ['one', 'two', 'three']) ads.registerCompletedPuzzle(id);
+  const pending = ads.showInterstitialAtTransition();
+  const ad = created.interstitial[0];
+  assert.equal(ad.showCalls, 0);
+  ad.emit(events.LOADED);
+  await Promise.resolve();
+  assert.equal(ad.showCalls, 1);
+  ad.emit(events.OPENED);
+  ad.emit(events.IMPRESSION);
+  ad.emit(events.CLOSED);
+  await pending;
+  assert.ok(logs.some(([, event]) => event === 'impression'));
+  assert.ok(logs.some(([, event]) => event === 'transition-complete'));
+});
+
+test('an interstitial that never loads releases Results navigation after 1800ms without a later surprise show', async () => {
+  const { ads, created, events, timers, logs } = harness({ autoLoad: false, fakeTimers: true });
+  await ads.prepareAds();
+  for (const id of ['one', 'two', 'three']) ads.registerCompletedPuzzle(id);
+  const pending = ads.showInterstitialAtTransition();
+  timers.find(timer => timer.delay === 1800).callback();
+  await pending;
+  created.interstitial[0].emit(events.LOADED);
+  assert.equal(created.interstitial[0].showCalls, 0);
+  assert.ok(logs.some(([, event, fields]) => event === 'interstitial-skipped' && fields.reason === 'not-loaded'));
+});
+
+test('load failure schedules a bounded retry and does not present an ad outside a transition', async () => {
+  const { ads, created, events, timers } = harness({ fakeTimers: true });
+  await ads.prepareAds();
+  created.interstitial[0].emit(events.ERROR, { code: 'no-fill' });
+  assert.equal(created.interstitial[0].destroyed, true);
+  assert.equal(created.interstitial.length, 1);
+  timers.find(timer => timer.delay === 2000 && !timer.cancelled).callback();
+  await ads.prepareAds();
+  assert.equal(created.interstitial.length, 2);
+  assert.equal(created.interstitial[1].showCalls, 0);
+});
+
+test('loading timeout frees a stuck ad object and schedules retry rather than remaining permanently not ready', async () => {
+  const { ads, created, timers } = harness({ autoLoad: false, fakeTimers: true });
+  await ads.prepareAds();
+  timers.find(timer => timer.delay === 15_000 && !timer.cancelled).callback();
+  assert.equal(created.interstitial[0].destroyed, true);
+  assert.ok(timers.some(timer => timer.delay === 2000));
+  timers.find(timer => timer.delay === 2000).callback();
+  await ads.prepareAds();
+  assert.equal(created.interstitial.length, 2);
+});
+
+test('privacy revocation cancels pending retry and cannot request or present new ads', async () => {
+  const { ads, created, events, timers } = harness({
+    fakeTimers: true,
+    info: { canRequestAds: true, privacyOptionsRequirementStatus: 'REQUIRED' },
+    privacyResult: { canRequestAds: false, privacyOptionsRequirementStatus: 'REQUIRED' },
+  });
+  await ads.prepareAds();
+  created.interstitial[0].emit(events.ERROR);
+  const retry = timers.find(timer => timer.delay === 2000);
+  await ads.showPrivacyOptions();
+  assert.equal(retry.cancelled, true);
+  retry.callback(); // Even an already-queued callback must recheck consent.
+  await ads.prepareAds();
+  assert.equal(created.interstitial.length, 1);
+  assert.equal(ads.canRequestAds(), false);
+});
+
+for (const option of ['showThrows', 'showRejects']) {
+  test(`interstitial ${option} releases navigation, logs the error, and prepares another ad`, async () => {
+    const { ads, created, logs } = harness({ [option]: 'interstitial' });
+    await ads.prepareAds();
+    for (const id of ['one', 'two', 'three']) ads.registerCompletedPuzzle(id);
+    await ads.showInterstitialAtTransition();
+    await Promise.resolve();
+    assert.equal(created.interstitial[0].destroyed, true);
+    assert.equal(created.interstitial.length, 2);
+    assert.ok(logs.some(([, event]) => event === 'show-error'));
+  });
+}
+
+test('interstitial and rewarded presentations cannot overlap', async () => {
+  const { ads, created, events, logs } = harness();
+  await ads.prepareAds();
+  for (const id of ['one', 'two', 'three']) ads.registerCompletedPuzzle(id);
+  const pending = ads.watchRewarded(() => {}, 'home-coins');
+  await ads.showInterstitialAtTransition();
+  assert.equal(created.interstitial[0].showCalls, 0);
+  assert.ok(logs.some(([, event, fields]) => event === 'interstitial-skipped' && fields.reason === 'presentation-in-progress'));
+  created.rewarded[0].emit(events.CLOSED);
+  await pending;
+});
+
+test('dismissal reloads but neither fewer than three new completions nor the two-minute cooldown is bypassed', async () => {
+  const { ads, created, events, clock } = harness();
+  await ads.prepareAds();
+  for (const id of ['one', 'two', 'three']) ads.registerCompletedPuzzle(id);
+  const pending = ads.showInterstitialAtTransition();
+  created.interstitial[0].emit(events.OPENED);
+  created.interstitial[0].emit(events.CLOSED);
+  await pending;
+  await ads.prepareAds();
+  clock.now += 120_001;
+  ads.registerCompletedPuzzle('four');
+  await ads.showInterstitialAtTransition();
+  assert.equal(created.interstitial[1].showCalls, 0);
+  ads.registerCompletedPuzzle('five');
+  ads.registerCompletedPuzzle('six');
+  const next = ads.showInterstitialAtTransition();
+  assert.equal(created.interstitial[1].showCalls, 1);
+  created.interstitial[1].emit(events.CLOSED);
+  await next;
+});
+
+test('expired cached rewarded ads are not shown and are replaced during preparation', async () => {
+  const { ads, created, clock } = harness();
+  await ads.prepareAds();
+  clock.now += 46 * 60_000;
+  assert.equal(ads.isRewardedReady(), false);
+  await ads.prepareAds();
+  assert.equal(created.rewarded[0].destroyed, true);
+  assert.equal(created.rewarded.length, 2);
+  assert.equal(ads.isRewardedReady(), true);
+});
+
+test('cleanup errors cannot strand interstitial navigation', async () => {
+  const { ads, created, events } = harness({ cleanupThrows: true });
+  await ads.prepareAds();
+  for (const id of ['one', 'two', 'three']) ads.registerCompletedPuzzle(id);
+  const pending = ads.showInterstitialAtTransition();
+  created.interstitial[0].emit(events.CLOSED);
+  await pending;
+  assert.equal(created.interstitial[0].destroyed, true);
+});
+
+test('diagnostics distinguish failures and skips without logging raw errors or puzzle IDs', async () => {
+  const { ads, created, events, logs } = harness({ fakeTimers: true });
+  await ads.prepareAds();
+  ads.registerCompletedPuzzle('private-puzzle-id');
+  await ads.showInterstitialAtTransition();
+  created.interstitial[0].emit(events.ERROR, { code: 'no-fill', message: 'private-native-payload' });
+  const text = JSON.stringify(logs);
+  assert.ok(text.includes('no-fill'));
+  assert.ok(text.includes('completion-threshold'));
+  assert.ok(!text.includes('private-puzzle-id'));
+  assert.ok(!text.includes('private-native-payload'));
+});
+
+test('development requests test ad units and release requests the existing configured units', async () => {
+  for (const dev of [true, false]) {
+    const { ads, created } = harness({ dev });
+    await ads.prepareAds();
+    assert.equal(created.interstitial[0].unitId, dev ? 'test-interstitial' : 'live-interstitial');
+    assert.equal(created.rewarded[0].unitId, dev ? 'test-rewarded' : 'live-rewarded');
+  }
 });

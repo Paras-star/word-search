@@ -11,6 +11,9 @@ import { homeColors } from '@/constants/homePalette';
 import { useGame } from '@/context/GameProvider';
 import { canOpenPrivacyOptions, showPrivacyOptions, subscribeToAds } from '@/services/ads';
 import { playSound } from '@/services/audio';
+import { createCoinReward, HOME_REWARDED_COINS } from '@/services/rewardedBenefits';
+import { RewardedAdButton } from '@/components/RewardedAdButton';
+import { useRewardedAd } from '@/hooks/useRewardedAd';
 
 export default function HomeScreen() {
   const router = useRouter();
@@ -18,7 +21,8 @@ export default function HomeScreen() {
   const insets = useSafeAreaInsets();
   const { height } = useWindowDimensions();
   const compact = height < 730;
-  const { coins, hydrated, onboardingStep } = useGame();
+  const { coins, hydrated, onboardingStep, awardCoins } = useGame();
+  const coinAd = useRewardedAd('home-coins');
   const [privacyOptionsAvailable, setPrivacyOptionsAvailable] = useState(canOpenPrivacyOptions);
   const [settingsOpen, setSettingsOpen] = useState(false);
   useEffect(() => subscribeToAds(() => setPrivacyOptionsAvailable(canOpenPrivacyOptions())), []);
@@ -40,6 +44,15 @@ export default function HomeScreen() {
         <Image source={require('../assets/images/chests/treasure-chest.png')} style={styles.chestImage} resizeMode="contain" />
         <Text style={styles.chestCue}>700</Text>
       </Pressable>
+      <RewardedAdButton
+        label="WATCH AD"
+        reward={`+${HOME_REWARDED_COINS} COINS`}
+        loading={coinAd.loading}
+        status={coinAd.status}
+        onPress={() => { playSound('tap'); void coinAd.watch(createCoinReward(awardCoins)); }}
+        accessibilityLabel={`Watch an ad for ${HOME_REWARDED_COINS} coins`}
+        testID="home-rewarded-coins-button"
+      />
       </View>
       <View style={styles.topActions}>
         <CoinPill coins={coins} />
@@ -74,7 +87,7 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   topRow: { minHeight: 84, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
   gearButton: { width: 44, height: 44, borderRadius: 14, borderWidth: 1, borderColor: homeColors.tileBorder, backgroundColor: homeColors.tile, alignItems: 'center', justifyContent: 'center' },
-  leftCol: { alignItems: 'flex-start', gap: 6 },
+  leftCol: { alignItems: 'flex-start', gap: 6, paddingBottom: 4 },
   chestButton: { minWidth: 44, height: 40, paddingHorizontal: 6, borderRadius: 13, borderWidth: 1, borderColor: homeColors.tileBorder, backgroundColor: homeColors.tile, flexDirection: 'row', alignItems: 'center', gap: 3 },
   chestImage: { width: 26, height: 26 },
   chestCue: { color: homeColors.gold, fontFamily: 'Inter_700Bold', fontSize: 11 },

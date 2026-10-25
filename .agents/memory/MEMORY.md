@@ -10,3 +10,4 @@
 - [Expo preview audio codecs](expo-preview-audio-codecs.md) — valid AAC timed out in preview; an exact-sample float WAV enabled browser playback without altering native audio.
 - [Treasure transaction safety](treasure-transaction-safety.md) — recoverable local commits protect paid rewards; shared chest visuals must not charge the free puzzle flow.
 - [Native chest performance](chest-native-performance.md) — real Android performance is authoritative; retain bounded decoded preparation without speeding up the source sequence.
+- [Ad placement and evidence](ad-placement-and-evidence.md) — preserve interruption safeguards; the reported Android zero-impression test did reach Results and needs native diagnostics.
