@@ -329,7 +329,7 @@ const protectedGroups = {
   // Authorized Anatomy-only expanded target layout; humanAnatomy.test.cjs protects
   // prior puzzles and rewardedUi.test.cjs retains byte-identical completion/touch guards.
   gameplay: [['game', 'app/game.tsx'], 'cfa127eba2dfb8abcddcf15f48642ebfdfa3b695a6b36bae40dd184681775a75'],
-  adsConfig: [['services/ads.ts', 'services/ads.native.ts', 'services/adConfig.ts', 'app.json'], 'c92e39b08380baf8c18b29b8715ee3c8303ba404be392a46e0bc2ab62327798b'],
+  adsConfig: [['services/ads.ts', 'services/ads.native.ts', 'services/adConfig.ts', 'app.json'], '50781ec161510eb3395c05237b89dda994183945809b06e84e8a8eb703009833'],
   audioSettings: [['services/audio.ts', 'services/audioSettings.ts', 'services/dumplingAudio.ts', 'hooks/useAudioSettings.ts', 'components/AudioSettingsModal.tsx', 'components/VolumeSlider.tsx'], 'ce037e12d11344d59da5762ed49f72219a4eb1657b12f8436af8343b61875ff6'],
 };
 function walk(relative) {
