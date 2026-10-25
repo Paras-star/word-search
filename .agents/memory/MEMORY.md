@@ -12,3 +12,4 @@
 - [Native chest performance](chest-native-performance.md) — real Android performance is authoritative; retain bounded decoded preparation without speeding up the source sequence.
 - [Ad placement and evidence](ad-placement-and-evidence.md) — preserve interruption safeguards; the reported Android zero-impression test did reach Results and needs native diagnostics.
 - [Rewarded hint balance](rewarded-hint-policy.md) — earned ads add three cumulatively; the top-right button manually spends one, never auto-highlighting on an ad reward.
+- [Expo GitHub build environment](expo-github-build-environment.md) — omitted images can select a legacy cloud toolchain; inspect actual logs rather than assuming SDK-based auto-selection.
