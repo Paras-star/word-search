@@ -1,0 +1,72 @@
+# EAS uploads from the repository root and replaces ALL .gitignore files.
+# Preserve the existing root rules below, followed by the app-scoped rules.
+
+# Existing root .gitignore rules
+dist
+tmp
+out-tsc
+*.tsbuildinfo
+.expo
+.expo-shared
+node_modules
+/.idea
+.project
+.classpath
+.c9/
+*.launch
+.settings/
+*.sublime-workspace
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/extensions.json
+/.sass-cache
+/connect.lock
+/coverage
+/libpeerconnection.log
+npm-debug.log
+yarn-error.log
+testem.log
+/typings
+.DS_Store
+Thumbs.db
+.cursor/rules/nx-rules.mdc
+.github/instructions/nx.instructions.md
+.cache/
+.local/
+
+# Existing artifacts/word-hunt/.gitignore rules, scoped to that app.
+# **/ preserves each original rule's matching at any depth within the app.
+artifacts/word-hunt/**/node_modules/
+artifacts/word-hunt/**/.expo/
+artifacts/word-hunt/**/dist/
+artifacts/word-hunt/**/web-build/
+artifacts/word-hunt/**/static-build/
+artifacts/word-hunt/**/expo-env.d.ts
+artifacts/word-hunt/**/ios/
+artifacts/word-hunt/**/android/
+artifacts/word-hunt/**/*.orig.*
+artifacts/word-hunt/**/*.jks
+artifacts/word-hunt/**/*.p8
+artifacts/word-hunt/**/*.p12
+artifacts/word-hunt/**/*.key
+artifacts/word-hunt/**/*.mobileprovision
+artifacts/word-hunt/**/.metro-health-check*
+artifacts/word-hunt/**/npm-debug.*
+artifacts/word-hunt/**/yarn-debug.*
+artifacts/word-hunt/**/yarn-error.*
+artifacts/word-hunt/**/.DS_Store
+artifacts/word-hunt/**/*.pem
+artifacts/word-hunt/**/.env*.local
+artifacts/word-hunt/**/*.tsbuildinfo
+artifacts/word-hunt/**/.vercel
+artifacts/word-hunt/**/.env
+
+# Upload-only exclusions. Originals remain in the workspace.
+/attached_assets
+/artifacts/word-hunt/tests
+/.agents
+
+# EAS's Git clone can retain tracked file contents in its object database.
+# Exclude that metadata too, so excluded attachments/notes/tests cannot travel in it.
+/.git
