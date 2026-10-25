@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { PanResponder, Platform, StyleSheet, Text, View, useWindowDimensions, type GestureResponderEvent } from 'react-native';
+import { PanResponder, Platform, Pressable, StyleSheet, Text, View, useWindowDimensions, type GestureResponderEvent } from 'react-native';
 import { Redirect, useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import { Header, Screen, CoinPill, SoftButton } from '@/components/GameUI';
@@ -94,6 +94,8 @@ function GameSession({ params }: { params: GameParams }) {
   const [elapsed, setElapsed] = useState(0);
   const [timeLeft, setTimeLeft] = useState(120);
   const [hints, setHints] = useState(3);
+  const [hintCells, setHintCells] = useState<Cell[]>([]);
+  const hintTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [foundWords, setFoundWords] = useState<string[]>([]);
   const [bonusWords, setBonusWords] = useState<string[]>([]);
   const [foundPaths, setFoundPaths] = useState<Record<string, Cell[]>>({});
@@ -116,7 +118,12 @@ function GameSession({ params }: { params: GameParams }) {
   const adPaused = useRef(false);
   useFocusEffect(useCallback(() => {
     activePuzzleKey.current = puzzle.id;
-    return () => { activePuzzleKey.current = null; };
+    setHintCells([]);
+    return () => {
+      activePuzzleKey.current = null;
+      if (hintTimeout.current) clearTimeout(hintTimeout.current);
+      hintTimeout.current = null;
+    };
   }, [puzzle.id]));
   const watchHintAd = () => {
     if (adPaused.current || hintAd.loading || completionStarted.current || foundWords.length === puzzle.words.length) return;
@@ -297,7 +304,33 @@ function GameSession({ params }: { params: GameParams }) {
     onPanResponderTerminate: () => endSelection(true),
   }), [bonusWords, puzzle]);
 
+  const useHint = () => {
+    if (hints <= 0 || hintTimeout.current || adPaused.current || completionStarted.current
+      || activePuzzleKey.current !== puzzle.id) return;
+    const remaining = puzzle.words.filter(word => {
+      if (foundRef.current.includes(word)) return false;
+      const cells = puzzle.placements[word]?.cells;
+      return cells?.length === word.length && cells.length > 0 && cells.every((cell, index) =>
+        Number.isInteger(cell.row) && Number.isInteger(cell.col)
+        && cell.row >= 0 && cell.col >= 0 && puzzle.grid[cell.row]?.[cell.col] === word[index]);
+    });
+    if (!remaining.length) return;
+    const word = remaining[Math.floor(Math.random() * remaining.length)];
+    const cells = puzzle.placements[word].cells;
+    // Lock before any state updates; rapid duplicate taps cannot spend another hint.
+    const timer = setTimeout(() => {
+      if (hintTimeout.current !== timer) return;
+      hintTimeout.current = null;
+      if (activePuzzleKey.current === puzzle.id) setHintCells([]);
+    }, 1500);
+    hintTimeout.current = timer;
+    setHints(value => Math.max(0, value - 1));
+    setHintCells(cells);
+    playSound('hint');
+  };
+
   const selectedKeys = useMemo(() => new Set(selectedCells.map(cellKey)), [selectedCells]);
+  const hintKeys = useMemo(() => new Set(hintCells.map(cellKey)), [hintCells]);
   const foundCellColors = useMemo(
     () => buildFoundHighlights(foundWords, foundPaths).cellColors,
     [foundWords, foundPaths],
@@ -307,6 +340,7 @@ function GameSession({ params }: { params: GameParams }) {
     const key = cellKey(cell);
     const foundColor = foundCellColors.get(key);
     if (selectedKeys.has(key)) return { backgroundColor: colors.primary, borderColor: colors.primary, borderRadius: 4 };
+    if (hintKeys.has(key)) return { backgroundColor: colors.accent };
     if (foundColor !== undefined) return { backgroundColor: foundColor, borderColor: foundColor };
     return { backgroundColor: colors.card };
   };
@@ -325,7 +359,7 @@ function GameSession({ params }: { params: GameParams }) {
 
   return <Screen style={styles.screen}>
     <Header title={category.name} onBack={() => daily ? (router.canGoBack() ? router.back() : router.replace('/daily')) : onboarding ? router.replace('/') : router.back()} right={<CoinPill coins={coins} />} />
-    <View style={styles.metaRow}><View><Text style={[styles.scoreLabel, { color: colors.mutedForeground }]}>SCORE</Text><Text style={[styles.score, { color: colors.foreground }]}>{score}</Text></View><View style={[styles.timerPill, { backgroundColor: mode === 'time' && timeLeft < 30 ? colors.accent : colors.card, borderColor: mode === 'time' && timeLeft < 30 ? colors.warning : colors.border }]}><Feather name="clock" size={16} color={mode === 'time' && timeLeft < 30 ? colors.warning : colors.primary} /><Text style={[styles.timerText, { color: mode === 'time' && timeLeft < 30 ? colors.warning : colors.foreground }]}>{formatTime(mode === 'time' ? timeLeft : elapsed)}</Text></View><View accessible accessibilityRole="text" accessibilityLabel={`${hints} ${hints === 1 ? 'hint' : 'hints'} banked`} style={[styles.hintButton, { backgroundColor: colors.card, borderColor: colors.border }]} testID="hint-balance"><Feather name="zap" size={15} color={colors.primary} /><Text style={[styles.hintText, { color: colors.foreground }]}>{hints}</Text></View></View>
+    <View style={styles.metaRow}><View><Text style={[styles.scoreLabel, { color: colors.mutedForeground }]}>SCORE</Text><Text style={[styles.score, { color: colors.foreground }]}>{score}</Text></View><View style={[styles.timerPill, { backgroundColor: mode === 'time' && timeLeft < 30 ? colors.accent : colors.card, borderColor: mode === 'time' && timeLeft < 30 ? colors.warning : colors.border }]}><Feather name="clock" size={16} color={mode === 'time' && timeLeft < 30 ? colors.warning : colors.primary} /><Text style={[styles.timerText, { color: mode === 'time' && timeLeft < 30 ? colors.warning : colors.foreground }]}>{formatTime(mode === 'time' ? timeLeft : elapsed)}</Text></View><Pressable accessible accessibilityRole="button" onPress={useHint} disabled={hints <= 0} accessibilityState={{ disabled: hints <= 0 }} accessibilityLabel={`Use hint, ${hints} ${hints === 1 ? 'hint' : 'hints'} left`} accessibilityHint="Highlights one unfound word and uses one hint" style={[styles.hintButton, { backgroundColor: colors.card, borderColor: colors.border }]} testID="hint-balance"><Feather name="zap" size={15} color={colors.primary} /><Text style={[styles.hintText, { color: colors.foreground }]}>{hints}</Text></Pressable></View>
     {onboarding && <Text style={[styles.tutorialHelp, { color: colors.mutedForeground }]}>
       {requestedStep === 0 ? 'Touch the first letter, drag in a straight line through a word below, then release.' : `Find all ${onboarding.words.length} words to earn 10 coins.`}
     </Text>}

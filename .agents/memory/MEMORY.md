@@ -11,4 +11,4 @@
 - [Treasure transaction safety](treasure-transaction-safety.md) — recoverable local commits protect paid rewards; shared chest visuals must not charge the free puzzle flow.
 - [Native chest performance](chest-native-performance.md) — real Android performance is authoritative; retain bounded decoded preparation without speeding up the source sequence.
 - [Ad placement and evidence](ad-placement-and-evidence.md) — preserve interruption safeguards; the reported Android zero-impression test did reach Results and needs native diagnostics.
-- [Rewarded hint balance](rewarded-hint-policy.md) — earned ads add three cumulatively; no automatic highlighting or restored free-hint controls.
+- [Rewarded hint balance](rewarded-hint-policy.md) — earned ads add three cumulatively; the top-right button manually spends one, never auto-highlighting on an ad reward.

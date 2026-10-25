@@ -55,14 +55,15 @@ test('found cells use each requested pastel for both fill and border, distinct f
   });
 });
 
-test('active selection keeps precedence and banked hints do not add automatic highlight overlays', () => {
+test('manual hints use the existing accent highlight while active selection retains precedence', () => {
   assert.deepEqual(style({ found: true, selected: true }), {
     backgroundColor: colors.primary, borderColor: colors.primary, borderRadius: 4,
   });
-  assert.deepEqual(style({ found: true, hint: true }), {
-    backgroundColor: FOUND_WORD_COLORS[0], borderColor: FOUND_WORD_COLORS[0],
+  assert.deepEqual(style({ found: true, hint: true }), { backgroundColor: colors.accent });
+  assert.deepEqual(style({ hint: true }), { backgroundColor: colors.accent });
+  assert.deepEqual(style({ found: true, selected: true, hint: true }), {
+    backgroundColor: colors.primary, borderColor: colors.primary, borderRadius: 4,
   });
-  assert.deepEqual(style({ hint: true }), { backgroundColor: colors.card });
   assert.deepEqual(style(), { backgroundColor: colors.card });
 });
 

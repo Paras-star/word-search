@@ -151,7 +151,8 @@ test('rewarded hints bank without consumption, automatic highlighting, or a hint
     assert.equal(adPaused.current, false);
     assert.deepEqual(sounds, ['tap']);
   }
-  assert.doesNotMatch(gameSource, /setHintCells|const useHint =|onPress=\{useHint\}/);
+  const rewardHandler = gameSource.slice(gameSource.indexOf('  const watchHintAd ='), gameSource.indexOf('  const finish ='));
+  assert.doesNotMatch(rewardHandler, /setHintCells|useHint\(/);
 });
 
 test('completion, coin, and dumpling sounds are tied to persisted reward stages', () => {

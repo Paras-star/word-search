@@ -22,13 +22,13 @@ test('Home wires a separate 100-coin action below the unchanged 700-coin chest',
   assert.equal(bytes[25], 6, 'original RGBA transparency is retained');
 });
 
-test('gameplay has one rewarded hint control and an additive, non-tappable hint balance', () => {
+test('gameplay shares its additive hint balance between the top use button and bottom rewarded control', () => {
   const source = read('app/game.tsx');
   assert.match(source, /const \[hints, setHints\] = useState\(3\)/);
-  assert.doesNotMatch(source, /testID="(?:use-hint-button|hint-button)"|USE HINT|NO HINTS LEFT|onPress=\{useHint\}/);
+  assert.doesNotMatch(source, /testID="(?:use-hint-button|hint-button)"|USE HINT|NO HINTS LEFT/);
   assert.match(source, /testID="hint-rewarded-button"/);
   assert.equal((source.match(/<RewardedAdButton/g) ?? []).length, 1);
-  assert.match(source, /<View accessible accessibilityRole="text"[^>]*testID="hint-balance"/);
+  assert.match(source, /<Pressable accessible accessibilityRole="button" onPress=\{useHint\}[^>]*testID="hint-balance"/);
   assert.match(source, /label="WATCH AD ·"/);
   assert.match(source, /setHints\(\(prev\) => prev \+ amount\)/);
   assert.match(source, /activePuzzleKey\.current = null/);
@@ -36,7 +36,9 @@ test('gameplay has one rewarded hint control and an additive, non-tappable hint 
   assert.match(source, /completionStarted\.current \|\| adPaused\.current/);
   assert.match(source, /startTime\.current \+= Date\.now\(\) - pausedAt/);
   assert.doesNotMatch(source, /showInterstitialAtTransition/);
-  assert.doesNotMatch(source, /setHintCells|setHints\(3\)|setHints\(\(value\) => Math\.max/);
+  const rewardHandler = source.slice(source.indexOf('  const watchHintAd ='), source.indexOf('  const finish ='));
+  assert.doesNotMatch(rewardHandler, /setHintCells|useHint\(|setHints\(3\)/);
+  assert.match(source, /setHints\(value => Math\.max\(0, value - 1\)\)/);
 });
 
 test('level completion and touch mapping remain byte-identical after removing the free-hint action', () => {
