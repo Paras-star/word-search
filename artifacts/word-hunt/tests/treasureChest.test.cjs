@@ -326,9 +326,9 @@ const protectedGroups = {
   sounds: [['assets/sounds'], '3058dc05d908de8cf76afbbee5614ec973b8faaf1f80cd0c5e93006a3323b0e6'],
   dumplings: [['assets/images/dumplings', 'data/dumplings.ts'], '3929ecc5225a9d7d0d4bfdffcedda08517997aa5c0c4e5423c5e77facef7a30f'],
   launcher: [['assets/launcher'], '136ee046e2237636381c94267ca00af85a447c1035dbd85d122b836c890191c9'],
-  // Authorized top-right hint consumption using the existing balance; rewardedUi.test.cjs
-  // retains byte-identical completion/touch guards and checks the new hint contract.
-  gameplay: [['game', 'app/game.tsx'], 'b5ac6d9cdd0bdfbb60a51bebf8afeaa89e9b7f1695686bc8d8c702b4a944c6a9'],
+  // Authorized Anatomy-only expanded target layout; humanAnatomy.test.cjs protects
+  // prior puzzles and rewardedUi.test.cjs retains byte-identical completion/touch guards.
+  gameplay: [['game', 'app/game.tsx'], 'cfa127eba2dfb8abcddcf15f48642ebfdfa3b695a6b36bae40dd184681775a75'],
   adsConfig: [['services/ads.ts', 'services/ads.native.ts', 'services/adConfig.ts', 'app.json'], 'c92e39b08380baf8c18b29b8715ee3c8303ba404be392a46e0bc2ab62327798b'],
   audioSettings: [['services/audio.ts', 'services/audioSettings.ts', 'services/dumplingAudio.ts', 'hooks/useAudioSettings.ts', 'components/AudioSettingsModal.tsx', 'components/VolumeSlider.tsx'], 'ce037e12d11344d59da5762ed49f72219a4eb1657b12f8436af8343b61875ff6'],
 };

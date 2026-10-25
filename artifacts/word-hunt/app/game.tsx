@@ -72,8 +72,10 @@ function GameSession({ params }: { params: GameParams }) {
   const onboarding = requestedStep !== null && Number.isInteger(requestedStep) ? getOnboardingStep(requestedStep) : undefined;
   const daily = !onboarding && rawDailyDate !== undefined && parseLocalDateKey(rawDailyDate)
     ? { category: dailyCategory(rawDailyDate), seed: dailySeed(rawDailyDate) } : null;
-  const extraWordHeight = onboarding ? Math.max(0, Math.ceil(onboarding.words.length / 3) - 3) * 29 : 0;
-  const boardSize = Math.max(0, Math.min(width - GAME_PADDING * 2, BOARD_MAX_WIDTH, height - top - bottom - NON_BOARD_HEIGHT - (onboarding ? 48 + extraWordHeight : daily ? 28 : 0)));
+  const expandedWordCount = onboarding?.words.length
+    ?? (!daily && categoryId === 'human-anatomy' ? getCategory(categoryId).words.length : 0);
+  const extraWordHeight = Math.max(0, Math.ceil(expandedWordCount / 3) - 3) * 29;
+  const boardSize = Math.max(0, Math.min(width - GAME_PADDING * 2, BOARD_MAX_WIDTH, height - top - bottom - NON_BOARD_HEIGHT - (onboarding ? 48 + extraWordHeight : daily ? 28 : extraWordHeight)));
   const mode: GameMode = onboarding || daily ? 'classic' : rawMode === 'time' ? 'time' : 'classic';
   const category = onboarding
     ? { id: `onboarding-${requestedStep}`, name: onboarding.label, emoji: '✨', words: onboarding.words }
@@ -366,7 +368,7 @@ function GameSession({ params }: { params: GameParams }) {
     {daily && <Text style={[styles.tutorialHelp, { color: colors.mutedForeground }]}>Daily challenge · {rawDailyDate} · +20 coins</Text>}
     <View style={[styles.gridWrap, { width: boardSize }]}><View style={[styles.grid, { borderColor: colors.border }]}><View ref={gridContentRef} style={Platform.OS === 'web' ? [styles.gridContent, styles.webGridContent] : styles.gridContent} onLayout={refreshGridBounds} {...panResponder.panHandlers}>{puzzle.grid.map((row, rowIndex) => <View key={rowIndex} style={styles.gridRow}>{row.map((letter, colIndex) => <View key={colIndex} style={[styles.cell, { borderColor: colors.border }, getCellStyle({ row: rowIndex, col: colIndex })]}><Text style={[styles.letter, { color: selectedKeys.has(`${rowIndex}-${colIndex}`) ? '#FFFFFF' : colors.foreground }]}>{letter}</Text></View>)}</View>)}</View></View></View>
     <View style={styles.listHeader}><Text style={[styles.listTitle, { color: colors.foreground }]}>Find these words</Text><Text style={[styles.progress, { color: colors.mutedForeground }]}>{foundWords.length}/{puzzle.words.length}</Text></View>
-    <View style={[styles.words, onboarding && { maxHeight: Math.ceil(onboarding.words.length / 3) * 29, overflow: 'visible' }]}>{puzzle.words.map((word) => <View key={word} style={styles.wordItem}><Feather name={foundWords.includes(word) ? 'check' : 'circle'} size={14} color={foundWords.includes(word) ? colors.success : colors.border} /><Text style={[styles.word, { color: foundWords.includes(word) ? colors.foundWord : colors.foreground, textDecorationLine: foundWords.includes(word) ? 'line-through' : 'none' }]}>{word}</Text></View>)}</View>
+    <View style={[styles.words, expandedWordCount > 0 && { maxHeight: Math.ceil(expandedWordCount / 3) * 29, overflow: 'visible' }]}>{puzzle.words.map((word) => <View key={word} style={styles.wordItem}><Feather name={foundWords.includes(word) ? 'check' : 'circle'} size={14} color={foundWords.includes(word) ? colors.success : colors.border} /><Text style={[styles.word, { color: foundWords.includes(word) ? colors.foundWord : colors.foreground, textDecorationLine: foundWords.includes(word) ? 'line-through' : 'none' }]}>{word}</Text></View>)}</View>
     {feedback !== 'idle' && <Text style={[styles.feedback, { color: feedback === 'bonus' ? colors.orange : colors.warning }]}>{feedback === 'bonus' ? '+5 bonus word' : 'That word is not on the list'}</Text>}
     {finishError && <SoftButton onPress={() => { setFinishError(false); completionStarted.current = false; void finish(); }}>{daily ? 'RETRY SAVING DAILY PUZZLE' : 'RETRY SAVING COMPLETED LEVEL'}</SoftButton>}
     <View style={[styles.hintFooterRow, { paddingBottom: bottom }]}>

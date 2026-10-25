@@ -21,6 +21,7 @@ export const CATEGORIES: Category[] = [
   { id: 'jobs', name: 'Jobs', emoji: '💼', words: ['DOCTOR', 'TEACHER', 'PILOT', 'CHEF', 'LAWYER', 'NURSE', 'ENGINEER', 'ARTIST', 'FARMER', 'WRITER', 'POLICE', 'FIREFIGHTER', 'ARCHITECT', 'SCIENTIST'] },
   { id: 'clothing', name: 'Clothing', emoji: '🧢', words: ['SHIRT', 'PANTS', 'DRESS', 'JACKET', 'SHOES', 'SOCKS', 'HAT', 'SCARF', 'GLOVES', 'BELT', 'BOOTS', 'COAT', 'SKIRT', 'SWEATER', 'SHORTS'] },
   { id: 'vegetables', name: 'Vegetables', emoji: '🥕', words: ['CARROT', 'POTATO', 'TOMATO', 'ONION', 'GARLIC', 'PEPPER', 'CORN', 'BROCCOLI', 'SPINACH', 'CABBAGE', 'CELERY', 'RADISH', 'PUMPKIN', 'ZUCCHINI'] },
+  { id: 'human-anatomy', name: 'Human Anatomy', emoji: '🧠', words: ['SKULL', 'SPINE', 'RIBCAGE', 'SHOULDER', 'ELBOW', 'WRIST', 'KNUCKLE', 'THIGH', 'ANKLE', 'HEEL', 'MUSCLE', 'TENDON', 'CARTILAGE', 'LUNG', 'KIDNEY', 'PANCREAS'] },
 ];
 
 export function getCategory(id: string | undefined): Category {
