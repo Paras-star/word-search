@@ -8,7 +8,27 @@ export const isRewardedReady = () => false;
 export const isRewardedLoading = () => false;
 export const prepareAds = async () => {};
 export const registerCompletedPuzzle = (_puzzleId: string) => {};
-export const showInterstitialAtTransition = async () => {};
+export type InterstitialTransition = {
+  signal?: AbortSignal;
+  canPresent?: () => boolean;
+};
+export type InterstitialResult = {
+  status: 'skipped' | 'cancelled' | 'failed' | 'timed-out' | 'closed';
+  reason: string;
+  displayed: boolean;
+  impression: boolean;
+};
+export const showInterstitialAtTransition = async (
+  transition: InterstitialTransition = {},
+): Promise<InterstitialResult> => {
+  const cancelled = transition.signal?.aborted === true || transition.canPresent?.() === false;
+  return {
+    status: cancelled ? 'cancelled' : 'skipped',
+    reason: cancelled ? 'transition-cancelled' : 'sdk-unavailable',
+    displayed: false,
+    impression: false,
+  };
+};
 export const watchRewardedForCoins = async (_awardCoins: (amount: number) => Promise<void>):
   Promise<'earned' | 'closed' | 'unavailable' | 'save-failed'> => 'unavailable';
 export const subscribeToAds = (_listener: () => void) => () => {};

@@ -11,6 +11,16 @@ type Rewarded = ReturnType<AdsSdk['RewardedAd']['createForAdRequest']>;
 type ConsentInfo = Awaited<ReturnType<AdsSdk['AdsConsent']['getConsentInfo']>>;
 export type WatchResult = 'earned' | 'closed' | 'unavailable' | 'save-failed' | 'cancelled';
 export type RewardPlacement = 'home-coins' | 'puzzle-hints' | 'results-coins';
+export type InterstitialTransition = {
+  signal?: AbortSignal;
+  canPresent?: () => boolean;
+};
+export type InterstitialResult = {
+  status: 'skipped' | 'cancelled' | 'failed' | 'timed-out' | 'closed';
+  reason: string;
+  displayed: boolean;
+  impression: boolean;
+};
 
 let sdk: AdsSdk | null | undefined;
 function getSdk(): AdsSdk | null {
@@ -282,37 +292,52 @@ export function registerCompletedPuzzle(puzzleId: string) {
   logAd('completion-registered', { completedCount });
 }
 
-function waitForInterstitial() {
+function waitForInterstitial(signal?: AbortSignal) {
   return new Promise<void>((resolve) => {
-    const finish = () => { clearTimeout(timeout); unsubscribe(); resolve(); };
+    const finish = () => {
+      clearTimeout(timeout);
+      unsubscribe();
+      signal?.removeEventListener('abort', finish);
+      resolve();
+    };
     const unsubscribe = subscribeToAds(() => {
       if (interstitialReady || !canRequestAds()) finish();
     });
     const timeout = adTimer(finish, TRANSITION_LOAD_WAIT_MS);
+    signal?.addEventListener('abort', finish, { once: true });
+    if (signal?.aborted) { finish(); return; }
     void prepareAds();
   });
 }
 
-export async function showInterstitialAtTransition() {
+export async function showInterstitialAtTransition(
+  transition: InterstitialTransition = {},
+): Promise<InterstitialResult> {
   const ads = getSdk();
-  const skip = (reason: string) => logAd('interstitial-skipped', {
-    reason, completedCount, ready: interstitialReady, hasAd: interstitial !== null,
-    consentAllowed, privacyOpen,
-  });
-  if (!ads) { skip('sdk-unavailable'); return; }
-  if (!canRequestAds()) { skip(privacyOpen ? 'privacy-open' : 'consent-not-allowed'); return; }
-  if (transitionPending || presentingInterstitial || watching) { skip('presentation-in-progress'); return; }
-  if (completedCount < INTERSTITIAL_EVERY_PUZZLES) { skip('completion-threshold'); return; }
-  if (Date.now() - lastInterstitialAt < MIN_INTERSTITIAL_INTERVAL_MS) { skip('minimum-interval'); return; }
+  const cancelled = () => transition.signal?.aborted === true || transition.canPresent?.() === false;
+  const skip = (reason: string): InterstitialResult => {
+    logAd('interstitial-skipped', {
+      reason, completedCount, ready: interstitialReady, hasAd: interstitial !== null,
+      consentAllowed, privacyOpen,
+    });
+    return { status: reason === 'transition-cancelled' ? 'cancelled' : 'skipped', reason, displayed: false, impression: false };
+  };
+  if (cancelled()) return skip('transition-cancelled');
+  if (!ads) return skip('sdk-unavailable');
+  if (!canRequestAds()) return skip(privacyOpen ? 'privacy-open' : 'consent-not-allowed');
+  if (transitionPending || presentingInterstitial || watching) return skip('presentation-in-progress');
+  if (completedCount < INTERSTITIAL_EVERY_PUZZLES) return skip('completion-threshold');
+  if (Date.now() - lastInterstitialAt < MIN_INTERSTITIAL_INTERVAL_MS) return skip('minimum-interval');
   transitionPending = true;
   try {
     if (interstitialReady && Date.now() - interstitialLoadedAt >= MAX_AD_AGE_MS) clearPrepared('interstitial');
     if (!interstitial || !interstitialReady) {
       logAd('interstitial-waiting-for-load', { maxWaitMs: TRANSITION_LOAD_WAIT_MS });
-      await waitForInterstitial();
+      await waitForInterstitial(transition.signal);
     }
-    if (!canRequestAds()) { skip('consent-changed'); return; }
-    if (!interstitial || !interstitialReady) { skip('not-loaded'); return; }
+    if (cancelled()) return skip('transition-cancelled');
+    if (!canRequestAds()) return skip('consent-changed');
+    if (!interstitial || !interstitialReady) return skip('not-loaded');
     const ad = interstitial;
     loadCleanup.interstitial?.();
     delete loadCleanup.interstitial;
@@ -320,10 +345,13 @@ export async function showInterstitialAtTransition() {
     interstitialReady = false;
     presentingInterstitial = true;
     logAd('show-attempt', { kind: 'interstitial', completedCount });
-    await new Promise<void>((resolve) => {
+    return await new Promise<InterstitialResult>((resolve) => {
       let settled = false;
       let recorded = false;
+      let displayed = false;
+      let impression = false;
       const removers: (() => void)[] = [];
+      let timeout: ReturnType<typeof setTimeout> | undefined;
       const recordAttempt = () => {
         if (recorded) return;
         recorded = true;
@@ -337,25 +365,36 @@ export async function showInterstitialAtTransition() {
         removeListeners(removers);
         destroyAd(ad);
         presentingInterstitial = false;
-        logAd('transition-complete', { reason, navigationAllowed: true });
-        resolve();
+        logAd('transition-complete', { reason, navigationAllowed: true, displayed, impression });
+        resolve({
+          status: reason === 'dismissed' ? 'closed' : reason === 'timeout' ? 'timed-out'
+            : reason === 'transition-cancelled' ? 'cancelled' : 'failed',
+          reason, displayed, impression,
+        });
         void prepareAds();
       };
-      removers.push(ad.addAdEventListener(ads.AdEventType.CLOSED, () => finish('dismissed')));
-      removers.push(ad.addAdEventListener(ads.AdEventType.ERROR, (error) => {
-        logAd('show-error', { kind: 'interstitial', code: adErrorCode(error) });
-        finish('show-error');
-      }));
-      removers.push(ad.addAdEventListener(ads.AdEventType.OPENED, () => {
-        recordAttempt();
-        logAd('opened', { kind: 'interstitial' });
-      }));
-      removers.push(ad.addAdEventListener(ads.AdEventType.IMPRESSION, () => logAd('impression', { kind: 'interstitial' })));
-      const timeout = adTimer(() => {
-        recordAttempt(); // Preserve the existing protection after an unconfirmed show.
-        finish('timeout');
-      }, 60_000);
       try {
+        removers.push(ad.addAdEventListener(ads.AdEventType.CLOSED, () => finish('dismissed')));
+        removers.push(ad.addAdEventListener(ads.AdEventType.ERROR, (error) => {
+          logAd('show-error', { kind: 'interstitial', code: adErrorCode(error) });
+          finish('show-error');
+        }));
+        removers.push(ad.addAdEventListener(ads.AdEventType.OPENED, () => {
+          displayed = true;
+          recordAttempt();
+          logAd('opened', { kind: 'interstitial' });
+        }));
+        removers.push(ad.addAdEventListener(ads.AdEventType.IMPRESSION, () => {
+          displayed = true;
+          impression = true;
+          logAd('impression', { kind: 'interstitial' });
+        }));
+        timeout = adTimer(() => {
+          recordAttempt(); // Preserve the existing protection after an unconfirmed show.
+          finish('timeout');
+        }, 60_000);
+        // No await separates this final route/foreground check from native show.
+        if (cancelled()) { finish('transition-cancelled'); return; }
         void ad.show().then(() => {
           if (settled) return;
           recordAttempt();

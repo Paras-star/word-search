@@ -32,12 +32,22 @@ function rewardHarness() {
     if (name === 'react') return react;
     if (name === 'react/jsx-runtime') return { jsx, jsxs: jsx, Fragment: 'Fragment' };
     if (name === 'react-native') return {
+      AppState: { currentState: 'active', addEventListener: () => ({ remove() {} }) },
       ActivityIndicator: 'Spinner', Animated: { Value, View: 'AnimatedView' },
       Pressable: 'Pressable', ScrollView: 'ScrollView', Text: 'Text', View: 'View',
       StyleSheet: { create: value => value },
     };
     if (name === '@expo/vector-icons') return { Feather: 'Feather' };
-    if (name === 'expo-router') return { useRouter: () => ({ replace() {} }), useLocalSearchParams: () => ({ score: '10', time: '30' }) };
+    if (name === 'expo-router') return {
+      useRouter: () => ({ replace() {} }),
+      useLocalSearchParams: () => ({ score: '10', time: '30' }),
+      useFocusEffect: callback => react.useEffect(callback),
+    };
+    if (name === '@/context/GameProvider') return { useGame: () => ({ hydrated: true, onboardingStep: 6 }) };
+    if (name === '@/services/ads') return {
+      registerCompletedPuzzle() { throw Error('Missing puzzle ID must not count'); },
+      showInterstitialAtTransition() { throw Error('Chest entry must not present an ad'); },
+    };
     if (name === 'react-native-safe-area-context') return { useSafeAreaInsets: () => ({ top: 0, bottom: 0 }) };
     if (name === '@/components/GameUI') return { PrimaryButton: 'PrimaryButton', SoftButton: 'SoftButton' };
     if (name === '@/components/ChestReveal') return { ChestReveal: 'ChestReveal' };

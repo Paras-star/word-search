@@ -476,6 +476,102 @@ test('an interstitial that never loads releases Results navigation after 1800ms 
   assert.ok(logs.some(([, event, fields]) => event === 'interstitial-skipped' && fields.reason === 'not-loaded'));
 });
 
+test('cancelling the load wait releases promptly and late loading cannot show an ad', async () => {
+  const { ads, created, events, timers } = harness({ autoLoad: false, fakeTimers: true });
+  await ads.prepareAds();
+  for (const id of ['one', 'two', 'three']) ads.registerCompletedPuzzle(id);
+  const controller = new AbortController();
+  const pending = ads.showInterstitialAtTransition({ signal: controller.signal });
+  controller.abort();
+  const result = await pending;
+  assert.equal(result.status, 'cancelled');
+  assert.equal(result.displayed, false);
+  assert.equal(timers.find(timer => timer.delay === 1800).cancelled, true);
+  created.interstitial[0].emit(events.LOADED);
+  await Promise.resolve();
+  assert.equal(created.interstitial[0].showCalls, 0);
+  // Cancellation did not consume eligibility or leave the transition locked.
+  const next = ads.showInterstitialAtTransition();
+  assert.equal(created.interstitial[0].showCalls, 1);
+  created.interstitial[0].emit(events.CLOSED);
+  assert.equal((await next).status, 'closed');
+});
+
+test('inactive transitions cannot present before loading or after the load wait', async () => {
+  const { ads, created, events } = harness({ autoLoad: false });
+  await ads.prepareAds();
+  for (const id of ['one', 'two', 'three']) ads.registerCompletedPuzzle(id);
+  let active = false;
+  assert.equal((await ads.showInterstitialAtTransition({ canPresent: () => active })).status, 'cancelled');
+  active = true;
+  const pending = ads.showInterstitialAtTransition({ canPresent: () => active });
+  active = false;
+  created.interstitial[0].emit(events.LOADED);
+  assert.equal((await pending).status, 'cancelled');
+  assert.equal(created.interstitial[0].showCalls, 0);
+});
+
+test('final active-screen check runs immediately before native show', async () => {
+  const { ads, created } = harness();
+  await ads.prepareAds();
+  for (const id of ['one', 'two', 'three']) ads.registerCompletedPuzzle(id);
+  let checks = 0;
+  const result = await ads.showInterstitialAtTransition({ canPresent: () => ++checks < 3 });
+  assert.equal(checks, 3);
+  assert.equal(result.status, 'cancelled');
+  assert.equal(created.interstitial[0].showCalls, 0);
+  assert.equal(created.interstitial[0].destroyed, true);
+});
+
+test('accepted requests are not reported as displayed; opened and impression are separate evidence', async () => {
+  for (const evidence of ['none', 'opened', 'impression']) {
+    const { ads, created, events } = harness();
+    await ads.prepareAds();
+    for (const id of ['one', 'two', 'three']) ads.registerCompletedPuzzle(id);
+    const controller = new AbortController();
+    const pending = ads.showInterstitialAtTransition({ signal: controller.signal });
+    await Promise.resolve(); // Native show request resolves, without proving display.
+    if (evidence !== 'none') created.interstitial[0].emit(events[evidence.toUpperCase()]);
+    controller.abort(); // A native show already in progress must retain its close guard.
+    created.interstitial[0].emit(events.CLOSED);
+    created.interstitial[0].emit(events.CLOSED);
+    assert.deepEqual(await pending, {
+      status: 'closed', reason: 'dismissed', displayed: evidence !== 'none', impression: evidence === 'impression',
+    });
+  }
+});
+
+test('interstitial outcomes distinguish eligibility skips, show errors, and stalled shows', async () => {
+  const skipped = harness();
+  await skipped.ads.prepareAds();
+  assert.equal((await skipped.ads.showInterstitialAtTransition()).reason, 'completion-threshold');
+  for (const options of [{ showThrows: 'interstitial' }, { showRejects: 'interstitial' }, { interstitialShowNeverSettles: true }]) {
+    const { ads, timers } = harness({ ...options, fakeTimers: true });
+    await ads.prepareAds();
+    for (const id of ['one', 'two', 'three']) ads.registerCompletedPuzzle(id);
+    const pending = ads.showInterstitialAtTransition();
+    if (options.interstitialShowNeverSettles) timers.find(timer => timer.delay === 60000).callback();
+    const result = await pending;
+    assert.equal(result.status, options.interstitialShowNeverSettles ? 'timed-out' : 'failed');
+    assert.equal(result.displayed, false);
+    assert.equal(result.impression, false);
+  }
+});
+
+test('competing interstitial requests are skipped and reused puzzle IDs never count again after a show', async () => {
+  const { ads, created, events, clock } = harness();
+  await ads.prepareAds();
+  for (const id of ['one', 'two', 'three']) ads.registerCompletedPuzzle(id);
+  const first = ads.showInterstitialAtTransition();
+  assert.equal((await ads.showInterstitialAtTransition()).reason, 'presentation-in-progress');
+  created.interstitial[0].emit(events.OPENED);
+  created.interstitial[0].emit(events.CLOSED);
+  await first;
+  clock.now += 120001;
+  for (const id of ['one', 'two', 'three']) ads.registerCompletedPuzzle(id);
+  assert.equal((await ads.showInterstitialAtTransition()).reason, 'completion-threshold');
+});
+
 test('load failure schedules a bounded retry and does not present an ad outside a transition', async () => {
   const { ads, created, events, timers } = harness({ fakeTimers: true });
   await ads.prepareAds();

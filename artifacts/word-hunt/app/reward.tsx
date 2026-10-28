@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   ActivityIndicator,
   Animated,
+  AppState,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -9,7 +10,7 @@ import {
   View,
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { PrimaryButton, SoftButton } from '@/components/GameUI';
 import { DUMPLING_BY_ID, RARITY_PRESENTATION } from '@/data/dumplings';
@@ -19,6 +20,8 @@ import { ChestReveal } from '@/components/ChestReveal';
 import { stopDumplingSounds } from '@/services/dumplingAudio';
 import { playSound } from '@/services/audio';
 import { homeColors } from '@/constants/homePalette';
+import { useGame } from '@/context/GameProvider';
+import { registerCompletedPuzzle, showInterstitialAtTransition } from '@/services/ads';
 
 type RevealStage = 'basket' | 'opening' | 'revealed' | 'collected';
 
@@ -31,6 +34,7 @@ const PARTICLE_POSITIONS = [
 export default function RewardScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { hydrated, onboardingStep } = useGame();
   const params = useLocalSearchParams<{ categoryId?: string; mode?: string; score?: string; time?: string; puzzleId?: string }>();
   const [reward, setReward] = useState<DumplingReward | null>(null);
   const [stage, setStage] = useState<RevealStage>('basket');
@@ -39,6 +43,23 @@ export default function RewardScreen() {
   const [error, setError] = useState<string | null>(null);
   const glow = useRef(new Animated.Value(0.2)).current;
   const mounted = useRef(true);
+  const focused = useRef(false);
+  const navigating = useRef(false);
+  const transition = useRef<AbortController | null>(null);
+
+  useFocusEffect(useCallback(() => {
+    focused.current = true;
+    navigating.current = false;
+    const subscription = AppState.addEventListener('change', (state) => {
+      if (state === 'background' || state === 'inactive') transition.current?.abort();
+    });
+    return () => {
+      focused.current = false;
+      transition.current?.abort();
+      transition.current = null;
+      subscription.remove();
+    };
+  }, []));
 
   useEffect(() => {
     let active = true;
@@ -62,6 +83,14 @@ export default function RewardScreen() {
   }, []);
 
   const dumpling = reward ? DUMPLING_BY_ID[reward.dumplingId] : null;
+  const eligibleCompletion = hydrated && onboardingStep >= 6 && !!dumpling
+    && typeof params.puzzleId === 'string' && params.puzzleId.trim().length > 0
+    && reward?.puzzleId === params.puzzleId;
+
+  useEffect(() => {
+    // The service's process-wide distinct-ID set also protects remounts/revisits.
+    if (!loading && eligibleCompletion) registerCompletedPuzzle(params.puzzleId!);
+  }, [loading, eligibleCompletion, params.puzzleId]);
   const presentation = dumpling ? RARITY_PRESENTATION[dumpling.rarity] : RARITY_PRESENTATION.Common;
   const visibleParticles = useMemo(() => PARTICLE_POSITIONS.slice(0, presentation.particleCount), [presentation.particleCount]);
 
@@ -83,7 +112,32 @@ export default function RewardScreen() {
     }
   };
 
-  const goToResults = () => router.replace({ pathname: '/results', params });
+  const viewCollection = () => {
+    if (navigating.current || !focused.current || stage !== 'collected' || !dumpling) return;
+    navigating.current = true;
+    router.replace({ pathname: '/collection', params: !isDuplicate ? { newDumplingId: dumpling.id } : undefined });
+  };
+
+  const goToResults = () => {
+    if (navigating.current || !focused.current || stage !== 'collected') return;
+    navigating.current = true;
+    const controller = new AbortController();
+    transition.current = controller;
+    let navigated = false;
+    const navigate = () => {
+      if (navigated || !mounted.current || !focused.current || transition.current !== controller) return;
+      navigated = true;
+      transition.current = null;
+      router.replace({ pathname: '/results', params });
+    };
+    // Invalid/excluded completions must never borrow another puzzle's eligibility.
+    if (!eligibleCompletion) { navigate(); return; }
+    void showInterstitialAtTransition({
+      signal: controller.signal,
+      canPresent: () => mounted.current && focused.current
+        && AppState.currentState !== 'background' && AppState.currentState !== 'inactive',
+    }).then(navigate, navigate);
+  };
 
   if (!loading && (!reward || !dumpling)) {
     return (
@@ -160,7 +214,7 @@ export default function RewardScreen() {
           {stage === 'opening' && <View style={styles.openingPill}><ActivityIndicator color={homeColors.teal} /><Text style={styles.openingText}>A little magic is happening</Text></View>}
           {stage === 'revealed' && dumpling && <PrimaryButton onPress={handleCollect} suppressClickSound style={[styles.actionButton, { backgroundColor: homeColors.teal }]} testID="reward-collect">COLLECT {dumpling.name.toUpperCase()}</PrimaryButton>}
           {stage === 'collected' && dumpling && <>
-            <PrimaryButton onPress={() => router.replace({ pathname: '/collection', params: !isDuplicate ? { newDumplingId: dumpling.id } : undefined })} style={[styles.actionButton, { backgroundColor: homeColors.teal }]}>VIEW COLLECTION ROOM</PrimaryButton>
+            <PrimaryButton onPress={viewCollection} style={[styles.actionButton, { backgroundColor: homeColors.teal }]}>VIEW COLLECTION ROOM</PrimaryButton>
             <SoftButton onPress={goToResults} style={styles.continueButton}>CONTINUE</SoftButton>
           </>}
         </View>

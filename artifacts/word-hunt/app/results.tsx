@@ -11,8 +11,8 @@ import { formatTime } from '@/game/scoring';
 import { useColors } from '@/hooks/useColors';
 import { useGame } from '@/context/GameProvider';
 import {
-  isAdsSupported, isRewardedReady, prepareAds, registerCompletedPuzzle,
-  showInterstitialAtTransition, subscribeToAds, watchRewardedForCoins,
+  isAdsSupported, isRewardedReady, prepareAds,
+  subscribeToAds, watchRewardedForCoins,
 } from '@/services/ads';
 import { REWARDED_COINS } from '@/services/adConfig';
 import { logAd } from '@/services/adDiagnostics';
@@ -36,7 +36,6 @@ export default function ResultsScreen() {
 
   useEffect(() => {
     if (isOnboardingRoute || isDailyRoute || onboardingStep < 6) return;
-    if (!gameOver && params.puzzleId) registerCompletedPuzzle(params.puzzleId);
     const update = () => setRewardedReady(isRewardedReady());
     const unsubscribe = subscribeToAds(update);
     void prepareAds().then(update);
@@ -50,12 +49,7 @@ export default function ResultsScreen() {
       logAd('results-navigation', { gameOver, independentOfAdReward: true });
       router.replace(destination);
     };
-    // The ad is optional; an unavailable or failed ad must not trap navigation.
-    if (gameOver) { navigate(); return; }
-    void showInterstitialAtTransition().then(
-      navigate,
-      navigate,
-    );
+    navigate();
   };
   const watchAd = async () => {
     if (watching || !isRewardedReady()) return;
