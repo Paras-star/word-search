@@ -329,9 +329,10 @@ const protectedGroups = {
   // Authorized Anatomy-only expanded target layout; humanAnatomy.test.cjs protects
   // prior puzzles and rewardedUi.test.cjs retains byte-identical completion/touch guards.
   gameplay: [['game', 'app/game.tsx'], 'cfa127eba2dfb8abcddcf15f48642ebfdfa3b695a6b36bae40dd184681775a75'],
-  // Authorized Continue-only interstitial transition/cancellation API; adConfig
-  // and app.json are unchanged. Behavioral safeguards are covered in ads.test.cjs.
-  adsConfig: [['services/ads.ts', 'services/ads.native.ts', 'services/adConfig.ts', 'app.json'], 'd7384b990f9ab5cdd6f3137f269af135886a60833f2804801a17acfb6d489dec'],
+  // Retains the authorized Continue-only interstitial transition/cancellation API.
+  // app.json includes the approved Android versionCode change from 5 to 6;
+  // the ad-service files remain unchanged. Behavioral safeguards are covered in ads.test.cjs.
+  adsConfig: [['services/ads.ts', 'services/ads.native.ts', 'services/adConfig.ts', 'app.json'], 'ca1c44d3af699dfd294fe6060b3dacb99841f466cb38836bfbf3d02b927219cd'],
   audioSettings: [['services/audio.ts', 'services/audioSettings.ts', 'services/dumplingAudio.ts', 'hooks/useAudioSettings.ts', 'components/AudioSettingsModal.tsx', 'components/VolumeSlider.tsx'], 'ce037e12d11344d59da5762ed49f72219a4eb1657b12f8436af8343b61875ff6'],
 };
 function walk(relative) {
