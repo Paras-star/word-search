@@ -249,6 +249,34 @@ test('invalid reward completion cannot borrow prior eligibility but Continue sti
   screen.unmount();
 });
 
+test('daily reward Continue never counts or attempts an interstitial and preserves daily Results routing', async () => {
+  for (const dailyDate of ['2026-10-28', '', 'invalid-date']) {
+    const screen = rewardScreenHarness({ params: { dailyDate } });
+    await screen.mount();
+    screen.render();
+    assert.deepEqual(screen.calls.registrations, []);
+    assert.equal(screen.counted.size, 0);
+    await screen.collect();
+    screen.press('CONTINUE');
+    screen.press('CONTINUE');
+    assert.equal(screen.calls.shows.length, 0);
+    assert.deepEqual(screen.calls.navigation, [{ pathname: '/results', params: screen.params }]);
+    assert.equal(screen.calls.navigation[0].params.dailyDate, dailyDate);
+    screen.unmount();
+  }
+});
+
+test('daily reward Collection navigation remains immediate, highlighted, and ad-free', async () => {
+  const screen = rewardScreenHarness({ params: { dailyDate: '2026-10-28' } });
+  await screen.mount();
+  await screen.collect();
+  screen.press('VIEW COLLECTION ROOM');
+  assert.deepEqual(screen.calls.registrations, []);
+  assert.equal(screen.calls.shows.length, 0);
+  assert.deepEqual(screen.calls.navigation, [{ pathname: '/collection', params: { newDumplingId: 'one' } }]);
+  screen.unmount();
+});
+
 test('leaving/unmounting cancels stale ad/navigation; background prevents presentation without trapping Continue', async () => {
   for (const action of ['blur', 'unmount', 'background']) {
     const screen = rewardScreenHarness();

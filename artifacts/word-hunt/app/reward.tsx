@@ -35,7 +35,8 @@ export default function RewardScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { hydrated, onboardingStep } = useGame();
-  const params = useLocalSearchParams<{ categoryId?: string; mode?: string; score?: string; time?: string; puzzleId?: string }>();
+  const params = useLocalSearchParams<{ categoryId?: string; mode?: string; score?: string; time?: string; puzzleId?: string; dailyDate?: string }>();
+  const isDailyRoute = params.dailyDate !== undefined;
   const [reward, setReward] = useState<DumplingReward | null>(null);
   const [stage, setStage] = useState<RevealStage>('basket');
   const [loading, setLoading] = useState(true);
@@ -83,7 +84,7 @@ export default function RewardScreen() {
   }, []);
 
   const dumpling = reward ? DUMPLING_BY_ID[reward.dumplingId] : null;
-  const eligibleCompletion = hydrated && onboardingStep >= 6 && !!dumpling
+  const eligibleCompletion = !isDailyRoute && hydrated && onboardingStep >= 6 && !!dumpling
     && typeof params.puzzleId === 'string' && params.puzzleId.trim().length > 0
     && reward?.puzzleId === params.puzzleId;
 
