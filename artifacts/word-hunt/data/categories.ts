@@ -3,6 +3,7 @@ export type Category = {
   name: string;
   emoji: string;
   words: string[];
+  wordLabels?: Record<string, string>;
 };
 
 export const CATEGORIES: Category[] = [
@@ -22,6 +23,8 @@ export const CATEGORIES: Category[] = [
   { id: 'clothing', name: 'Clothing', emoji: '🧢', words: ['SHIRT', 'PANTS', 'DRESS', 'JACKET', 'SHOES', 'SOCKS', 'HAT', 'SCARF', 'GLOVES', 'BELT', 'BOOTS', 'COAT', 'SKIRT', 'SWEATER', 'SHORTS'] },
   { id: 'vegetables', name: 'Vegetables', emoji: '🥕', words: ['CARROT', 'POTATO', 'TOMATO', 'ONION', 'GARLIC', 'PEPPER', 'CORN', 'BROCCOLI', 'SPINACH', 'CABBAGE', 'CELERY', 'RADISH', 'PUMPKIN', 'ZUCCHINI'] },
   { id: 'human-anatomy', name: 'Human Anatomy', emoji: '🧠', words: ['SKULL', 'SPINE', 'RIBCAGE', 'SHOULDER', 'ELBOW', 'WRIST', 'KNUCKLE', 'THIGH', 'ANKLE', 'HEEL', 'MUSCLE', 'TENDON', 'CARTILAGE', 'LUNG', 'KIDNEY', 'PANCREAS'] },
+  { id: 'emotions', name: 'Emotions', emoji: '💛', words: ['COURAGE', 'CURIOSITY', 'PATIENCE', 'HONESTY', 'KINDNESS', 'JEALOUSY', 'WONDER', 'ANXIETY', 'PRIDE', 'EMPATHY', 'RESILIENCE', 'LOYALTY', 'HUMILITY', 'OPTIMISM', 'FEAR', 'GRATITUDE'] },
+  { id: 'workshop', name: 'Workshop', emoji: '🔧', words: ['HAMMER', 'WRENCH', 'SCREWDRIVER', 'PLIERS', 'CHISEL', 'DRILL', 'HACKSAW', 'CLAMP', 'ANVIL', 'SOLDERING', 'SANDPAPER', 'LEVELER', 'RIVET', 'PULLEY', 'VISE', 'TAPEMEASURE'], wordLabels: { TAPEMEASURE: 'Tape Measure' } },
 ];
 
 export function getCategory(id: string | undefined): Category {

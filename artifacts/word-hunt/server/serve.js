@@ -12,16 +12,24 @@
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
+const { createHash } = require('crypto');
 
 const STATIC_ROOT = path.resolve(__dirname, '..', 'static-build');
 const WEB_ROOT = path.join(STATIC_ROOT, 'web');
 const WEB_INDEX = path.join(WEB_ROOT, 'index.html');
 const basePath = (process.env.BASE_PATH || '/').replace(/\/+$/, '');
+const CHEST_AUDIO_SOURCE = path.resolve(__dirname, '..', 'assets/chest-animation/chest-opening.wav');
+// Preserve Metro's content-hashed URL using the original, unchanged WAV.
+const CHEST_AUDIO_URL = `/assets/chest-animation/chest-opening.${createHash('md5')
+  .update(fs.readFileSync(CHEST_AUDIO_SOURCE)).digest('hex')}.wav`;
 
 const MIME_TYPES = {
   '.html': 'text/html; charset=utf-8',
   '.js': 'application/javascript; charset=utf-8',
   '.json': 'application/json; charset=utf-8',
+  '.txt': 'text/plain; charset=utf-8',
+  '.wav': 'audio/wav',
+  '.mp3': 'audio/mpeg',
   '.css': 'text/css; charset=utf-8',
   '.png': 'image/png',
   '.jpg': 'image/jpeg',
@@ -72,7 +80,10 @@ function serveStaticFile(urlPath, res) {
     return true;
   }
 
-  const filePath = [webPath, nativePath].find((candidate) =>
+  // Only this verified audio URL may fall back outside the generated export.
+  const candidates = [webPath, nativePath];
+  if (urlPath === CHEST_AUDIO_URL) candidates.push(CHEST_AUDIO_SOURCE);
+  const filePath = candidates.find((candidate) =>
     fs.existsSync(candidate) && fs.statSync(candidate).isFile(),
   );
   if (!filePath) return false;

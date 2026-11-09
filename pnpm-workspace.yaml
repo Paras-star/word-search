@@ -68,6 +68,20 @@ catalog:
 
 autoInstallPeers: false
 
+packageExtensions:
+  "react-day-picker@9.14.0":
+    peerDependencies:
+      "@types/react": "*"
+    peerDependenciesMeta:
+      "@types/react":
+        optional: true
+  "lucide-react@0.545.0":
+    peerDependencies:
+      "@types/react": "*"
+    peerDependenciesMeta:
+      "@types/react":
+        optional: true
+
 onlyBuiltDependencies:
   - '@swc/core'
   - esbuild
@@ -163,4 +177,17 @@ overrides:
   # Expo's transitive uuid versions are below the buffer-bounds security fix
   uuid: "11.1.1"
   # query-string pins a version vulnerable to malformed-input denial of service
-  decode-uri-component: "0.5.0"
+  decode-uri-component: "0.5.1"
+  # Runtime security patches without changing Express or Expo versions.
+  "express@5.2.1>body-parser": "2.4.0"
+  "express@5.2.1>proxy-addr": "2.0.8"
+  "express@5.2.1>qs": "6.16.1"
+  "body-parser@2.4.0>qs": "6.16.1"
+  # Approved same-major security patches, scoped to the affected versions.
+  "node-forge@1.4.0": "1.4.1"
+  "brace-expansion@5.0.9": "5.0.12"
+  "shell-quote@1.10.0": "1.11.0"
+  "source-map-js@1.2.1": "1.2.2"
+  "markdown-it@14.3.1": "14.3.3"
+  "@workspace/mockup-sandbox>vite": "7.3.7"
+  "fast-uri@3.1.7": "3.1.9"

@@ -38,7 +38,7 @@ export default function HomeScreen() {
   return <Screen style={{ paddingTop: insets.top + 10, paddingBottom: insets.bottom + 8, backgroundColor: homeColors.background }}>
     <View style={styles.topRow}>
       <View style={styles.leftCol}>
-      <Pressable onPress={() => { playSound('tap'); setSettingsOpen(true); }} hitSlop={4} accessibilityRole="button" accessibilityLabel="Audio settings" testID="settings-button" style={({ pressed }) => [styles.gearButton, { opacity: pressed ? 0.7 : 1 }]}>
+      <Pressable onPress={() => { playSound('tap'); setSettingsOpen(true); }} hitSlop={4} accessibilityRole="button" accessibilityLabel="Settings" testID="settings-button" style={({ pressed }) => [styles.gearButton, { opacity: pressed ? 0.7 : 1 }]}>
         <Text style={styles.calendarIcon}>⚙️</Text>
       </Pressable>
       <Pressable onPress={() => { playSound('tap'); router.push('/treasure-chest'); }} hitSlop={6} accessibilityRole="button" accessibilityLabel="Treasure Chest, 700 coins" testID="treasure-chest-button" style={({ pressed }) => [styles.chestButton, { opacity: pressed ? 0.7 : 1 }]}>

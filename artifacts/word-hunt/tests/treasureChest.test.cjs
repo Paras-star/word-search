@@ -326,14 +326,17 @@ const protectedGroups = {
   sounds: [['assets/sounds'], '3058dc05d908de8cf76afbbee5614ec973b8faaf1f80cd0c5e93006a3323b0e6'],
   dumplings: [['assets/images/dumplings', 'data/dumplings.ts'], '3929ecc5225a9d7d0d4bfdffcedda08517997aa5c0c4e5423c5e77facef7a30f'],
   launcher: [['assets/launcher'], '136ee046e2237636381c94267ca00af85a447c1035dbd85d122b836c890191c9'],
-  // Authorized Anatomy-only expanded target layout; humanAnatomy.test.cjs protects
-  // prior puzzles and rewardedUi.test.cjs retains byte-identical completion/touch guards.
-  gameplay: [['game', 'app/game.tsx'], 'cfa127eba2dfb8abcddcf15f48642ebfdfa3b695a6b36bae40dd184681775a75'],
+  // Authorized expanded target layout for Anatomy, Emotions and Workshop, plus
+  // natural target labels. Category tests preserve old puzzles; rewardedUi.test.cjs
+  // retains byte-identical completion/touch guards. The puzzle engine is unchanged.
+  gameplay: [['game', 'app/game.tsx'], '9ac24c1a54128745ff8de2f5468b59b007d4c7e048cfc6a9f834cce0017278f4'],
   // Retains the authorized Continue-only interstitial transition/cancellation API.
-  // app.json includes the approved Android versionCode change from 5 to 6;
+  // app.json includes the approved Android versionCode change from 6 to 7;
   // the ad-service files remain unchanged. Behavioral safeguards are covered in ads.test.cjs.
-  adsConfig: [['services/ads.ts', 'services/ads.native.ts', 'services/adConfig.ts', 'app.json'], 'ca1c44d3af699dfd294fe6060b3dacb99841f466cb38836bfbf3d02b927219cd'],
-  audioSettings: [['services/audio.ts', 'services/audioSettings.ts', 'services/dumplingAudio.ts', 'hooks/useAudioSettings.ts', 'components/AudioSettingsModal.tsx', 'components/VolumeSlider.tsx'], 'ce037e12d11344d59da5762ed49f72219a4eb1657b12f8436af8343b61875ff6'],
+  adsConfig: [['services/ads.ts', 'services/ads.native.ts', 'services/adConfig.ts', 'app.json'], '5c1a9e877357d40723d78301ffa767db08a1493e8136a31d7f87efdddb012a4c'],
+  // Authorized Information & Support addition to the existing settings modal.
+  // Audio services, persistence, hook, and volume slider remain unchanged.
+  audioSettings: [['services/audio.ts', 'services/audioSettings.ts', 'services/dumplingAudio.ts', 'hooks/useAudioSettings.ts', 'components/AudioSettingsModal.tsx', 'components/VolumeSlider.tsx'], '4338dc22b6e766e22104ed3a89ae8edf59503673acee68b415eaa22e4199ebc8'],
 };
 function walk(relative) {
   return fs.statSync(path.join(root, relative)).isDirectory()

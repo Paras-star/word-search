@@ -24,11 +24,11 @@ const expectedWords = [
   'SKULL', 'SPINE', 'RIBCAGE', 'SHOULDER', 'ELBOW', 'WRIST', 'KNUCKLE', 'THIGH',
   'ANKLE', 'HEEL', 'MUSCLE', 'TENDON', 'CARTILAGE', 'LUNG', 'KIDNEY', 'PANCREAS',
 ];
-const existing = CATEGORIES.filter(category => category.id !== 'human-anatomy');
+const existing = CATEGORIES.filter(category => !['human-anatomy', 'emotions', 'workshop'].includes(category.id));
 const sha256 = value => crypto.createHash('sha256').update(value).digest('hex');
 
 test('exactly one Human Anatomy category follows Vegetables with the exact 16 targets in order', () => {
-  assert.equal(CATEGORIES.length, 16);
+  assert.equal(CATEGORIES.length, 18);
   assert.equal(CATEGORIES.filter(category => category.id === 'human-anatomy').length, 1);
   assert.equal(CATEGORIES.findIndex(category => category.id === 'human-anatomy'),
     CATEGORIES.findIndex(category => category.id === 'vegetables') + 1);
@@ -88,7 +88,7 @@ test('Vegetables unlocks Anatomy using saved category IDs without changing any e
   assert.equal(isCategoryUnlocked(index, existing.slice(0, -1).map(category => category.id), CATEGORIES), false);
   assert.equal(isCategoryUnlocked(index, ['vegetables'], CATEGORIES), true);
   assert.equal(nextCategoryId('vegetables', CATEGORIES), anatomy.id);
-  assert.equal(nextCategoryId(anatomy.id, CATEGORIES), undefined);
+  assert.equal(nextCategoryId(anatomy.id, CATEGORIES), 'emotions');
   for (let i = 0; i < existing.length; i++) {
     for (let completed = 0; completed <= existing.length; completed++) {
       const ids = existing.slice(0, completed).map(category => category.id);
@@ -97,7 +97,7 @@ test('Vegetables unlocks Anatomy using saved category IDs without changing any e
   }
 });
 
-test('existing progress reloads without resets and Anatomy completes through the unchanged provider callbacks', async () => {
+test('existing progress reloads without resets and Anatomy plus new levels complete through the unchanged provider callbacks', async () => {
   const saved = { coins: 425, completedLevels: existing.map(category => category.id), onboardingStep: 6 };
   const values = new Map([['@word-hunt/progress-v2', JSON.stringify(saved)],
     ['@word-hunt/dumpling-rewards-v1', '{"ownedDumplingIds":["existing"],"rewards":[]}']]);
@@ -138,10 +138,20 @@ test('existing progress reloads without resets and Anatomy completes through the
   assert.deepEqual(await storage.loadProgress(), {
     ...saved, coins: 475, completedLevels: [...saved.completedLevels, anatomy.id],
   });
+  for (const id of ['emotions', 'workshop']) {
+    const progress = await storage.loadProgress();
+    assert.equal(isCategoryUnlocked(CATEGORIES.findIndex(category => category.id === id), progress.completedLevels, CATEGORIES), true);
+    await providerAction('awardCoins')(50);
+    await providerAction('completeLevel')(id);
+    await providerAction('completeLevel')(id);
+  }
+  assert.deepEqual(await storage.loadProgress(), {
+    ...saved, coins: 575, completedLevels: [...saved.completedLevels, anatomy.id, 'emotions', 'workshop'],
+  });
   assert.equal(values.get('@word-hunt/dumpling-rewards-v1'), originalCollection);
 });
 
-test('only Anatomy uses the existing expanded target layout; other level dimensions stay unchanged', () => {
+test('Anatomy and the new categories use the expanded target layout; old level dimensions stay unchanged', () => {
   const source = fs.readFileSync(path.join(root, 'app/game.tsx'), 'utf8');
   const ast = ts.createSourceFile('game.tsx', source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
   const names = ['expandedWordCount', 'extraWordHeight', 'boardSize'];

@@ -13,3 +13,7 @@
 - [Ad placement and evidence](ad-placement-and-evidence.md) — preserve interruption safeguards; the reported Android zero-impression test did reach Results and needs native diagnostics.
 - [Rewarded hint balance](rewarded-hint-policy.md) — earned ads add three cumulatively; the top-right button manually spends one, never auto-highlighting on an ad reward.
 - [Expo GitHub build environment](expo-github-build-environment.md) — omitted images can select a legacy cloud toolchain; inspect actual logs rather than assuming SDK-based auto-selection.
+- [Runtime dependency validation](runtime-dependency-validation.md) — decoder ESM interop predates security patches; validate active Expo routing, not an unused upstream parser.
+- [Cross-mode word reuse](cross-mode-word-reuse.md) — approved Emotions/Daily overlap preserves the exact requested targets and existing Daily puzzles.
+- [Google Play update policy](google-play-update-policy.md) — normal Play Store updates only; no custom in-app or push-notification update system.
+- [Upload key safety](upload-key-safety.md) — preserve existing EAS credentials; require verified encrypted external backups and separate activation approval.
