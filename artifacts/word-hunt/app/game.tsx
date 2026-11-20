@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { PanResponder, Platform, Pressable, StyleSheet, Text, View, useWindowDimensions, type GestureResponderEvent } from 'react-native';
+import { Image, PanResponder, Platform, Pressable, StyleSheet, Text, View, useWindowDimensions, type GestureResponderEvent } from 'react-native';
 import { Redirect, useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import { Header, Screen, CoinPill, SoftButton } from '@/components/GameUI';
@@ -360,6 +360,12 @@ function GameSession({ params }: { params: GameParams }) {
   if (!onboarding && !daily && !isCategoryUnlocked(categoryIndex, completedLevels, CATEGORIES)) return <Redirect href="/categories" />;
 
   return <Screen style={styles.screen}>
+    {!onboarding && !daily && category.id === 'animals' && (
+      <View pointerEvents="none" style={StyleSheet.absoluteFill} testID="animals-background">
+        <Image source={require('../assets/images/backgrounds/animals-background.png')}
+          style={[StyleSheet.absoluteFill, { width: '100%', height: '100%' }]} resizeMode="cover" accessible={false} />
+      </View>
+    )}
     <Header title={category.name} onBack={() => daily ? (router.canGoBack() ? router.back() : router.replace('/daily')) : onboarding ? router.replace('/') : router.back()} right={<CoinPill coins={coins} />} />
     <View style={styles.metaRow}><View><Text style={[styles.scoreLabel, { color: colors.mutedForeground }]}>SCORE</Text><Text style={[styles.score, { color: colors.foreground }]}>{score}</Text></View><View style={[styles.timerPill, { backgroundColor: mode === 'time' && timeLeft < 30 ? colors.accent : colors.card, borderColor: mode === 'time' && timeLeft < 30 ? colors.warning : colors.border }]}><Feather name="clock" size={16} color={mode === 'time' && timeLeft < 30 ? colors.warning : colors.primary} /><Text style={[styles.timerText, { color: mode === 'time' && timeLeft < 30 ? colors.warning : colors.foreground }]}>{formatTime(mode === 'time' ? timeLeft : elapsed)}</Text></View><Pressable accessible accessibilityRole="button" onPress={useHint} disabled={hints <= 0} accessibilityState={{ disabled: hints <= 0 }} accessibilityLabel={`Use hint, ${hints} ${hints === 1 ? 'hint' : 'hints'} left`} accessibilityHint="Highlights one unfound word and uses one hint" style={[styles.hintButton, { backgroundColor: colors.card, borderColor: colors.border }]} testID="hint-balance"><Feather name="zap" size={15} color={colors.primary} /><Text style={[styles.hintText, { color: colors.foreground }]}>{hints}</Text></Pressable></View>
     {onboarding && <Text style={[styles.tutorialHelp, { color: colors.mutedForeground }]}>

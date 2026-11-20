@@ -329,7 +329,8 @@ const protectedGroups = {
   // Authorized expanded target layout for Anatomy, Emotions and Workshop, plus
   // natural target labels. Category tests preserve old puzzles; rewardedUi.test.cjs
   // retains byte-identical completion/touch guards. The puzzle engine is unchanged.
-  gameplay: [['game', 'app/game.tsx'], '9ac24c1a54128745ff8de2f5468b59b007d4c7e048cfc6a9f834cce0017278f4'],
+  // Authorized Animals-only background layer; existing gameplay/UI is unchanged.
+  gameplay: [['game', 'app/game.tsx'], '7f0605d7a6f3a279da96915f07940409890b039dbb3550b238be8372b1a61eae'],
   // Retains the authorized Continue-only interstitial transition/cancellation API.
   // app.json includes the approved Android versionCode change from 6 to 7;
   // the ad-service files remain unchanged. Behavioral safeguards are covered in ads.test.cjs.
