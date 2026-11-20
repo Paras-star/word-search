@@ -48,7 +48,7 @@ test('decoded native cache is single-flight and bounded; re-entry does not decod
   assert.equal(decoded.length, 37);
 });
 
-function nativeHarness({ preparationFails = false, cold = false, displayClosed = true } = {}) {
+function nativeHarness({ preparationFails = false, cold = false, displayClosed = true, platform = 'android' } = {}) {
   let index = 0, dirty = false, tree, effects = [], renders = 0, opening = false, now = 0;
   let callbacks = 0, plays = 0, taps = 0, failure = preparationFails;
   const hooks = [], shared = [], listeners = new Set(), timers = new Map(), jsQueue = [];
@@ -94,7 +94,7 @@ function nativeHarness({ preparationFails = false, cold = false, displayClosed =
   const renderer = load('components/ChestFrameRenderer.native.tsx', name => {
     if (name === 'react') return react;
     if (name === 'react/jsx-runtime') return { jsx, jsxs: jsx };
-    if (name === 'react-native') return { View: 'View', StyleSheet: { create: x => x } };
+    if (name === 'react-native') return { View: 'View', Platform: { OS: platform }, StyleSheet: { create: x => x } };
     if (name === 'expo-image') return { Image: 'PreparedImage' };
     if (name === 'react-native-reanimated') return reanimated;
     if (name === './chestAnimationData') return { CHEST_FPS: 24, CHEST_FRAME_COUNT: 73 };
@@ -167,7 +167,11 @@ function nativeHarness({ preparationFails = false, cold = false, displayClosed =
       const rendered = native.type(native.props);
       for (const atlas of rendered.props.children) if (!loadedAtlases.has(atlas.props.index)) {
         loadedAtlases.add(atlas.props.index);
-        atlas.type(atlas.props).props.children.props.onLoad();
+        const image = atlas.type(atlas.props).props.children;
+        // expo-image iOS renders SharedRef<UIImage> directly: onDisplay fires,
+        // but the URL-loader's onLoad event does not. Android uses Glide/onLoad.
+        if (platform === 'ios') image.props.onDisplay?.();
+        else image.props.onLoad();
       }
     },
     advanceUI(ms) {
@@ -177,6 +181,12 @@ function nativeHarness({ preparationFails = false, cold = false, displayClosed =
         a.elapsed += ms;
         v.number = a.start + (a.target - a.start) * Math.min(1, a.elapsed / a.options.duration);
         if (a.elapsed >= a.options.duration) { v.animation = null; a.completion?.(true); }
+      }
+    },
+    advanceTimers(ms) {
+      now += ms;
+      for (const [id, timer] of [...timers]) if (timer.at <= now) {
+        timers.delete(id); timer.fn();
       }
     },
     atlasStyles() {
@@ -339,4 +349,43 @@ test('idle native background/foreground refreshes audio readiness without replay
   assert.equal(h.callbacks, 0);
   h.render(true); assert.equal(h.plays, 1);
   h.unmount();
+});
+
+test('iOS decoded-image display events enable the chest and complete the original reveal exactly once', async () => {
+  const h = nativeHarness({ platform: 'ios' });
+  await h.flushJS();
+  assert.equal(h.rendererCount, 5, 'all five decoded atlases must prepare without iOS onLoad events');
+  assert.equal(find(h.tree, 'tap').props.disabled, false);
+  find(h.tree, 'tap').props.onPress();
+  assert.equal(h.taps, 1);
+  h.render(true);
+  assert.equal(h.plays, 1);
+  h.advanceUI(2500);
+  assert.ok(find(h.tree, 'chest-revealed-artwork').props.style.at(-1).read().opacity > 0);
+  h.advanceUI(542);
+  await h.flushJS();
+  assert.equal(h.callbacks, 1);
+  h.advanceTimers(6000);
+  h.emit('active');
+  await h.flushJS();
+  assert.equal(h.callbacks, 1);
+  assert.equal(h.plays, 1);
+  h.unmount();
+});
+
+test('iOS reveal fallback and app resume release completion once; unmount cancels pending completion', async () => {
+  for (const completion of ['timeout', 'resume', 'unmount']) {
+    const h = nativeHarness({ platform: 'ios' });
+    await h.flushJS();
+    assert.equal(find(h.tree, 'tap').props.disabled, false);
+    h.render(true);
+    h.advanceUI(100);
+    if (completion === 'unmount') h.unmount();
+    else if (completion === 'resume') { h.emit('inactive'); h.emit('active'); }
+    h.advanceTimers(6000);
+    h.advanceUI(6000);
+    await h.flushJS();
+    assert.equal(h.callbacks, completion === 'unmount' ? 0 : 1);
+    if (completion !== 'unmount') h.unmount();
+  }
 });

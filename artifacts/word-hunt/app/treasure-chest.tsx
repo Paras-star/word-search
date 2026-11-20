@@ -1,14 +1,12 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { BackHandler, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { Feather } from '@expo/vector-icons';
+import { BackHandler, Image, Modal, Platform, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { useNavigation, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { PrimaryButton, SoftButton, CoinPill } from '@/components/GameUI';
+import { PrimaryButton, SoftButton } from '@/components/GameUI';
 import { ChestReveal } from '@/components/ChestReveal';
 import { DUMPLING_BY_ID, RARITY_PRESENTATION, type Dumpling } from '@/data/dumplings';
 import { homeColors } from '@/constants/homePalette';
 import { useGame } from '@/context/GameProvider';
-import { playSound } from '@/services/audio';
 import { stopDumplingSounds } from '@/services/dumplingAudio';
 import { TREASURE_CHEST_COST } from '@/services/treasureChest';
 
@@ -34,6 +32,12 @@ export default function TreasureChestScreen() {
   const blocked = phase === 'processing' || phase === 'animating';
   const blockedRef = useRef(blocked);
   blockedRef.current = blocked;
+
+  useEffect(() => {
+    // The idle design has no back button. iOS needs its native back gesture;
+    // keep it unavailable only while a purchase/reveal must not be interrupted.
+    if (Platform.OS === 'ios') navigation.setOptions({ gestureEnabled: !blocked });
+  }, [blocked, navigation]);
 
   useEffect(() => {
     mounted.current = true;
@@ -68,6 +72,7 @@ export default function TreasureChestScreen() {
       setError(cause instanceof Error ? cause.message : 'The purchase could not be confirmed. Please retry safely.');
       blockedRef.current = false;
       setPhase('ready');
+      setConfirming(true);
     } finally {
       inFlight.current = false;
     }
@@ -82,64 +87,66 @@ export default function TreasureChestScreen() {
   const p = RARITY_PRESENTATION[dumpling?.rarity ?? 'Common'];
   const done = phase === 'done' && dumpling;
 
+  // Use proportional cover only while the embedded heading and pedestal stay
+  // within the crop. Wider/exceptionally tall layouts retain the whole image.
+  // Platform top-surface center in source: x 0.5, y 0.537 (550/1024); chest base sits at 0.548.
+  // Closed frame alpha base is y356 of the 384 canvas; visible width 358/384.
+  const win = useWindowDimensions();
+  const [box, setBox] = useState<{ w: number; h: number } | null>(null);
+  const W = box?.w ?? win.width;
+  const H = box?.h ?? win.height;
+  const cover = Math.max(W / BG_W, H / BG_H);
+  const safeCover = W / cover >= BG_W * 0.7 && H / cover >= BG_H * 0.94;
+  const scale = safeCover ? cover : Math.min(W / BG_W, H / BG_H);
+  const imgW = BG_W * scale;
+  const imgH = BG_H * scale;
+  const imgX = (W - imgW) / 2;
+  const imgY = (H - imgH) / 2;
+  // Fill exceptional aspect-ratio margins with the source's sky strip, never
+  // a second heading or pedestal. The main artwork remains unmodified.
+  const backingScale = Math.max(W / BG_W, H / (BG_H * 0.12));
+  const stage = Math.min(380, imgW * 0.46);
+  const chestLeft = imgX + imgW * 0.5 - stage / 2;
+  const chestTop = imgY + imgH * 0.548 - stage * (356 / 384);
+  const showNeed = hydrated && phase === 'ready' && coins < TREASURE_CHEST_COST;
+
   return (
-    <View style={[styles.screen, { paddingTop: insets.top + 8, paddingBottom: insets.bottom + 8 }]}>
-      <View style={styles.topBar}>
-        <Pressable onPress={() => { playSound('tap'); leave(); }} disabled={blocked} hitSlop={12} accessibilityRole="button" accessibilityLabel="Leave Treasure Chest" testID="treasure-leave" style={{ opacity: blocked ? 0.35 : 1 }}>
-          <Feather name="arrow-left" size={24} color={homeColors.ink} />
-        </Pressable>
-        <Text style={styles.topTitle}>TREASURE CHEST</Text>
-        <CoinPill coins={coins} />
+    <View style={styles.screen} onLayout={e => { const { width, height } = e.nativeEvent.layout; if (width > 0 && height > 0) setBox({ w: width, h: height }); }}>
+      <View pointerEvents="none" style={StyleSheet.absoluteFill}>
+        {!safeCover && <Image accessible={false} source={BG} style={{ position: 'absolute', left: (W - BG_W * backingScale) / 2, top: -BG_H * 0.18 * backingScale, width: BG_W * backingScale, height: BG_H * backingScale }} />}
+        <Image accessible={false} source={BG} style={{ position: 'absolute', left: imgX, top: imgY, width: imgW, height: imgH }} resizeMode="contain" />
       </View>
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        {(phase === 'animating' || phase === 'done') && <Text style={styles.spent} testID="treasure-spent">{TREASURE_CHEST_COST} coins spent · Treasure Chest</Text>}
+      <View style={{ position: 'absolute', left: chestLeft, top: chestTop, width: stage, height: stage }}>
         <ChestReveal opening={phase === 'animating' || phase === 'done'} dumpling={dumpling} onRevealed={onRevealed} onPress={() => setConfirming(true)} disabled={!canBuy} testID="treasure-chest-tap" accessibilityLabel={`Tap the chest to open for ${TREASURE_CHEST_COST} coins`} />
-        <View style={styles.copyBlock}>
-          {done ? (
-            <>
-              <Text style={[styles.kicker, { color: p.glow }]}>{dumpling.rarity.toUpperCase()}</Text>
-              <Text style={styles.title} testID="treasure-result-name">{dumpling.name}</Text>
-              <Text style={styles.copy}>
-                {isDuplicate
-                  ? 'Duplicate recorded. You already collected this dumpling, so your Collection stays as it was.'
-                  : 'Added to your Collection.'}
-              </Text>
-              <Text style={styles.spent}>{TREASURE_CHEST_COST} coins spent on a Treasure Chest</Text>
-              {recovery && <Text style={styles.copy}>Your purchase and reward are safely saved. Local save recovery will retry automatically.</Text>}
-            </>
-          ) : (
-            <>
-              <Text style={styles.title}>Open a Treasure Chest</Text>
-              <Text style={styles.copy}>Spend {TREASURE_CHEST_COST} coins for one surprise dumpling. It joins your Collection right away.</Text>
-              <View style={styles.costRow}>
-                <View style={styles.costBox}><Text style={styles.costLabel}>COST</Text><Text style={styles.costValue}>{TREASURE_CHEST_COST}</Text></View>
-                <View style={styles.costBox}><Text style={styles.costLabel}>BALANCE</Text><Text style={styles.costValue}>{hydrated ? coins : '...'}</Text></View>
-              </View>
-              {hydrated && coins < TREASURE_CHEST_COST && phase === 'ready' && (
-                <Text style={styles.warn}>{TREASURE_CHEST_COST} coins required. You need {TREASURE_CHEST_COST - coins} more.</Text>
-              )}
-            </>
-          )}
-          {error && <Text style={styles.warn} accessibilityRole="alert">{error}</Text>}
-        </View>
-        <View style={styles.actions}>
-          {phase === 'processing' && <Text style={styles.copy}>Saving purchase...</Text>}
-          {phase === 'ready' && !done && <Text style={styles.copy}>{error ? 'Tap the chest to try again.' : 'Tap the chest to open it.'}</Text>}
-          {phase === 'animating' && <Text style={styles.copy}>Opening your chest...</Text>}
-          {done && (
-            <>
+      </View>
+      {showNeed && (
+        <Text style={[styles.need, { top: Math.max(insets.top + 8, imgY + imgH * 0.245) }]} testID="treasure-need">{TREASURE_CHEST_COST} coins required. You need {TREASURE_CHEST_COST - coins} more.</Text>
+      )}
+      {done && (
+        <View style={[styles.sheet, { paddingBottom: insets.bottom + 14, maxHeight: Math.max(220, H - (chestTop + stage) + 8) }]}>
+          <ScrollView contentContainerStyle={styles.sheetContent} showsVerticalScrollIndicator={false}>
+            <Text style={[styles.kicker, { color: p.glow }]}>{dumpling.rarity.toUpperCase()}</Text>
+            <Text style={styles.title} testID="treasure-result-name">{dumpling.name}</Text>
+            <Text style={styles.copy}>
+              {isDuplicate
+                ? 'Duplicate recorded. You already collected this dumpling, so your Collection stays as it was.'
+                : 'Added to your Collection.'}
+            </Text>
+            <Text style={styles.spent} testID="treasure-spent">{TREASURE_CHEST_COST} coins spent on a Treasure Chest</Text>
+            {recovery && <Text style={styles.copy}>Your purchase and reward are safely saved. Local save recovery will retry automatically.</Text>}
+            <View style={styles.actions}>
               <PrimaryButton onPress={() => router.replace(isDuplicate ? '/collection' : { pathname: '/collection', params: { newDumplingId: dumpling.id } })} testID="treasure-collection" style={styles.btn}>VIEW COLLECTION</PrimaryButton>
               <SoftButton onPress={leave} testID="treasure-leave-done" style={styles.soft}>DONE</SoftButton>
-            </>
-          )}
-          {phase === 'ready' && <SoftButton onPress={leave} style={styles.soft}>NOT NOW</SoftButton>}
+            </View>
+          </ScrollView>
         </View>
-      </ScrollView>
+      )}
       <Modal visible={confirming} transparent animationType={Platform.OS === 'web' ? 'fade' : 'none'} onRequestClose={() => setConfirming(false)}>
         <View style={styles.backdrop}>
           <View style={styles.dialog} testID="treasure-confirmation">
             <Text style={styles.title}>{TREASURE_CHEST_COST} coins</Text>
             <Text style={styles.copy}>Open the Treasure Chest for one surprise dumpling?</Text>
+            {error && <Text style={styles.warn} accessibilityRole="alert" testID="treasure-error">{error}</Text>}
             <View style={styles.actions}>
               <PrimaryButton onPress={() => { setConfirming(false); void open(); }} disabled={!canBuy} suppressClickSound testID="treasure-confirm" style={styles.btn}>CONFIRM {TREASURE_CHEST_COST} coins</PrimaryButton>
               <SoftButton onPress={() => setConfirming(false)} testID="treasure-cancel" style={styles.soft}>CANCEL</SoftButton>
@@ -151,23 +158,23 @@ export default function TreasureChestScreen() {
   );
 }
 
+const BG = require('@/assets/images/chests/chest-background.png');
+const BG_W = 937;
+const BG_H = 1678;
+const NEED_RED = '#c8322b';
+
 const styles = StyleSheet.create({
   backdrop: { flex: 1, backgroundColor: 'rgba(60,50,40,0.45)', alignItems: 'center', justifyContent: 'center', padding: 24 },
   dialog: { width: '100%', maxWidth: 360, borderRadius: 24, backgroundColor: homeColors.background, padding: 22, alignItems: 'center' },
-  screen: { flex: 1, backgroundColor: homeColors.background, paddingHorizontal: 18 },
-  topBar: { height: 54, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  topTitle: { color: homeColors.ink, fontFamily: 'Inter_700Bold', fontSize: 13, letterSpacing: 1.5 },
-  content: { alignItems: 'center', paddingBottom: 24 },
-  copyBlock: { alignItems: 'center', paddingHorizontal: 10, marginTop: 6 },
+  screen: { flex: 1, backgroundColor: homeColors.background, overflow: 'hidden' },
+  need: { position: 'absolute', left: 20, right: 20, color: NEED_RED, fontFamily: 'Inter_700Bold', fontSize: 15, textAlign: 'center' },
+  sheet: { position: 'absolute', left: 0, right: 0, bottom: 0, backgroundColor: homeColors.background, borderTopLeftRadius: 24, borderTopRightRadius: 24 },
+  sheetContent: { alignItems: 'center', paddingHorizontal: 22, paddingTop: 18 },
   kicker: { fontFamily: 'Inter_700Bold', fontSize: 11, letterSpacing: 1.6, marginBottom: 6 },
   title: { color: homeColors.ink, fontFamily: 'Inter_700Bold', fontSize: 27, textAlign: 'center', letterSpacing: -0.5 },
   copy: { color: homeColors.softInk, fontFamily: 'Inter_500Medium', fontSize: 14, lineHeight: 21, textAlign: 'center', marginTop: 8, maxWidth: 340 },
   spent: { color: homeColors.gold, fontFamily: 'Inter_700Bold', fontSize: 13, marginTop: 10 },
-  costRow: { flexDirection: 'row', gap: 10, marginTop: 14 },
-  costBox: { minWidth: 120, borderRadius: 16, borderWidth: 1, borderColor: homeColors.tileBorder, backgroundColor: homeColors.tile, paddingVertical: 10, alignItems: 'center' },
-  costLabel: { color: homeColors.softInk, fontFamily: 'Inter_700Bold', fontSize: 9, letterSpacing: 1.1 },
-  costValue: { color: homeColors.gold, fontFamily: 'Inter_700Bold', fontSize: 20, marginTop: 3 },
-  warn: { color: homeColors.gold, fontFamily: 'Inter_600SemiBold', fontSize: 13, textAlign: 'center', marginTop: 10 },
+  warn: { color: NEED_RED, fontFamily: 'Inter_600SemiBold', fontSize: 13, textAlign: 'center', marginTop: 10 },
   actions: { width: '100%', gap: 10, marginTop: 16 },
   btn: { width: '100%', backgroundColor: homeColors.teal },
   soft: { width: '100%', backgroundColor: homeColors.tile, borderColor: homeColors.tealBorder },

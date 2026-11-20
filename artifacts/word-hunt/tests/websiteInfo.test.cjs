@@ -39,7 +39,10 @@ test('homepage removes website information and keeps the existing settings and g
     assert.ok(source.includes(`testID="${id}"`), `${id} remains`);
   }
   assert.ok(source.includes('<CoinPill coins={coins} />'));
-  assert.ok(source.includes('styles.previewGrid'));
+  for (const artwork of ['tropical.png', 'play-button.png', 'collection-button.png']) {
+    assert.ok(source.includes(`../assets/images/home/${artwork}`), `${artwork} is used on Home`);
+  }
+  assert.doesNotMatch(source, /styles\.previewGrid|FIND YOUR FOCUS|Spot the hidden words/);
   assert.ok(source.includes('<AudioSettingsModal visible={settingsOpen}'));
 });
 

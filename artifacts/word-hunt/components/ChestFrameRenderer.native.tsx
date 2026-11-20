@@ -1,5 +1,5 @@
 import React from 'react';
-import { StyleSheet, View } from 'react-native';
+import { Platform, StyleSheet, View } from 'react-native';
 import { Image, type ImageRef } from 'expo-image';
 import Animated, { useAnimatedStyle, type SharedValue } from 'react-native-reanimated';
 import { CHEST_FPS, CHEST_FRAME_COUNT } from './chestAnimationData';
@@ -24,7 +24,11 @@ function Atlas({ source, index, clock, size, onLoad, onError }: AtlasProps) {
   return (
     <Animated.View style={[styles.atlas, motion]}>
       <Image source={source} style={styles.fill} contentFit="fill" transition={0}
-        onLoad={() => onLoad(index)} onError={onError} />
+        onLoad={() => onLoad(index)}
+        // iOS renders decoded ImageRefs directly, bypassing loader onLoad.
+        // Keep Android's existing load gate; acknowledge iOS native display.
+        onDisplay={Platform.OS === 'ios' ? () => onLoad(index) : undefined}
+        onError={onError} />
     </Animated.View>
   );
 }
