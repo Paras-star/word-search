@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { Redirect, useLocalSearchParams, useRouter } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
@@ -8,6 +8,7 @@ import { isCategoryUnlocked } from '@/game/progression';
 import { getPuzzleCategory } from '@/game/puzzleConfig';
 import { useGame } from '@/context/GameProvider';
 import { useColors } from '@/hooks/useColors';
+import { prepareAnimalBackground } from '@/services/animalBackgroundPreparation';
 
 export default function ModeScreen() {
   const router = useRouter();
@@ -16,6 +17,12 @@ export default function ModeScreen() {
   const { completedLevels, hydrated, onboardingStep } = useGame();
   const wordCount = getPuzzleCategory(category, completedLevels).words.length;
   const colors = useColors();
+  useEffect(() => {
+    if (!hydrated || onboardingStep < 6 || categoryId !== 'animals') return;
+    void prepareAnimalBackground().catch(error => {
+      console.warn('[Word Hunt background] Animals preparation failed.', error);
+    });
+  }, [categoryId, hydrated, onboardingStep]);
   const start = (mode: 'classic' | 'time') => router.replace({ pathname: '/game', params: { categoryId: category.id, mode, seed: `${Date.now()}` } });
   if (!hydrated) return null;
   if (onboardingStep < 6) {

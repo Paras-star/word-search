@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Image, PanResponder, Platform, Pressable, StyleSheet, Text, View, useWindowDimensions, type GestureResponderEvent } from 'react-native';
+import { PanResponder, Platform, Pressable, StyleSheet, Text, View, useWindowDimensions, type GestureResponderEvent } from 'react-native';
+import { Image } from 'expo-image';
 import { Redirect, useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import { Header, Screen, CoinPill, SoftButton } from '@/components/GameUI';
@@ -23,6 +24,7 @@ import { useRewardedAd } from '@/hooks/useRewardedAd';
 import { RewardedAdButton } from '@/components/RewardedAdButton';
 import { createHintReward, REWARDED_HINTS } from '@/services/rewardedBenefits';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { ANIMALS_BACKGROUND_SOURCE, getPreparedAnimalBackground, prepareAnimalBackground } from '@/services/animalBackgroundPreparation';
 
 function cellKey(cell: Cell) { return `${cell.row}-${cell.col}`; }
 function sameCell(a: Cell, b: Cell) { return a.row === b.row && a.col === b.col; }
@@ -80,6 +82,19 @@ function GameSession({ params }: { params: GameParams }) {
   const category: Category = onboarding
     ? { id: `onboarding-${requestedStep}`, name: onboarding.label, emoji: '✨', words: onboarding.words }
     : daily?.category ?? getCategory(categoryId);
+  const isAnimalPuzzle = !onboarding && !daily && category.id === 'animals';
+  const [animalBackground, setAnimalBackground] = useState(getPreparedAnimalBackground);
+  useEffect(() => {
+    if (!isAnimalPuzzle) return;
+    let active = true;
+    // Handles direct/fast entry too; ordinary entry reuses the mode-screen work.
+    void prepareAnimalBackground().then(image => {
+      if (active) setAnimalBackground(image);
+    }).catch(error => {
+      console.warn('[Word Hunt background] Animals preparation failed; using the source image.', error);
+    });
+    return () => { active = false; };
+  }, [isAnimalPuzzle]);
   const { coins, awardCoins, completeLevel, completeOnboardingStep, completeDailyPuzzle, completedDailyPuzzles, completedLevels, onboardingStep } = useGame();
   const puzzleSeed = onboarding ? onboarding.seed : daily?.seed ?? seed ?? `${category.id}:default`;
   // Saving the first completion updates progress before navigation; keep this puzzle unchanged.
@@ -360,10 +375,11 @@ function GameSession({ params }: { params: GameParams }) {
   if (!onboarding && !daily && !isCategoryUnlocked(categoryIndex, completedLevels, CATEGORIES)) return <Redirect href="/categories" />;
 
   return <Screen style={styles.screen}>
-    {!onboarding && !daily && category.id === 'animals' && (
+    {isAnimalPuzzle && (
       <View pointerEvents="none" style={StyleSheet.absoluteFill} testID="animals-background">
-        <Image source={require('../assets/images/backgrounds/animals-background.png')}
-          style={[StyleSheet.absoluteFill, { width: '100%', height: '100%' }]} resizeMode="cover" accessible={false} />
+        <Image source={animalBackground ?? ANIMALS_BACKGROUND_SOURCE}
+          style={[StyleSheet.absoluteFill, { width: '100%', height: '100%' }]}
+          contentFit="cover" contentPosition="center" transition={0} accessible={false} />
       </View>
     )}
     <Header title={category.name} onBack={() => daily ? (router.canGoBack() ? router.back() : router.replace('/daily')) : onboarding ? router.replace('/') : router.back()} right={<CoinPill coins={coins} />} />
