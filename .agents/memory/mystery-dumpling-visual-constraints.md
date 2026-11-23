@@ -26,3 +26,9 @@ Use the existing 700-coin chest presentation as the positioning reference for ev
 **Why:** The user requires the same horizontal/vertical alignment, scale, proportions, and chest-to-circle relationship across Android screen sizes.
 
 **How to apply:** Share artwork-space layout and scenery only. Keep the existing opening animation intact and the free reward flow separate from paid purchase behavior.
+
+The Collection Room uses the supplied adventure rarity panels over the existing night forest. Preserve each rarity's own emblem, colors, ornamental border and transparent exterior; never substitute the Epic emblem for another tier.
+
+**Why:** The user made the five uploaded rarity panel designs authoritative and requires a separate pedestal space for every existing collectible: Legendary 2, Epic 4, Rare 5, Uncommon 7, Common 12.
+
+**How to apply:** Reconstruct baked-in display areas instead of stretching a three-slot image or covering old pedestals. Keep the rarity-ordered scrolling gallery, live collection counts, original individual dumpling art, locked placeholders and `???` labels.
