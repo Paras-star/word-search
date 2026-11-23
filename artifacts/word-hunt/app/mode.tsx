@@ -18,7 +18,7 @@ export default function ModeScreen() {
   const wordCount = getPuzzleCategory(category, completedLevels).words.length;
   const colors = useColors();
   useEffect(() => {
-    if (!hydrated || onboardingStep < 6 || categoryId !== 'animals') return;
+    if (!hydrated || onboardingStep < 6 || !categoryId) return;
     void prepareAnimalBackground().catch(error => {
       console.warn('[Word Hunt background] Animals preparation failed.', error);
     });

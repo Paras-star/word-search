@@ -35,29 +35,40 @@ function nodes(file) {
   return { source, ast, all };
 }
 
+function normalCategoryIds() {
+  const { all } = nodes('data/categories.ts');
+  const categories = all.find(n => ts.isVariableDeclaration(n) && n.name.getText() === 'CATEGORIES');
+  return categories.initializer.elements.map(category =>
+    category.properties.find(property => property.name.getText() === 'id').initializer.text);
+}
+
+const categoryIds = normalCategoryIds();
+const futureCategoryId = 'hypothetical-future-category-after-workshop';
+
 function gameHarness(api, initial = {}) {
   const { ast, all } = nodes('app/game.tsx');
-  const declarations = ['isAnimalPuzzle', '[animalBackground, setAnimalBackground]'].map(name => {
+  const declarations = ['usesCategoryBackground', '[animalBackground, setAnimalBackground]'].map(name => {
     const node = all.find(n => ts.isVariableDeclaration(n) && n.name.getText(ast) === name);
     assert.ok(node, name);
     return `const ${node.getText(ast)};`;
   }).join('\n');
   const effect = all.find(n => ts.isExpressionStatement(n) && n.getText(ast).startsWith('useEffect(')
     && n.getText(ast).includes('prepareAnimalBackground()'));
-  const view = all.find(n => ts.isJsxElement(n) && n.openingElement.attributes.properties
-    .some(p => ts.isJsxAttribute(p) && p.name.getText(ast) === 'testID' && p.initializer?.text === 'animals-background'));
-  const js = compile(`${declarations}\n${effect.getText(ast)}\nreturn isAnimalPuzzle ? (${view.getText(ast)}) : null;`);
+  const background = all.find(n => ts.isJsxExpression(n) && n.expression && ts.isBinaryExpression(n.expression)
+    && n.expression.operatorToken.kind === ts.SyntaxKind.AmpersandAmpersandToken
+    && n.getText(ast).includes('testID="animals-background"'));
+  const js = compile(`${declarations}\n${effect.getText(ast)}\nreturn (${background.expression.getText(ast)}) || null;`);
   let state, initialized = false, oldDeps, cleanup, pendingEffect, tree, dirty = false, writes = 0;
-  let context = { category: { id: 'animals' }, onboarding: null, daily: null, ...initial };
+  let context = { category: { id: 'animals' }, rawOnboardingStep: undefined, rawDailyDate: undefined, ...initial };
   const warnings = [];
   const render = () => {
     dirty = false;
-    tree = new Function('require', 'exports', 'category', 'onboarding', 'daily', 'useState', 'useEffect',
+    tree = new Function('require', 'exports', 'category', 'rawOnboardingStep', 'rawDailyDate', 'useState', 'useEffect',
       'getPreparedAnimalBackground', 'prepareAnimalBackground', 'ANIMALS_BACKGROUND_SOURCE',
       'Image', 'View', 'StyleSheet', 'console', js)(
       name => { assert.equal(name, 'react/jsx-runtime'); return { jsx: (type, props) => ({ type, props }) }; },
       {},
-      context.category, context.onboarding, context.daily,
+      context.category, context.rawOnboardingStep, context.rawDailyDate,
       initialState => {
         if (!initialized) { state = initialState(); initialized = true; }
         return [state, next => { state = next; dirty = true; writes++; }];
@@ -108,17 +119,17 @@ test('failed preparation rejects explicitly and permits a fresh attempt', async 
   assert.equal(api.calls.length, 2);
 });
 
-test('mode preparation runs only for hydrated Animals selection after onboarding; navigation remains immediate', async () => {
+test('mode preparation covers every existing and future category after onboarding; navigation remains immediate', async () => {
   const { ast, all } = nodes('app/mode.tsx');
   const effect = all.find(n => ts.isCallExpression(n) && n.expression.getText(ast) === 'useEffect'
     && n.getText(ast).includes('prepareAnimalBackground()'));
   const run = new Function('categoryId', 'hydrated', 'onboardingStep', 'prepareAnimalBackground', 'useEffect', 'console',
     compile(effect.getText(ast)));
-  for (const categoryId of ['animals', 'food', 'sports', undefined]) {
-    for (const hydrated of [false, true]) for (const step of [0, 6]) {
+  for (const categoryId of [...categoryIds, futureCategoryId, undefined, '']) {
+    for (const hydrated of [false, true]) for (const step of [0, 1, 2, 3, 4, 5, 6]) {
       let calls = 0;
       run(categoryId, hydrated, step, () => { calls++; return Promise.resolve({}); }, fn => fn(), console);
-      assert.equal(calls, categoryId === 'animals' && hydrated && step === 6 ? 1 : 0);
+      assert.equal(calls, categoryId && hydrated && step === 6 ? 1 : 0, `${categoryId}, hydrated=${hydrated}, step=${step}`);
     }
   }
   const start = all.find(n => ts.isVariableDeclaration(n) && n.name.getText(ast) === 'start');
@@ -126,21 +137,31 @@ test('mode preparation runs only for hydrated Animals selection after onboarding
   assert.doesNotMatch(start.getText(ast), /await|prepareAnimalBackground/);
 });
 
-test('a prewarmed native image is passed directly to Expo Image on the first game render', async () => {
+test('Animals through Workshop and a future category use the identical prepared image and unchanged fitting on first render', async () => {
   const image = { nativeRefType: 'image' }, api = service(async () => image);
   await api.prepareAnimalBackground();
-  const h = gameHarness(api);
-  const rendered = h.tree.props.children;
-  assert.equal(rendered.type, 'ExpoImage');
-  assert.equal(rendered.props.source, image);
-  assert.equal(rendered.props.contentFit, 'cover');
-  assert.equal(rendered.props.contentPosition, 'center');
-  assert.equal(rendered.props.transition, 0);
-  assert.equal(h.tree.props.pointerEvents, 'none');
-  assert.equal(rendered.props.onLoad, undefined, 'no iOS loader-event readiness gate');
-  assert.equal(rendered.props.onDisplay, undefined);
-  assert.deepEqual(rendered.props.style.at(-1), { width: '100%', height: '100%' });
-  h.unmount();
+  assert.equal(categoryIds[0], 'animals');
+  assert.equal(categoryIds.at(-1), 'workshop');
+  assert.ok(!categoryIds.includes(futureCategoryId));
+  for (const id of [...categoryIds, futureCategoryId]) {
+    const h = gameHarness(api, { category: { id } });
+    const rendered = h.tree.props.children;
+    assert.equal(rendered.type, 'ExpoImage', id);
+    assert.equal(rendered.props.source, image, id);
+    assert.equal(rendered.props.contentFit, 'cover');
+    assert.equal(rendered.props.contentPosition, 'center');
+    assert.equal(rendered.props.transition, 0);
+    assert.equal(rendered.props.accessible, false);
+    assert.equal(h.tree.props.pointerEvents, 'none');
+    assert.equal(rendered.props.onLoad, undefined, 'no iOS loader-event readiness gate');
+    assert.equal(rendered.props.onDisplay, undefined);
+    assert.deepEqual(rendered.props.style, [
+      { position: 'absolute', top: 0, bottom: 0, left: 0, right: 0 },
+      { width: '100%', height: '100%' },
+    ]);
+    h.unmount();
+  }
+  assert.equal(api.calls.length, 1, 'all categories reuse the single retained image');
 });
 
 test('fast/direct entry shows the original source immediately, shares pending preparation and adopts its decoded ref', async () => {
@@ -154,13 +175,54 @@ test('fast/direct entry shows the original source immediately, shares pending pr
   h.unmount();
 });
 
-test('other categories, onboarding and Daily neither prepare nor show the Animals background', async () => {
-  for (const context of [{ category: { id: 'food' } }, { category: { id: 'sports' } },
-    { onboarding: {} }, { daily: {} }]) {
+test('all six onboarding levels and Calendar requests neither prepare nor show the category background', async () => {
+  const excluded = [
+    ...Array.from({ length: 6 }, (_, step) => ({ rawOnboardingStep: String(step) })),
+    { rawOnboardingStep: 'invalid-step' },
+    ...['2026-11-23', 'invalid-date', '', '2999-01-01'].map(rawDailyDate => ({ rawDailyDate })),
+    { rawOnboardingStep: '0', rawDailyDate: '2026-11-23' },
+  ];
+  for (const context of excluded) {
     const api = service(async () => ({})), h = gameHarness(api, context);
     await h.flush();
     assert.equal(h.tree, null);
     assert.equal(api.calls.length, 0);
+    h.unmount();
+  }
+});
+
+test('switching categories during preparation shares one load, then reuses its reference on every re-entry', async () => {
+  const load = deferred(), image = { nativeRefType: 'image' }, api = service(() => load.promise);
+  const screens = [...categoryIds, futureCategoryId].map(id => {
+    const h = gameHarness(api, { category: { id } });
+    assert.equal(h.tree.props.children.props.source, 123, id);
+    return h;
+  });
+  assert.equal(api.calls.length, 1);
+  for (const h of screens.slice(0, -1)) h.unmount();
+  load.resolve(image);
+  for (const h of screens) await h.flush();
+  for (const h of screens.slice(0, -1)) assert.equal(h.writes, 0);
+  assert.equal(screens.at(-1).tree.props.children.props.source, image);
+  screens.at(-1).unmount();
+  for (const id of [...categoryIds, futureCategoryId]) {
+    const h = gameHarness(api, { category: { id } });
+    assert.equal(h.tree.props.children.props.source, image, id);
+    h.unmount();
+  }
+  assert.equal(api.calls.length, 1);
+});
+
+test('switching to Calendar or onboarding cancels a pending screen update without discarding the shared cache', async () => {
+  for (const excluded of [{ rawDailyDate: '2026-11-23' }, { rawOnboardingStep: '0' }]) {
+    const load = deferred(), image = { nativeRefType: 'image' }, api = service(() => load.promise);
+    const h = gameHarness(api, { category: { id: 'food' } });
+    h.render(excluded);
+    assert.equal(h.tree, null);
+    load.resolve(image);
+    await h.flush();
+    assert.equal(h.writes, 0);
+    assert.equal(api.getPreparedAnimalBackground(), image);
     h.unmount();
   }
 });

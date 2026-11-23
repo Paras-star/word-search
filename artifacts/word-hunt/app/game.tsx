@@ -82,10 +82,10 @@ function GameSession({ params }: { params: GameParams }) {
   const category: Category = onboarding
     ? { id: `onboarding-${requestedStep}`, name: onboarding.label, emoji: '✨', words: onboarding.words }
     : daily?.category ?? getCategory(categoryId);
-  const isAnimalPuzzle = !onboarding && !daily && category.id === 'animals';
+  const usesCategoryBackground = rawOnboardingStep === undefined && rawDailyDate === undefined;
   const [animalBackground, setAnimalBackground] = useState(getPreparedAnimalBackground);
   useEffect(() => {
-    if (!isAnimalPuzzle) return;
+    if (!usesCategoryBackground) return;
     let active = true;
     // Handles direct/fast entry too; ordinary entry reuses the mode-screen work.
     void prepareAnimalBackground().then(image => {
@@ -94,7 +94,7 @@ function GameSession({ params }: { params: GameParams }) {
       console.warn('[Word Hunt background] Animals preparation failed; using the source image.', error);
     });
     return () => { active = false; };
-  }, [isAnimalPuzzle]);
+  }, [usesCategoryBackground]);
   const { coins, awardCoins, completeLevel, completeOnboardingStep, completeDailyPuzzle, completedDailyPuzzles, completedLevels, onboardingStep } = useGame();
   const puzzleSeed = onboarding ? onboarding.seed : daily?.seed ?? seed ?? `${category.id}:default`;
   // Saving the first completion updates progress before navigation; keep this puzzle unchanged.
@@ -375,7 +375,7 @@ function GameSession({ params }: { params: GameParams }) {
   if (!onboarding && !daily && !isCategoryUnlocked(categoryIndex, completedLevels, CATEGORIES)) return <Redirect href="/categories" />;
 
   return <Screen style={styles.screen}>
-    {isAnimalPuzzle && (
+    {usesCategoryBackground && (
       <View pointerEvents="none" style={StyleSheet.absoluteFill} testID="animals-background">
         <Image source={animalBackground ?? ANIMALS_BACKGROUND_SOURCE}
           style={[StyleSheet.absoluteFill, { width: '100%', height: '100%' }]}
