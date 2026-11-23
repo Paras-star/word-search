@@ -32,7 +32,6 @@ export default function CategoriesScreen() {
         contentFit="cover" contentPosition="center" transition={0} accessible={false} />
     </View>
     <View style={[styles.content, { paddingTop: Platform.OS === 'web' ? Math.max(67, insets.top) : insets.top, paddingBottom: Platform.OS === 'web' ? Math.max(34, insets.bottom) : insets.bottom }]}>
-    <View style={[styles.headerBacking, { backgroundColor: `${colors.background}F0` }]}>
     <View style={styles.titleRow}>
       <Header title="" onBack={() => router.back()} right={
         <View onLayout={({ nativeEvent }) => setCoinWidth(Math.max(24, nativeEvent.layout.width))} testID="category-coins">
@@ -40,12 +39,10 @@ export default function CategoriesScreen() {
         </View>
       } />
       <View pointerEvents="none" accessible accessibilityRole="header" accessibilityLabel="Category"
-        style={[styles.titleArea, { right: coinWidth + 12 }]} testID="category-title-area">
+        style={[styles.titleArea, { left: Math.max(44, coinWidth + 12), right: Math.max(44, coinWidth + 12) }]} testID="category-title-area">
         <Image source={CATEGORY_TITLE} contentFit="contain" contentPosition="center" transition={0}
           accessible={false} style={styles.titleImage} testID="category-title-image" />
       </View>
-    </View>
-    <Text style={[styles.intro, { color: colors.mutedForeground }]}>Complete a hunt to unlock the next world.</Text>
     </View>
     <FlatList data={CATEGORIES} numColumns={2} keyExtractor={(item) => item.id} columnWrapperStyle={styles.columns} contentContainerStyle={styles.list} renderItem={({ item, index }) => {
       const unlocked = isCategoryUnlocked(index, completedLevels, CATEGORIES);
@@ -64,12 +61,10 @@ export default function CategoriesScreen() {
 const styles = StyleSheet.create({
   screen: { paddingHorizontal: 0 },
   content: { flex: 1, paddingHorizontal: 20 },
-  headerBacking: { marginHorizontal: -20, paddingHorizontal: 20 },
-  titleRow: { height: 64 },
-  // Leave the existing back icon, its hitSlop, and measured coin control clear.
-  titleArea: { position: 'absolute', left: 44, top: 4, bottom: 4 },
+  titleRow: { height: 64, marginBottom: 16 },
+  // Equal insets center on the screen while clearing both existing controls.
+  titleArea: { position: 'absolute', top: 4, bottom: 4 },
   titleImage: { width: '100%', height: '100%' },
-  intro: { fontFamily: 'Inter_500Medium', fontSize: 14, marginBottom: 16 },
   list: { paddingBottom: 24, gap: 12 },
   columns: { gap: 12 },
   card: { flex: 1, minHeight: 156, padding: 16, borderRadius: 20, borderWidth: 1, marginBottom: 12 },

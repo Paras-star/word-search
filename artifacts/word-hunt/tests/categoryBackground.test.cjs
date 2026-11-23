@@ -102,7 +102,8 @@ test('transparent title image stays within the unchanged header row without inte
   assert.equal(area.props.pointerEvents, 'none');
   assert.equal(area.props.accessibilityLabel, 'Category');
   assert.equal(area.props.accessibilityRole, 'header');
-  assert.deepEqual(area.props.style[0], { position: 'absolute', left: 44, top: 4, bottom: 4 });
+  assert.deepEqual(area.props.style[0], { position: 'absolute', top: 4, bottom: 4 });
+  assert.equal(area.props.style[1].left, 108);
   assert.equal(area.props.style[1].right, 108);
   assert.equal(image.props.contentFit, 'contain');
   assert.equal(image.props.contentPosition, 'center');
@@ -118,6 +119,25 @@ test('transparent title image stays within the unchanged header row without inte
   assert.equal(crypto.createHash('sha256').update(png).digest('hex'),
     '60d80756be64f76022754020c9718084ae2ea1ae0a29a83c7706dd02d952d3d6',
     'asset is byte-for-byte identical to the supplied transparent PNG');
+});
+
+test('title centers on the full screen and has no instruction, backing or control overlap', () => {
+  const { tree } = harness();
+  const area = find(tree, n => n.props.testID === 'category-title-area');
+  const { left, right } = area.props.style[1];
+  for (const width of [360, 412]) {
+    const rowWidth = width - 40;
+    const titleLeft = 20 + left;
+    const titleWidth = rowWidth - left - right;
+    assert.equal(titleLeft + titleWidth / 2, width / 2);
+    assert.ok(titleLeft >= 44 + 12, 'back icon and touch target remain clear');
+    assert.equal(20 + rowWidth - 96 - (titleLeft + titleWidth), 12, 'coin gap remains 12 pixels');
+  }
+  const source = read('app/categories.tsx');
+  assert.doesNotMatch(source, /Complete (?:a|the) hunt to unlock|headerBacking|styles\.intro/);
+  assert.doesNotMatch(source.slice(source.indexOf('<View style={styles.titleRow}>'), source.indexOf('    <FlatList')),
+    /backgroundColor|borderColor|borderWidth/);
+  assert.doesNotMatch(JSON.stringify(area.props.style), /backgroundColor|border/);
 });
 
 test('hydration and tutorial redirects remain intact; native and web headers respect their safe areas', () => {
