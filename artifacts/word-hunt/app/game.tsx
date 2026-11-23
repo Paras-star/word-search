@@ -25,6 +25,7 @@ import { RewardedAdButton } from '@/components/RewardedAdButton';
 import { createHintReward, REWARDED_HINTS } from '@/services/rewardedBenefits';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ANIMALS_BACKGROUND_SOURCE, getPreparedAnimalBackground, prepareAnimalBackground } from '@/services/animalBackgroundPreparation';
+import { NightPuzzleBackground } from '@/components/NightPuzzleBackground';
 
 function cellKey(cell: Cell) { return `${cell.row}-${cell.col}`; }
 function sameCell(a: Cell, b: Cell) { return a.row === b.row && a.col === b.col; }
@@ -375,6 +376,7 @@ function GameSession({ params }: { params: GameParams }) {
   if (!onboarding && !daily && !isCategoryUnlocked(categoryIndex, completedLevels, CATEGORIES)) return <Redirect href="/categories" />;
 
   return <Screen style={styles.screen}>
+    {!usesCategoryBackground && <NightPuzzleBackground />}
     {usesCategoryBackground && (
       <View pointerEvents="none" style={StyleSheet.absoluteFill} testID="animals-background">
         <Image source={animalBackground ?? ANIMALS_BACKGROUND_SOURCE}

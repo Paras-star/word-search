@@ -329,7 +329,8 @@ const protectedGroups = {
   // Authorized expanded target layout for Anatomy, Emotions and Workshop, plus
   // natural target labels. Category tests preserve old puzzles; rewardedUi.test.cjs
   // retains byte-identical completion/touch guards. The puzzle engine is unchanged.
-  // Authorized shared category background/prepared image reuse; onboarding, Daily and gameplay/UI are unchanged.
+  // Shared category background/prepared image reuse. Phase 2's isolated
+  // introductory/Daily background is stripped below; all gameplay stays frozen.
   gameplay: [['game', 'app/game.tsx'], '26e4d734a28093fc3ad7bb027ef4573168480cbb565a183abff386bccab7a1aa'],
   // Retains the authorized Continue-only interstitial transition/cancellation API.
   // app.json includes the approved Android versionCode change from 6 to 7;
@@ -349,6 +350,12 @@ for (const [name, [paths, expected]] of Object.entries(protectedGroups)) {
     const hash = require('node:crypto').createHash('sha256');
     for (const relative of paths.flatMap(walk).sort()) {
       let bytes = fs.readFileSync(path.join(root, relative));
+      if (relative === 'app/game.tsx') {
+        // Only these two visual additions are authorized for Phase 2.
+        bytes = Buffer.from(bytes.toString()
+          .replace("import { NightPuzzleBackground } from '@/components/NightPuzzleBackground';\n", '')
+          .replace('    {!usesCategoryBackground && <NightPuzzleBackground />}\n', ''));
+      }
       if (relative === 'services/audio.ts') {
         bytes = Buffer.from(bytes.toString().replace(/\/\/ BEGIN prepared chest audio[\s\S]*?\/\/ END prepared chest audio\n\n/, ''));
         // Only the additional source entry is authorized. All original
