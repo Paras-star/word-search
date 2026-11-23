@@ -1,22 +1,32 @@
 import React, { useEffect } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { Platform, Pressable, StyleSheet, useWindowDimensions, View } from 'react-native';
+import { Image } from 'expo-image';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Redirect, useLocalSearchParams, useRouter } from 'expo-router';
-import { Feather } from '@expo/vector-icons';
-import { Header, Screen, PrimaryButton, SoftButton } from '@/components/GameUI';
 import { CATEGORIES, getCategory } from '@/data/categories';
 import { isCategoryUnlocked } from '@/game/progression';
-import { getPuzzleCategory } from '@/game/puzzleConfig';
 import { useGame } from '@/context/GameProvider';
-import { useColors } from '@/hooks/useColors';
 import { prepareAnimalBackground } from '@/services/animalBackgroundPreparation';
+import { playSound } from '@/services/audio';
+
+const BACKGROUND = require('../assets/images/backgrounds/mode-selection-background.png');
+const CLASSIC = require('../assets/images/classic-mode-button.png');
+const TIME_MODE = require('../assets/images/time-mode-button.png');
+const CLASSIC_RATIO = 786 / 273;
+const TIME_RATIO = 788 / 309;
 
 export default function ModeScreen() {
   const router = useRouter();
   const { categoryId } = useLocalSearchParams<{ categoryId?: string }>();
   const category = getCategory(categoryId);
   const { completedLevels, hydrated, onboardingStep } = useGame();
-  const wordCount = getPuzzleCategory(category, completedLevels).words.length;
-  const colors = useColors();
+  const { width, height } = useWindowDimensions();
+  const insets = useSafeAreaInsets();
+  const top = Platform.OS === 'web' ? Math.max(67, insets.top) : insets.top;
+  const bottom = Platform.OS === 'web' ? Math.max(34, insets.bottom) : insets.bottom;
+  // Width and height limits preserve both source ratios, including short screens.
+  const buttonWidth = Math.max(1, Math.min(480, width - 40,
+    (height - top - bottom - 56) / (1 / CLASSIC_RATIO + 1 / TIME_RATIO)));
   useEffect(() => {
     if (!hydrated || onboardingStep < 6 || !categoryId) return;
     void prepareAnimalBackground().catch(error => {
@@ -32,32 +42,35 @@ export default function ModeScreen() {
   if (!isCategoryUnlocked(categoryIndex, completedLevels, CATEGORIES)) {
     return <Redirect href="/categories" />;
   }
-  return <Screen>
-    <Header title={category.name} onBack={() => router.back()} />
-    <View style={styles.content}>
-      <View style={[styles.categoryIcon, { backgroundColor: colors.accent }]}><Text style={styles.emoji}>{category.emoji}</Text></View>
-      <Text style={[styles.title, { color: colors.foreground }]}>Pick your pace</Text>
-      <Text style={[styles.subtitle, { color: colors.mutedForeground }]}>Every hunt uses a fresh grid. Find all {wordCount} words to clear the category.</Text>
-      <View style={styles.options}>
-        <View style={[styles.option, { backgroundColor: colors.card, borderColor: colors.border }]}><View style={[styles.optionIcon, { backgroundColor: colors.accent }]}><Feather name="compass" size={22} color={colors.primary} /></View><View style={styles.optionCopy}><Text style={[styles.optionTitle, { color: colors.foreground }]}>Classic</Text><Text style={[styles.optionText, { color: colors.mutedForeground }]}>No clock. Take your time.</Text></View></View>
-        <View style={[styles.option, { backgroundColor: colors.card, borderColor: colors.border }]}><View style={[styles.optionIcon, { backgroundColor: colors.secondary }]}><Feather name="clock" size={22} color={colors.orange} /></View><View style={styles.optionCopy}><Text style={[styles.optionTitle, { color: colors.foreground }]}>Time Mode</Text><Text style={[styles.optionText, { color: colors.mutedForeground }]}>2 minutes. Beat the clock.</Text></View></View>
-      </View>
-      <PrimaryButton onPress={() => start('classic')} testID="classic-mode-button">PLAY CLASSIC</PrimaryButton>
-      <SoftButton onPress={() => start('time')} testID="time-mode-button">PLAY TIME MODE</SoftButton>
+  return <View style={styles.screen} testID="mode-selection">
+    <View pointerEvents="none" style={StyleSheet.absoluteFill} testID="mode-selection-background">
+      <Image source={BACKGROUND} style={styles.fill} contentFit="cover" contentPosition="center"
+        transition={0} accessible={false} />
     </View>
-  </Screen>;
+    <View style={[styles.content, { paddingTop: top, paddingBottom: bottom }]}>
+      <Pressable accessibilityRole="button" accessibilityLabel="Play Classic"
+        accessibilityHint="Start this category without a countdown"
+        onPress={() => { playSound('tap'); start('classic'); }}
+        style={({ pressed }) => [styles.button, { width: buttonWidth, aspectRatio: CLASSIC_RATIO, opacity: pressed ? 0.85 : 1 }]}
+        testID="classic-mode-button">
+        <Image source={CLASSIC} style={styles.fill} contentFit="contain" contentPosition="center"
+          transition={0} accessible={false} />
+      </Pressable>
+      <Pressable accessibilityRole="button" accessibilityLabel="Play Time Mode"
+        accessibilityHint="Start this category with the existing two-minute countdown"
+        onPress={() => { playSound('tap'); start('time'); }}
+        style={({ pressed }) => [styles.button, { width: buttonWidth, aspectRatio: TIME_RATIO, opacity: pressed ? 0.85 : 1 }]}
+        testID="time-mode-button">
+        <Image source={TIME_MODE} style={styles.fill} contentFit="contain" contentPosition="center"
+          transition={0} accessible={false} />
+      </Pressable>
+    </View>
+  </View>;
 }
 
 const styles = StyleSheet.create({
-  content: { flex: 1, justifyContent: 'center', gap: 14, paddingBottom: 30 },
-  categoryIcon: { alignSelf: 'center', width: 70, height: 70, borderRadius: 24, alignItems: 'center', justifyContent: 'center', marginBottom: 6 },
-  emoji: { fontSize: 36 },
-  title: { fontFamily: 'Inter_700Bold', fontSize: 29, textAlign: 'center' },
-  subtitle: { fontFamily: 'Inter_500Medium', fontSize: 15, lineHeight: 23, textAlign: 'center', marginBottom: 14 },
-  options: { gap: 10, marginBottom: 10 },
-  option: { minHeight: 76, borderRadius: 18, borderWidth: 1, padding: 13, flexDirection: 'row', alignItems: 'center', gap: 13 },
-  optionIcon: { width: 46, height: 46, borderRadius: 15, alignItems: 'center', justifyContent: 'center' },
-  optionCopy: { gap: 3 },
-  optionTitle: { fontFamily: 'Inter_700Bold', fontSize: 16 },
-  optionText: { fontFamily: 'Inter_500Medium', fontSize: 13 },
+  screen: { flex: 1 },
+  fill: { width: '100%', height: '100%' },
+  content: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: 24, paddingHorizontal: 20 },
+  button: { flexShrink: 0 },
 });
