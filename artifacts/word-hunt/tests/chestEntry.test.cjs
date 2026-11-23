@@ -51,6 +51,10 @@ function rewardHarness() {
     if (name === 'react-native-safe-area-context') return { useSafeAreaInsets: () => ({ top: 0, bottom: 0 }) };
     if (name === '@/components/GameUI') return { PrimaryButton: 'PrimaryButton', SoftButton: 'SoftButton' };
     if (name === '@/components/ChestReveal') return { ChestReveal: 'ChestReveal' };
+    if (name === '@/components/ChestScene') return {
+      ChestScene: 'ChestScene',
+      useChestSceneLayout: () => ({ layout: { H: 844, chestTop: 260, stage: 200 }, onLayout() {} }),
+    };
     if (name === '@/data/dumplings') return {
       DUMPLING_BY_ID: { d: dumpling },
       RARITY_PRESENTATION: { Common: { particleCount: 1, glow: '#fff', color: '#aaa' } },

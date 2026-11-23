@@ -1,9 +1,10 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { BackHandler, Image, Modal, Platform, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { BackHandler, Modal, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useNavigation, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { PrimaryButton, SoftButton } from '@/components/GameUI';
 import { ChestReveal } from '@/components/ChestReveal';
+import { ChestScene, useChestSceneLayout } from '@/components/ChestScene';
 import { DUMPLING_BY_ID, RARITY_PRESENTATION, type Dumpling } from '@/data/dumplings';
 import { homeColors } from '@/constants/homePalette';
 import { useGame } from '@/context/GameProvider';
@@ -87,38 +88,15 @@ export default function TreasureChestScreen() {
   const p = RARITY_PRESENTATION[dumpling?.rarity ?? 'Common'];
   const done = phase === 'done' && dumpling;
 
-  // Use proportional cover only while the embedded heading and pedestal stay
-  // within the crop. Wider/exceptionally tall layouts retain the whole image.
-  // Platform top-surface center in source: x 0.5, y 0.537 (550/1024); chest base sits at 0.548.
-  // Closed frame alpha base is y356 of the 384 canvas; visible width 358/384.
-  const win = useWindowDimensions();
-  const [box, setBox] = useState<{ w: number; h: number } | null>(null);
-  const W = box?.w ?? win.width;
-  const H = box?.h ?? win.height;
-  const cover = Math.max(W / BG_W, H / BG_H);
-  const safeCover = W / cover >= BG_W * 0.7 && H / cover >= BG_H * 0.94;
-  const scale = safeCover ? cover : Math.min(W / BG_W, H / BG_H);
-  const imgW = BG_W * scale;
-  const imgH = BG_H * scale;
-  const imgX = (W - imgW) / 2;
-  const imgY = (H - imgH) / 2;
-  // Fill exceptional aspect-ratio margins with the source's sky strip, never
-  // a second heading or pedestal. The main artwork remains unmodified.
-  const backingScale = Math.max(W / BG_W, H / (BG_H * 0.12));
-  const stage = Math.min(380, imgW * 0.46);
-  const chestLeft = imgX + imgW * 0.5 - stage / 2;
-  const chestTop = imgY + imgH * 0.548 - stage * (356 / 384);
+  const { layout, onLayout } = useChestSceneLayout();
+  const { H, imgY, imgH, chestTop, stage } = layout;
   const showNeed = hydrated && phase === 'ready' && coins < TREASURE_CHEST_COST;
 
   return (
-    <View style={styles.screen} onLayout={e => { const { width, height } = e.nativeEvent.layout; if (width > 0 && height > 0) setBox({ w: width, h: height }); }}>
-      <View pointerEvents="none" style={StyleSheet.absoluteFill}>
-        {!safeCover && <Image accessible={false} source={BG} style={{ position: 'absolute', left: (W - BG_W * backingScale) / 2, top: -BG_H * 0.18 * backingScale, width: BG_W * backingScale, height: BG_H * backingScale }} />}
-        <Image accessible={false} source={BG} style={{ position: 'absolute', left: imgX, top: imgY, width: imgW, height: imgH }} resizeMode="contain" />
-      </View>
-      <View style={{ position: 'absolute', left: chestLeft, top: chestTop, width: stage, height: stage }}>
+    <View style={styles.screen} onLayout={onLayout}>
+      <ChestScene layout={layout}>
         <ChestReveal opening={phase === 'animating' || phase === 'done'} dumpling={dumpling} onRevealed={onRevealed} onPress={() => setConfirming(true)} disabled={!canBuy} testID="treasure-chest-tap" accessibilityLabel={`Tap the chest to open for ${TREASURE_CHEST_COST} coins`} />
-      </View>
+      </ChestScene>
       {showNeed && (
         <Text style={[styles.need, { top: Math.max(insets.top + 8, imgY + imgH * 0.245) }]} testID="treasure-need">{TREASURE_CHEST_COST} coins required. You need {TREASURE_CHEST_COST - coins} more.</Text>
       )}
@@ -158,9 +136,6 @@ export default function TreasureChestScreen() {
   );
 }
 
-const BG = require('@/assets/images/chests/chest-background.png');
-const BG_W = 937;
-const BG_H = 1678;
 const NEED_RED = '#c8322b';
 
 const styles = StyleSheet.create({

@@ -138,6 +138,10 @@ function rewardScreenHarness(options = {}) {
     };
     if (name === '@/game/scoring') return { formatTime: () => '0:12' };
     if (name === '@/constants/homePalette') return { homeColors: {} };
+    if (name === '@/components/ChestScene') return {
+      ChestScene: 'ChestScene',
+      useChestSceneLayout: () => ({ layout: { H: 844, chestTop: 260, stage: 200 }, onLayout() {} }),
+    };
     if (name === '@/services/audio') return { playSound() {} };
     if (name === '@/services/dumplingAudio') return { stopDumplingSounds() {} };
     return {}; // Render-only icons/components are opaque in this handler test.

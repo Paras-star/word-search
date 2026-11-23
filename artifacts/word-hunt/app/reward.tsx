@@ -17,6 +17,7 @@ import { DUMPLING_BY_ID, RARITY_PRESENTATION } from '@/data/dumplings';
 import { formatTime } from '@/game/scoring';
 import { collectReward, getPendingReward, type DumplingReward } from '@/services/dumplingRewards';
 import { ChestReveal } from '@/components/ChestReveal';
+import { ChestScene, useChestSceneLayout } from '@/components/ChestScene';
 import { stopDumplingSounds } from '@/services/dumplingAudio';
 import { playSound } from '@/services/audio';
 import { homeColors } from '@/constants/homePalette';
@@ -36,6 +37,7 @@ export default function RewardScreen() {
   const insets = useSafeAreaInsets();
   const { hydrated, onboardingStep } = useGame();
   const params = useLocalSearchParams<{ categoryId?: string; mode?: string; score?: string; time?: string; puzzleId?: string; dailyDate?: string }>();
+  const { layout, onLayout } = useChestSceneLayout();
   const isDailyRoute = params.dailyDate !== undefined;
   const [reward, setReward] = useState<DumplingReward | null>(null);
   const [stage, setStage] = useState<RevealStage>('basket');
@@ -142,7 +144,7 @@ export default function RewardScreen() {
 
   if (!loading && (!reward || !dumpling)) {
     return (
-      <View style={[styles.screen, { paddingTop: insets.top + 24, paddingBottom: insets.bottom + 24 }]}>
+      <View style={[styles.screen, { paddingTop: insets.top + 24, paddingBottom: insets.bottom + 24, paddingHorizontal: 18 }]}>
         <View style={styles.emptyCard}>
           <Feather name="gift" size={42} color={homeColors.gold} />
           <Text style={styles.emptyTitle}>No reward is waiting</Text>
@@ -155,16 +157,15 @@ export default function RewardScreen() {
 
   const isRevealed = stage === 'revealed' || stage === 'collected';
   return (
-    <View style={[styles.screen, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
-      <View style={styles.topBar}>
+    <View style={styles.screen} onLayout={onLayout}>
+      <View style={[styles.topBar, { top: insets.top + 8 }]}>
         <Pressable onPress={() => { playSound('tap'); router.replace('/'); }} hitSlop={12} accessibilityLabel="Return home">
           <Feather name="x" size={24} color={homeColors.ink} />
         </Pressable>
-        <Text style={styles.topTitle}>MYSTERY DUMPLING</Text>
         <View style={styles.savedPill}><Feather name="check" size={12} color={homeColors.teal} /><Text style={styles.savedText}>SAVED</Text></View>
       </View>
 
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+      <ChestScene layout={layout}>
         <View style={styles.rewardStage}>
           <View style={styles.starPattern}>
             {PARTICLE_POSITIONS.map(([left, top], index) => (
@@ -191,7 +192,9 @@ export default function RewardScreen() {
 
           <ChestReveal opening={stage !== 'basket'} dumpling={dumpling} onRevealed={onRevealed} onPress={startReveal} disabled={loading || !reward || !dumpling || stage !== 'basket'} testID="reward-chest-tap" accessibilityLabel="Tap the chest to reveal your reward" />
         </View>
-
+      </ChestScene>
+      <View style={[styles.rewardSheet, { paddingBottom: insets.bottom, maxHeight: Math.max(220, layout.H - (layout.chestTop + layout.stage) + 8) }]} testID="reward-details">
+      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <View style={styles.copyBlock}>
           <Text style={[styles.kicker, { color: presentation.glow }]}>
             {stage === 'basket' ? 'PUZZLE COMPLETE' : stage === 'opening' ? 'OPENING…' : stage === 'collected' ? 'COLLECTED' : `YOU FOUND ${dumpling?.rarity.toUpperCase()}`}
@@ -226,18 +229,19 @@ export default function RewardScreen() {
           <View style={styles.stat}><Text style={styles.statLabel}>COINS</Text><Text style={[styles.statValue, { color: homeColors.gold }]}>+50</Text></View>
         </View>
       </ScrollView>
+      </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: homeColors.background, paddingHorizontal: 18 },
+  screen: { flex: 1, backgroundColor: homeColors.background, overflow: 'hidden' },
   loading: { flex: 1, backgroundColor: homeColors.background, alignItems: 'center', justifyContent: 'center' },
-  topBar: { height: 58, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  topTitle: { color: homeColors.ink, fontFamily: 'Inter_700Bold', fontSize: 13, letterSpacing: 1.5 },
+  topBar: { position: 'absolute', left: 18, right: 18, height: 36, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', zIndex: 1 },
   savedPill: { flexDirection: 'row', gap: 4, alignItems: 'center', backgroundColor: homeColors.goldSoft, paddingHorizontal: 8, paddingVertical: 5, borderRadius: 10 },
   savedText: { color: homeColors.teal, fontFamily: 'Inter_700Bold', fontSize: 9, letterSpacing: 0.8 },
-  content: { alignItems: 'center', paddingBottom: 24 },
+  content: { alignItems: 'center', paddingTop: 18, paddingHorizontal: 18, paddingBottom: 24 },
+  rewardSheet: { position: 'absolute', left: 0, right: 0, bottom: 0, backgroundColor: homeColors.background, borderTopLeftRadius: 24, borderTopRightRadius: 24 },
   rewardStage: { width: '100%', aspectRatio: 1, maxWidth: 380, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
   starPattern: { position: 'absolute', top: 0, right: 0, bottom: 0, left: 0 },
   glow: { position: 'absolute', width: '62%', aspectRatio: 1, borderRadius: 999 },

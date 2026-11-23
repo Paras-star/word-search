@@ -20,3 +20,9 @@ The chest remains visibly open, with the unchanged awarded dumpling revealed ins
 **Why:** The latest instructions explicitly supersede the previous mutually-exclusive reveal.
 
 **How to apply:** Keep the chest around/under the dumpling and occlude its lower body with the front rim. Never replace the chest or float the collectible above it. Use the extracted opening audio, not the older opening/reveal cues; retain the other original audio and transaction safeguards.
+
+Use the existing 700-coin chest presentation as the positioning reference for every level-completion chest, including future categories. Align the chest to the artwork's circular pedestal rather than the screen center.
+
+**Why:** The user requires the same horizontal/vertical alignment, scale, proportions, and chest-to-circle relationship across Android screen sizes.
+
+**How to apply:** Share artwork-space layout and scenery only. Keep the existing opening animation intact and the free reward flow separate from paid purchase behavior.

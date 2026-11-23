@@ -66,6 +66,10 @@ function harness(platform, balance = 1400) {
     if (name === 'react-native-safe-area-context') return { useSafeAreaInsets: () => ({ top: 47, bottom: 34 }) };
     if (name === '@/components/GameUI') return { PrimaryButton: 'PrimaryButton', SoftButton: 'SoftButton' };
     if (name === '@/components/ChestReveal') return { ChestReveal: 'ChestReveal' };
+    if (name === '@/components/ChestScene') return {
+      ChestScene: 'ChestScene',
+      useChestSceneLayout: () => ({ layout: { H: 844, imgY: 0, imgH: 844, chestTop: 260, stage: 200 }, onLayout() {} }),
+    };
     if (name === '@/context/GameProvider') return { useGame: () => game };
     if (name === '@/data/dumplings') return {
       DUMPLING_BY_ID: { d: dumpling }, RARITY_PRESENTATION: { Rare: { glow: '#fff' }, Common: { glow: '#fff' } },
