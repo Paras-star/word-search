@@ -25,11 +25,11 @@ const find = (tree, predicate) => {
   return [tree.props?.children].flat(Infinity).map(child => find(child, predicate)).find(Boolean);
 };
 function harness(overrides = {}, os = 'android') {
-  const routes = [], sounds = [];
+  const routes = [], sounds = [], measurements = [];
   const state = { coins: 777, completedLevels: ['animals'], hydrated: true, onboardingStep: 6, ...overrides };
   const colors = { background: '#FFF9EF', card: '#FFFEFA', muted: '#eee', success: '#050', border: '#aaa' };
   const screen = load('app/categories.tsx', {
-    react: {},
+    react: { useState: initial => [initial, value => measurements.push(value)] },
     'react/jsx-runtime': { jsx, jsxs: jsx },
     'react-native': {
       FlatList: 'FlatList', Pressable: 'Pressable', Text: 'Text', View: 'View',
@@ -47,8 +47,9 @@ function harness(overrides = {}, os = 'android') {
     '@/components/AdBanner': { AdBanner: 'AdBanner' },
     '@/services/audio': { playSound: sound => sounds.push(sound) },
     '@/services/animalBackgroundPreparation': { ANIMALS_BACKGROUND_SOURCE: 123 },
+    '../assets/images/category-title.png': 456,
   }).default;
-  return { tree: screen(), routes, sounds, state };
+  return { tree: screen(), routes, sounds, state, measurements };
 }
 
 test('category background reuses the Animal puzzle image with identical centered cover and a non-interactive full-screen layer', () => {
@@ -70,8 +71,8 @@ test('category background reuses the Animal puzzle image with identical centered
 test('category grid, cleared/ready/locked statuses, coins, navigation and banner are preserved', () => {
   const h = harness();
   const header = find(h.tree, n => n.type === 'Header');
-  assert.equal(header.props.title, 'Choose a category');
-  assert.equal(header.props.right.props.coins, 777);
+  assert.equal(header.props.title, '');
+  assert.equal(header.props.right.props.children.props.coins, 777);
   header.props.onBack();
   assert.deepEqual(h.routes, ['back']);
   const list = find(h.tree, n => n.type === 'FlatList');
@@ -92,6 +93,31 @@ test('category grid, cleared/ready/locked statuses, coins, navigation and banner
   assert.deepEqual(h.routes.at(-1), { pathname: '/mode', params: { categoryId: CATEGORIES[1].id } });
   assert.deepEqual(h.sounds, ['tap']);
   assert.equal(h.state.coins, 777);
+});
+
+test('transparent title image stays within the unchanged header row without intercepting either control', () => {
+  const h = harness();
+  const area = find(h.tree, n => n.props.testID === 'category-title-area');
+  const image = find(h.tree, n => n.props.testID === 'category-title-image');
+  assert.equal(area.props.pointerEvents, 'none');
+  assert.equal(area.props.accessibilityLabel, 'Category');
+  assert.equal(area.props.accessibilityRole, 'header');
+  assert.deepEqual(area.props.style[0], { position: 'absolute', left: 44, top: 4, bottom: 4 });
+  assert.equal(area.props.style[1].right, 108);
+  assert.equal(image.props.contentFit, 'contain');
+  assert.equal(image.props.contentPosition, 'center');
+  assert.equal(image.props.source, 456);
+  assert.deepEqual(image.props.style, { width: '100%', height: '100%' });
+  find(h.tree, n => n.type === 'Header').props.right.props.onLayout({ nativeEvent: { layout: { width: 72 } } });
+  assert.deepEqual(h.measurements, [72], 'title width follows the real coin width, never moves the control');
+  const png = fs.readFileSync(path.join(root, 'assets/images/category-title.png'));
+  assert.equal(png.readUInt32BE(16), 865);
+  assert.equal(png.readUInt32BE(20), 289);
+  assert.equal(png[25], 6, 'original RGBA format is retained');
+  const crypto = require('node:crypto');
+  assert.equal(crypto.createHash('sha256').update(png).digest('hex'),
+    '60d80756be64f76022754020c9718084ae2ea1ae0a29a83c7706dd02d952d3d6',
+    'asset is byte-for-byte identical to the supplied transparent PNG');
 });
 
 test('hydration and tutorial redirects remain intact; native and web headers respect their safe areas', () => {
