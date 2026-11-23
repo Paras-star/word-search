@@ -14,15 +14,11 @@ function deferred() {
   return { promise, resolve, reject };
 }
 
-function service(loader, events = []) {
+function service(loader) {
   const calls = [], module = { exports: {} };
   new Function('require', 'module', 'exports', compile(fs.readFileSync(path.join(root, 'services/animalBackgroundPreparation.ts'), 'utf8')))(
     name => {
       if (name === 'expo-image') return { Image: { loadAsync: (...args) => { calls.push(args); return loader(...args); } } };
-      if (name === '@/services/loadingDiagnostics') return {
-        logLoading: (event, fields) => events.push({ event, fields }),
-        loadingImageId: image => image ? 1 : null, loadingError: error => error.message,
-      };
       if (name.endsWith('animals-background.png')) return 123;
       throw Error(name);
     }, module, module.exports,
@@ -64,13 +60,12 @@ function gameHarness(api, initial = {}) {
   const js = compile(`${declarations}\n${effect.getText(ast)}\nreturn (${background.expression.getText(ast)}) || null;`);
   let state, initialized = false, oldDeps, cleanup, pendingEffect, tree, dirty = false, writes = 0;
   let context = { category: { id: 'animals' }, rawOnboardingStep: undefined, rawDailyDate: undefined, ...initial };
-  const warnings = [], events = [];
+  const warnings = [];
   const render = () => {
     dirty = false;
     tree = new Function('require', 'exports', 'category', 'rawOnboardingStep', 'rawDailyDate', 'useState', 'useEffect',
       'getPreparedAnimalBackground', 'prepareAnimalBackground', 'ANIMALS_BACKGROUND_SOURCE',
-      'Image', 'View', 'StyleSheet', 'console', 'categoryId', 'rawMode',
-      'logLoading', 'loadingImageId', 'loadingError', js)(
+      'Image', 'View', 'StyleSheet', 'console', js)(
       name => { assert.equal(name, 'react/jsx-runtime'); return { jsx: (type, props) => ({ type, props }) }; },
       {},
       context.category, context.rawOnboardingStep, context.rawDailyDate,
@@ -86,13 +81,11 @@ function gameHarness(api, initial = {}) {
       api.getPreparedAnimalBackground, api.prepareAnimalBackground, api.ANIMALS_BACKGROUND_SOURCE,
       'ExpoImage', 'View', { absoluteFill: { position: 'absolute', top: 0, bottom: 0, left: 0, right: 0 } },
       { warn: (...args) => warnings.push(args) },
-      context.category.id, 'classic',
-      (event, fields) => events.push({ event, fields }), image => image ? 1 : null, error => error,
     );
     if (pendingEffect) { const fn = pendingEffect; pendingEffect = null; cleanup = fn(); }
   };
   const h = {
-    get tree() { return tree; }, get writes() { return writes; }, warnings, events,
+    get tree() { return tree; }, get writes() { return writes; }, warnings,
     render(next) { if (next) context = { ...context, ...next }; render(); },
     async flush() { for (let i = 0; i < 8; i++) { await Promise.resolve(); if (dirty) render(); } },
     unmount() { cleanup?.(); },
@@ -130,12 +123,12 @@ test('mode preparation covers every existing and future category after onboardin
   const { ast, all } = nodes('app/mode.tsx');
   const effect = all.find(n => ts.isCallExpression(n) && n.expression.getText(ast) === 'useEffect'
     && n.getText(ast).includes('prepareAnimalBackground()'));
-  const run = new Function('categoryId', 'hydrated', 'onboardingStep', 'prepareAnimalBackground', 'useEffect', 'console', 'logLoading',
+  const run = new Function('categoryId', 'hydrated', 'onboardingStep', 'prepareAnimalBackground', 'useEffect', 'console',
     compile(effect.getText(ast)));
   for (const categoryId of [...categoryIds, futureCategoryId, undefined, '']) {
     for (const hydrated of [false, true]) for (const step of [0, 1, 2, 3, 4, 5, 6]) {
       let calls = 0;
-      run(categoryId, hydrated, step, () => { calls++; return Promise.resolve({}); }, fn => fn(), console, () => {});
+      run(categoryId, hydrated, step, () => { calls++; return Promise.resolve({}); }, fn => fn(), console);
       assert.equal(calls, categoryId && hydrated && step === 6 ? 1 : 0, `${categoryId}, hydrated=${hydrated}, step=${step}`);
     }
   }
@@ -161,7 +154,7 @@ test('Animals through Workshop and a future category use the identical prepared 
     assert.equal(rendered.props.accessible, false);
     assert.equal(h.tree.props.pointerEvents, 'none');
     assert.equal(rendered.props.onLoad, undefined, 'no iOS loader-event readiness gate');
-    assert.equal(typeof rendered.props.onDisplay, 'function', 'display observer does not gate readiness');
+    assert.equal(rendered.props.onDisplay, undefined);
     assert.deepEqual(rendered.props.style, [
       { position: 'absolute', top: 0, bottom: 0, left: 0, right: 0 },
       { width: '100%', height: '100%' },
@@ -169,23 +162,6 @@ test('Animals through Workshop and a future category use the identical prepared 
     h.unmount();
   }
   assert.equal(api.calls.length, 1, 'all categories reuse the single retained image');
-});
-
-test('temporary background diagnostics observe fallback/prepared display and errors without starting extra work', async () => {
-  const load = deferred(), events = [], image = {}, api = service(() => load.promise, events);
-  const h = gameHarness(api, { category: { id: 'animals' } });
-  h.tree.props.children.props.onDisplay();
-  h.tree.props.children.props.onError({ error: 'native decode failure' });
-  assert.equal(h.events.find(row => row.event === 'background.game-entry').fields.eligible, true);
-  assert.equal(h.events.find(row => row.event === 'background.display').fields.source, 'fallback');
-  assert.equal(h.events.find(row => row.event === 'background.display-error').fields.error, 'native decode failure');
-  assert.equal(h.writes, 0, 'native observers do not alter image state or retry');
-  load.resolve(image); await h.flush();
-  h.tree.props.children.props.onDisplay();
-  assert.equal(h.events.filter(row => row.event === 'background.display').at(-1).fields.source, 'prepared');
-  assert.deepEqual(events.map(row => row.event), ['background.prepare-start', 'background.prepare-complete']);
-  assert.equal(api.calls.length, 1);
-  h.unmount();
 });
 
 test('fast/direct entry shows the original source immediately, shares pending preparation and adopts its decoded ref', async () => {

@@ -29,8 +29,6 @@ function rewardHarness() {
   const jsx = (type, props) => ({ type, props });
   const dumpling = { id: 'd', name: 'Dumpling', rarity: 'Common' };
   const requireMock = name => {
-    if (name === '@/services/loadingDiagnostics') return { logLoading() {} };
-    if (name === 'react') react.useLayoutEffect = react.useEffect;
     if (name === 'react') return react;
     if (name === 'react/jsx-runtime') return { jsx, jsxs: jsx, Fragment: 'Fragment' };
     if (name === 'react-native') return {

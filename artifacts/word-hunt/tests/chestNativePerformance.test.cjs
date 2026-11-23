@@ -22,10 +22,9 @@ function find(tree, id) {
 const jsx = (type, props) => ({ type, props });
 
 test('decoded native cache is single-flight and bounded; re-entry does not decode any of the 73 frames or 30 rewards again', async () => {
-  const decoded = [], events = [];
+  const decoded = [];
   const dumplings = Array.from({ length: 30 }, (_, i) => ({ id: `d${i}`, asset: 100 + i }));
   const cache = load('services/chestPreparation.ts', name => {
-    if (name === '@/services/loadingDiagnostics') return { logLoading: event => events.push(event) };
     if (name === 'expo-image') return { Image: { loadAsync: async (source, options) => {
       decoded.push({ source, options }); return { source, bitmap: true };
     } } };
@@ -47,15 +46,12 @@ test('decoded native cache is single-flight and bounded; re-entry does not decod
   assert.equal((await cache.prepareClosedChest()).source, 6);
   assert.equal(cache.getPreparedClosedChest().source, 6);
   assert.equal(decoded.length, 37);
-  assert.equal(events.filter(event => event === 'chest.assets-prepare-start').length, 1);
-  assert.equal(events.filter(event => event === 'chest.assets-prepare-complete').length, 1);
-  assert.equal(events.filter(event => event === 'chest.assets-cache-hit').length, 25);
 });
 
 function nativeHarness({ preparationFails = false, cold = false, displayClosed = true, platform = 'android' } = {}) {
   let index = 0, dirty = false, tree, effects = [], renders = 0, opening = false, now = 0;
   let callbacks = 0, plays = 0, taps = 0, failure = preparationFails;
-  const hooks = [], shared = [], listeners = new Set(), timers = new Map(), jsQueue = [], diagnostics = [];
+  const hooks = [], shared = [], listeners = new Set(), timers = new Map(), jsQueue = [];
   const idleQueue = new Map(), loadedAtlases = new Set();
   let assetPreparations = 0, audioPreparations = 0;
   let nextIdle = 0, resolveAssets;
@@ -105,9 +101,6 @@ function nativeHarness({ preparationFails = false, cold = false, displayClosed =
     throw Error(name);
   });
   const component = load('components/ChestReveal.native.tsx', name => {
-    if (name === '@/services/loadingDiagnostics') return {
-      logLoading: (event, fields) => diagnostics.push({ event, atMs: now, fields }),
-    };
     if (name === 'react') return react;
     if (name === 'react/jsx-runtime') return { jsx, jsxs: jsx, Fragment: 'Fragment' };
     if (name === 'react-native') return {
@@ -138,7 +131,7 @@ function nativeHarness({ preparationFails = false, cold = false, displayClosed =
     cancelIdleCallback: id => idleQueue.delete(id),
   });
   const h = {
-    get tree() { return tree; }, get renders() { return renders; }, get plays() { return plays; }, diagnostics,
+    get tree() { return tree; }, get renders() { return renders; }, get plays() { return plays; },
     get callbacks() { return callbacks; }, get taps() { return taps; }, cached,
     get assetPreparations() { return assetPreparations; }, get audioPreparations() { return audioPreparations; },
     render(next = opening) {
@@ -240,31 +233,6 @@ test('Android keeps reward and rim mounted before opening; clock/play start with
   assert.equal(h.plays, 1);
   assert.equal(h.callbacks, 1);
   h.unmount();
-});
-
-test('temporary native diagnostics distinguish first display, cold preparation, renderer readiness and animation start', async () => {
-  const h = nativeHarness({ cold: true, displayClosed: false });
-  h.advanceTimers(20);
-  h.displayClosed();
-  await h.flushJS();
-  const closed = h.diagnostics.find(row => row.event === 'chest.closed-display');
-  assert.equal(closed.atMs, 20);
-  assert.equal(closed.fields.assetsCached, false);
-  assert.ok(h.diagnostics.some(row => row.event === 'chest.prepare-start'));
-  assert.ok(!h.diagnostics.some(row => row.event === 'chest.renderer-ready'));
-  h.advanceTimers(400);
-  h.resolvePreparation();
-  await h.flushJS();
-  assert.equal(h.diagnostics.find(row => row.event === 'chest.assets-and-audio-ready').atMs, 420);
-  assert.equal(h.diagnostics.find(row => row.event === 'chest.renderer-ready').atMs, 420);
-  h.advanceTimers(30);
-  h.render(true);
-  assert.equal(h.diagnostics.find(row => row.event === 'chest.animation-start').atMs, 450);
-  assert.equal(h.plays, 1);
-  h.unmount();
-  const warm = nativeHarness();
-  assert.equal(warm.diagnostics.find(row => row.event === 'chest.closed-display').fields.assetsCached, true);
-  warm.unmount();
 });
 
 test('cold native entry shows the closed chest even while full preparation is unresolved', async () => {
