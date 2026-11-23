@@ -43,7 +43,10 @@ test('gameplay shares its additive hint balance between the top use button and b
 });
 
 test('level completion and touch mapping remain byte-identical after removing the free-hint action', () => {
-  const source = read('app/game.tsx');
+  // Authorized temporary observation calls only; protect all original behavior.
+  const source = read('app/game.tsx')
+    .replace(/^    logLoading\('puzzle\.complete'.*\n/m, '')
+    .replace(/^      logLoading\('puzzle\.reward-navigation'.*\n/m, '');
   const hashes = {
     '  const finish =': 'bfb066693b950f7470ca02d1d50b39d1b6e5108b06e6c6a00ed06fcf56e524b2',
     '  const cellFromEvent =': '15eeee31f7a4a81ed2fea14d53ee15d63a7beebb40f86f4f41486faede201846',
@@ -105,6 +108,8 @@ function rewardScreenHarness(options = {}) {
     addEventListener: (_, callback) => { stateListener = callback; return { remove() { stateListener = null; } }; },
   };
   const mockRequire = name => {
+    if (name === '@/services/loadingDiagnostics') return { logLoading() {} };
+    if (name === 'react') react.useLayoutEffect = react.useEffect;
     if (name === 'react') return { __esModule: true, default: react, ...react };
     if (name === 'react-native') return {
       AppState: appState, StyleSheet: { create: s => s },

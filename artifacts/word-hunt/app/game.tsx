@@ -25,6 +25,7 @@ import { RewardedAdButton } from '@/components/RewardedAdButton';
 import { createHintReward, REWARDED_HINTS } from '@/services/rewardedBenefits';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ANIMALS_BACKGROUND_SOURCE, getPreparedAnimalBackground, prepareAnimalBackground } from '@/services/animalBackgroundPreparation';
+import { loadingError, loadingImageId, logLoading } from '@/services/loadingDiagnostics';
 
 function cellKey(cell: Cell) { return `${cell.row}-${cell.col}`; }
 function sameCell(a: Cell, b: Cell) { return a.row === b.row && a.col === b.col; }
@@ -85,16 +86,29 @@ function GameSession({ params }: { params: GameParams }) {
   const usesCategoryBackground = rawOnboardingStep === undefined && rawDailyDate === undefined;
   const [animalBackground, setAnimalBackground] = useState(getPreparedAnimalBackground);
   useEffect(() => {
+    logLoading('background.game-entry', {
+      categoryId: category.id, requestedCategory: categoryId ?? 'absent', mode: rawMode ?? 'absent',
+      onboardingStep: rawOnboardingStep ?? 'absent', dailyRequested: rawDailyDate !== undefined,
+      eligible: usesCategoryBackground, source: animalBackground ? 'prepared' : 'fallback',
+      imageRef: loadingImageId(animalBackground),
+    });
     if (!usesCategoryBackground) return;
     let active = true;
     // Handles direct/fast entry too; ordinary entry reuses the mode-screen work.
     void prepareAnimalBackground().then(image => {
+      logLoading('background.reference-received', { categoryId: category.id, active, imageRef: loadingImageId(image) });
       if (active) setAnimalBackground(image);
     }).catch(error => {
       console.warn('[Word Hunt background] Animals preparation failed; using the source image.', error);
     });
     return () => { active = false; };
   }, [usesCategoryBackground]);
+  useEffect(() => {
+    if (usesCategoryBackground) logLoading('background.source-commit', {
+      categoryId: category.id, source: animalBackground ? 'prepared' : 'fallback',
+      imageRef: loadingImageId(animalBackground),
+    });
+  }, [usesCategoryBackground, animalBackground, category.id]);
   const { coins, awardCoins, completeLevel, completeOnboardingStep, completeDailyPuzzle, completedDailyPuzzles, completedLevels, onboardingStep } = useGame();
   const puzzleSeed = onboarding ? onboarding.seed : daily?.seed ?? seed ?? `${category.id}:default`;
   // Saving the first completion updates progress before navigation; keep this puzzle unchanged.
@@ -162,6 +176,7 @@ function GameSession({ params }: { params: GameParams }) {
   const finish = useCallback(async () => {
     if (completionStarted.current) return;
     completionStarted.current = true;
+    logLoading('puzzle.complete', { categoryId: category.id, kind: onboarding ? 'onboarding' : rawDailyDate !== undefined ? 'daily' : 'category' });
     const finalScore = score + completionBonus(mode, timeLeft);
     const finalTime = mode === 'time' ? 120 - timeLeft : Math.floor((Date.now() - startTime.current) / 1000);
     try {
@@ -211,6 +226,7 @@ function GameSession({ params }: { params: GameParams }) {
         await rewardGateway.onPuzzleCompleted({ puzzleId: puzzle.id, categoryId: category.id, mode, score: finalScore });
         completionStage.current = 3;
       }
+      logLoading('puzzle.reward-navigation', { categoryId: category.id });
       router.replace({ pathname: '/reward', params: { categoryId: category.id, mode, score: String(finalScore), time: String(finalTime), puzzleId: puzzle.id } });
     } catch {
       setFinishError(true);
@@ -379,7 +395,15 @@ function GameSession({ params }: { params: GameParams }) {
       <View pointerEvents="none" style={StyleSheet.absoluteFill} testID="animals-background">
         <Image source={animalBackground ?? ANIMALS_BACKGROUND_SOURCE}
           style={[StyleSheet.absoluteFill, { width: '100%', height: '100%' }]}
-          contentFit="cover" contentPosition="center" transition={0} accessible={false} />
+          contentFit="cover" contentPosition="center" transition={0} accessible={false}
+          onDisplay={() => logLoading('background.display', {
+            categoryId: category.id, source: animalBackground ? 'prepared' : 'fallback',
+            imageRef: loadingImageId(animalBackground),
+          })}
+          onError={event => logLoading('background.display-error', {
+            categoryId: category.id, source: animalBackground ? 'prepared' : 'fallback',
+            imageRef: loadingImageId(animalBackground), error: loadingError(event.error),
+          })} />
       </View>
     )}
     <Header title={category.name} onBack={() => daily ? (router.canGoBack() ? router.back() : router.replace('/daily')) : onboarding ? router.replace('/') : router.back()} right={<CoinPill coins={coins} />} />

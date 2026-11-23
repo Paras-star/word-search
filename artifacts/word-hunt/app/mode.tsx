@@ -9,6 +9,7 @@ import { getPuzzleCategory } from '@/game/puzzleConfig';
 import { useGame } from '@/context/GameProvider';
 import { useColors } from '@/hooks/useColors';
 import { prepareAnimalBackground } from '@/services/animalBackgroundPreparation';
+import { logLoading } from '@/services/loadingDiagnostics';
 
 export default function ModeScreen() {
   const router = useRouter();
@@ -18,6 +19,7 @@ export default function ModeScreen() {
   const wordCount = getPuzzleCategory(category, completedLevels).words.length;
   const colors = useColors();
   useEffect(() => {
+    logLoading('background.mode-entry', { categoryId: categoryId ?? 'absent', hydrated, onboardingStep });
     if (!hydrated || onboardingStep < 6 || !categoryId) return;
     void prepareAnimalBackground().catch(error => {
       console.warn('[Word Hunt background] Animals preparation failed.', error);

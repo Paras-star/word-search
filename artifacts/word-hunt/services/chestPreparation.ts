@@ -1,6 +1,7 @@
 import { Image, type ImageRef } from 'expo-image';
 import { DUMPLINGS } from '@/data/dumplings';
 import { CHEST_ATLASES, CHEST_CLOSED, CHEST_FRONT } from '@/components/chestAnimationData';
+import { logLoading } from '@/services/loadingDiagnostics';
 
 export type PreparedChest = {
   atlases: ImageRef[];
@@ -33,8 +34,15 @@ export function prepareClosedChest(): Promise<ImageRef> {
 export function getPreparedChest(): PreparedChest | null { return prepared; }
 
 export function prepareChestAssets(): Promise<PreparedChest> {
-  if (prepared) return Promise.resolve(prepared);
-  if (pending) return pending;
+  if (prepared) {
+    logLoading('chest.assets-cache-hit');
+    return Promise.resolve(prepared);
+  }
+  if (pending) {
+    logLoading('chest.assets-pending-reused');
+    return pending;
+  }
+  logLoading('chest.assets-prepare-start');
   pending = (async () => {
     // The small idle visual takes priority over the later opening resources.
     // RootLayout starts this before any game/reward route is rendered.
@@ -50,8 +58,10 @@ export function prepareChestAssets(): Promise<PreparedChest> {
       dumplings.set(d.id, await Image.loadAsync(d.asset as number, { maxWidth: 384, maxHeight: 384 }));
     }
     prepared = { atlases, front, dumplings };
+    logLoading('chest.assets-prepare-complete');
     return prepared;
   })().catch(error => {
+    logLoading('chest.assets-prepare-error');
     pending = null;
     throw error;
   });

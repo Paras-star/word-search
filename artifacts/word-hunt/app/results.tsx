@@ -16,6 +16,7 @@ import {
 } from '@/services/ads';
 import { REWARDED_COINS } from '@/services/adConfig';
 import { logAd } from '@/services/adDiagnostics';
+import { logLoading } from '@/services/loadingDiagnostics';
 
 export default function ResultsScreen() {
   const router = useRouter();
@@ -85,9 +86,12 @@ export default function ResultsScreen() {
           <View style={[styles.stat, { backgroundColor: colors.card, borderColor: colors.border }]}><Text style={[styles.label, { color: colors.mutedForeground }]}>TIME</Text><Text style={[styles.value, { color: colors.foreground }]}>{formatTime(Number(params.time ?? 0))}</Text></View>
           <View style={[styles.stat, { backgroundColor: colors.card, borderColor: colors.border }]}><Text style={[styles.label, { color: colors.mutedForeground }]}>COINS</Text><Text style={[styles.value, { color: colors.orange }]}>+10</Text></View>
         </View>
-        <PrimaryButton onPress={() => router.replace(next
+        <PrimaryButton onPress={() => {
+          if (!next) logLoading('background.onboarding-continue', { categoryId: 'animals', onboardingStep });
+          router.replace(next
           ? { pathname: '/game', params: { onboardingStep: String(onboardingStep) } }
-          : { pathname: '/mode', params: { categoryId: 'animals' } })}>
+          : { pathname: '/mode', params: { categoryId: 'animals' } });
+        }}>
           {next ? `NEXT: ${next.words.length} WORDS` : 'PLAY ANIMALS'}
         </PrimaryButton>
         <SoftButton onPress={() => router.replace('/')}>HOME</SoftButton>

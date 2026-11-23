@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Animated,
@@ -22,6 +22,7 @@ import { playSound } from '@/services/audio';
 import { homeColors } from '@/constants/homePalette';
 import { useGame } from '@/context/GameProvider';
 import { registerCompletedPuzzle, showInterstitialAtTransition } from '@/services/ads';
+import { logLoading } from '@/services/loadingDiagnostics';
 
 type RevealStage = 'basket' | 'opening' | 'revealed' | 'collected';
 
@@ -48,6 +49,11 @@ export default function RewardScreen() {
   const navigating = useRef(false);
   const transition = useRef<AbortController | null>(null);
 
+  useLayoutEffect(() => {
+    logLoading('reward.mount', { categoryId: params.categoryId ?? 'unknown' });
+    return () => logLoading('reward.unmount');
+  }, []);
+
   useFocusEffect(useCallback(() => {
     focused.current = true;
     navigating.current = false;
@@ -68,11 +74,13 @@ export default function RewardScreen() {
     getPendingReward()
       .then((pending) => {
         if (!active) return;
+        logLoading('reward.data-ready', { hasReward: !!pending });
         setReward(pending);
         setLoading(false);
       })
       .catch(() => {
         if (!active) return;
+        logLoading('reward.data-error');
         setError('Your saved reward could not be loaded.');
         setLoading(false);
       });
@@ -97,6 +105,7 @@ export default function RewardScreen() {
 
   const startReveal = () => {
     if (!reward || stage !== 'basket') return;
+    logLoading('chest.open-request');
     setStage('opening');
   };
   const onRevealed = useCallback(() => { if (mounted.current) setStage('revealed'); }, []);

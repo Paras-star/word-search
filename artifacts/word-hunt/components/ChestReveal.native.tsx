@@ -9,6 +9,7 @@ import { getPreparedChest, getPreparedClosedChest, prepareChestAssets } from '@/
 import { ChestFrameRenderer } from './ChestFrameRenderer.native';
 import { afterChestDisplay } from '@/services/chestEntryScheduling';
 import { CHEST_CLOSED, CHEST_DURATION_MS, DUMPLING_REVEAL_MS } from './chestAnimationData';
+import { logLoading } from '@/services/loadingDiagnostics';
 
 type Props = {
   opening: boolean; dumpling: Dumpling | null; onRevealed?: () => void;
@@ -42,11 +43,13 @@ export function ChestReveal({ opening, dumpling, onRevealed, onPress, disabled, 
   const rendererReady = !!assets && loadedCount === assets.atlases.length;
 
   const prepare = useCallback(() => {
+    logLoading('chest.prepare-start', { slot: testID ?? 'chest', assetsCached: !!getPreparedChest() });
     const current = ++generation.current;
     setFailed(false);
     setAudioReady(false);
     void Promise.all([prepareChestAssets(), prepareChestAudio()]).then(([ready]) => {
       if (!mounted.current || current !== generation.current) return;
+      logLoading('chest.assets-and-audio-ready', { slot: testID ?? 'chest' });
       setAssets(ready);
       setAudioReady(true);
     }).catch(() => {
@@ -113,8 +116,15 @@ export function ChestReveal({ opening, dumpling, onRevealed, onPress, disabled, 
   }, []);
 
   useLayoutEffect(() => {
+    if (rendererReady) logLoading('chest.renderer-ready', {
+      slot: testID ?? 'chest', audioReady, closedReady, layoutReady,
+    });
+  }, [rendererReady]);
+
+  useLayoutEffect(() => {
     if (!opening || !dumpling || !assets || !audioReady || !layoutReady || !rendererReady || failed || started.current) return;
     started.current = true;
+    logLoading('chest.animation-start', { slot: testID ?? 'chest' });
     playPreparedChestSound();
     // One native clock drives frames, artwork and rim together. No JS ticks,
     // frame loads, state updates, seeks, or waits occur between source stages.
@@ -160,7 +170,10 @@ export function ChestReveal({ opening, dumpling, onRevealed, onPress, disabled, 
           <Animated.View style={[StyleSheet.absoluteFill, styles.fill, closedStyle]}
             pointerEvents="none" testID="chest-closed-frame">
             <Image key={closedRetry} source={getPreparedClosedChest() ?? CHEST_CLOSED} style={styles.fill}
-              contentFit="contain" transition={0} onDisplay={() => setClosedReady(true)}
+              contentFit="contain" transition={0} onDisplay={() => {
+                logLoading('chest.closed-display', { slot: testID ?? 'chest', assetsCached: !!getPreparedChest() });
+                setClosedReady(true);
+              }}
               onError={() => { setClosedReady(false); setFailed(true); }} />
           </Animated.View>
         </View>
