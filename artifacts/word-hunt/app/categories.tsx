@@ -1,5 +1,7 @@
 import React from 'react';
-import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
+import { FlatList, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Image } from 'expo-image';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Redirect, useRouter } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import { Header, Screen, CoinPill, SectionLabel } from '@/components/GameUI';
@@ -9,32 +11,46 @@ import { useGame } from '@/context/GameProvider';
 import { useColors } from '@/hooks/useColors';
 import { AdBanner } from '@/components/AdBanner';
 import { playSound } from '@/services/audio';
+import { ANIMALS_BACKGROUND_SOURCE } from '@/services/animalBackgroundPreparation';
 
 export default function CategoriesScreen() {
   const router = useRouter();
   const colors = useColors();
+  const insets = useSafeAreaInsets();
   const { coins, completedLevels, hydrated, onboardingStep } = useGame();
   if (!hydrated) return null;
   if (onboardingStep < 6) {
     return <Redirect href={{ pathname: '/game', params: { onboardingStep: String(onboardingStep) } }} />;
   }
-  return <Screen>
+  return <Screen style={styles.screen}>
+    <View pointerEvents="none" style={StyleSheet.absoluteFill} testID="categories-background">
+      <Image source={ANIMALS_BACKGROUND_SOURCE}
+        style={[StyleSheet.absoluteFill, { width: '100%', height: '100%' }]}
+        contentFit="cover" contentPosition="center" transition={0} accessible={false} />
+    </View>
+    <View style={[styles.content, { paddingTop: Platform.OS === 'web' ? Math.max(67, insets.top) : insets.top, paddingBottom: Platform.OS === 'web' ? Math.max(34, insets.bottom) : insets.bottom }]}>
+    <View style={[styles.headerBacking, { backgroundColor: `${colors.background}F0` }]}>
     <Header title="Choose a category" onBack={() => router.back()} right={<CoinPill coins={coins} />} />
     <Text style={[styles.intro, { color: colors.mutedForeground }]}>Complete a hunt to unlock the next world.</Text>
+    </View>
     <FlatList data={CATEGORIES} numColumns={2} keyExtractor={(item) => item.id} columnWrapperStyle={styles.columns} contentContainerStyle={styles.list} renderItem={({ item, index }) => {
       const unlocked = isCategoryUnlocked(index, completedLevels, CATEGORIES);
       const completed = completedLevels.includes(item.id);
-      return <Pressable disabled={!unlocked} onPress={() => { playSound('tap'); router.push({ pathname: '/mode', params: { categoryId: item.id } }); }} style={({ pressed }) => [styles.card, { backgroundColor: unlocked ? colors.card : colors.muted, borderColor: completed ? colors.success : colors.border, opacity: pressed ? 0.75 : unlocked ? 1 : 0.56 }]}>
+      return <Pressable disabled={!unlocked} onPress={() => { playSound('tap'); router.push({ pathname: '/mode', params: { categoryId: item.id } }); }} style={({ pressed }) => [styles.card, { backgroundColor: unlocked ? colors.card : colors.muted, borderColor: completed ? colors.success : colors.border, opacity: pressed ? 0.75 : 1 }]}>
         <View style={[styles.icon, { backgroundColor: unlocked ? colors.accent : colors.border }]}><Text style={styles.emoji}>{item.emoji}</Text></View>
         <Text style={[styles.name, { color: unlocked ? colors.foreground : colors.mutedForeground }]}>{item.name}</Text>
         <View style={styles.status}>{completed ? <><Feather name="check-circle" size={14} color={colors.success} /><Text style={[styles.statusText, { color: colors.success }]}>CLEARED</Text></> : unlocked ? <><SectionLabel>READY</SectionLabel></> : <><Feather name="lock" size={13} color={colors.mutedForeground} /><Text style={[styles.statusText, { color: colors.mutedForeground }]}>LOCKED</Text></>}</View>
       </Pressable>;
     }} />
     <AdBanner />
+    </View>
   </Screen>;
 }
 
 const styles = StyleSheet.create({
+  screen: { paddingHorizontal: 0 },
+  content: { flex: 1, paddingHorizontal: 20 },
+  headerBacking: { marginHorizontal: -20, paddingHorizontal: 20 },
   intro: { fontFamily: 'Inter_500Medium', fontSize: 14, marginBottom: 16 },
   list: { paddingBottom: 24, gap: 12 },
   columns: { gap: 12 },
