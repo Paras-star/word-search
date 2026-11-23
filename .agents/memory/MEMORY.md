@@ -17,3 +17,4 @@
 - [Cross-mode word reuse](cross-mode-word-reuse.md) — approved Emotions/Daily overlap preserves the exact requested targets and existing Daily puzzles.
 - [Google Play update policy](google-play-update-policy.md) — normal Play Store updates only; no custom in-app or push-notification update system.
 - [Upload key safety](upload-key-safety.md) — preserve existing EAS credentials; require verified encrypted external backups and separate activation approval.
+- [Puzzle background artwork](puzzle-background-artwork.md) — preserve night and Animal artwork; fix moon/header collisions and contrast through scoped UI changes, not reframing.

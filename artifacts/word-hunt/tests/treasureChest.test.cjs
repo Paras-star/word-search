@@ -351,10 +351,14 @@ for (const [name, [paths, expected]] of Object.entries(protectedGroups)) {
     for (const relative of paths.flatMap(walk).sort()) {
       let bytes = fs.readFileSync(path.join(root, relative));
       if (relative === 'app/game.tsx') {
-        // Only these two visual additions are authorized for Phase 2.
+        // Only these exact visual additions are authorized for Phase 2.
         bytes = Buffer.from(bytes.toString()
           .replace("import { NightPuzzleBackground } from '@/components/NightPuzzleBackground';\n", '')
-          .replace('    {!usesCategoryBackground && <NightPuzzleBackground />}\n', ''));
+          .replace('    {!usesCategoryBackground && <NightPuzzleBackground />}\n', '')
+          .replace("import { getNightHeaderTitleStyle, nightPuzzleColors, nightPuzzleTextStyle } from '@/constants/nightPuzzlePresentation';\n", '')
+          .replace('  const nightTextStyle = usesCategoryBackground ? undefined : nightPuzzleTextStyle;\n', '')
+          .replace(' foregroundColor={usesCategoryBackground ? undefined : nightPuzzleColors.foreground} titleStyle={usesCategoryBackground ? undefined : [nightPuzzleTextStyle, getNightHeaderTitleStyle(width, height)]}', '')
+          .replaceAll(', nightTextStyle]', ']'));
       }
       if (relative === 'services/audio.ts') {
         bytes = Buffer.from(bytes.toString().replace(/\/\/ BEGIN prepared chest audio[\s\S]*?\/\/ END prepared chest audio\n\n/, ''));

@@ -1,5 +1,5 @@
 import React from 'react';
-import { ActivityIndicator, Platform, Pressable, StyleSheet, Text, View, type PressableProps, type StyleProp, type ViewStyle } from 'react-native';
+import { ActivityIndicator, Platform, Pressable, StyleSheet, Text, View, type PressableProps, type StyleProp, type TextStyle, type ViewStyle } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { usePathname, useRouter } from 'expo-router';
 import { useColors } from '@/hooks/useColors';
@@ -44,7 +44,13 @@ export function CoinPill({ coins }: { coins: number }) {
   </View>;
 }
 
-export function Header({ title, onBack, right }: { title: string; onBack?: () => void; right?: React.ReactNode }) {
+export function Header({ title, onBack, right, titleStyle, foregroundColor }: {
+  title: string;
+  onBack?: () => void;
+  right?: React.ReactNode;
+  titleStyle?: StyleProp<TextStyle>;
+  foregroundColor?: string;
+}) {
   const colors = useColors();
   const router = useRouter();
   const pathname = usePathname();
@@ -56,7 +62,7 @@ export function Header({ title, onBack, right }: { title: string; onBack?: () =>
       onBack?.();
     }
   };
-  return <View style={styles.header}>{onBack ? <Pressable onPress={handleBack} hitSlop={12}><Feather name="arrow-left" size={24} color={colors.foreground} /></Pressable> : <View style={{ width: 24 }} />}<Text style={[styles.headerTitle, { color: colors.foreground }]}>{title}</Text><View style={styles.headerRight}>{right}</View></View>;
+  return <View style={styles.header}>{onBack ? <Pressable onPress={handleBack} hitSlop={12}><Feather name="arrow-left" size={24} color={foregroundColor ?? colors.foreground} /></Pressable> : <View style={{ width: 24 }} />}<Text style={[styles.headerTitle, { color: foregroundColor ?? colors.foreground }, titleStyle]}>{title}</Text><View style={styles.headerRight}>{right}</View></View>;
 }
 
 export function LoadingScreen() {

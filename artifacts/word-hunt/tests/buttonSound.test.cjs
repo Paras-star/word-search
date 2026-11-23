@@ -70,6 +70,27 @@ function loadGameUI(platform = 'ios') {
   return { ui: loadedModule.exports, sounds, routerCalls };
 }
 
+test('Header typography and icon overrides are opt-in; ordinary screens retain their colors and dimensions', () => {
+  const { ui } = loadGameUI();
+  const plain = ui.Header({ title: 'Categories', onBack: () => {}, right: 'coins' });
+  const customStyle = { color: '#FFF8E8', marginLeft: 77, fontSize: 18, lineHeight: 22, flex: 1 };
+  const night = ui.Header({
+    title: 'Level 5 · 15 words', onBack: () => {}, right: 'coins',
+    foregroundColor: '#FFF8E8', titleStyle: customStyle,
+  });
+  assert.equal(plain.props.style.height, 64);
+  assert.equal(night.props.style, plain.props.style, 'no header-height or row-layout change');
+  const [plainBack, plainTitle, plainCoins] = plain.props.children;
+  const [nightBack, nightTitle, nightCoins] = night.props.children;
+  assert.equal(plainBack.props.children.props.color, '#000');
+  assert.equal(nightBack.props.children.props.color, '#FFF8E8');
+  assert.equal(plainTitle.props.style[1].color, '#000');
+  assert.equal(plainTitle.props.style[2], undefined);
+  assert.equal(nightTitle.props.style[2], customStyle);
+  assert.equal(plainCoins.props.style, nightCoins.props.style);
+  assert.equal(plainCoins.props.children, nightCoins.props.children);
+});
+
 for (const buttonName of ['PrimaryButton', 'SoftButton']) {
   test(`${buttonName} taps once, preserves the event, and invokes its handler`, () => {
     const { ui, sounds } = loadGameUI();
