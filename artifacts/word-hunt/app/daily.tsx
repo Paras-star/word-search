@@ -9,6 +9,7 @@ import { useGame } from '@/context/GameProvider';
 import { dailyWindow, isDailyDatePlayable, localDateKey } from '@/game/daily';
 import { getDailyPuzzle } from '@/game/dailyPuzzle';
 import { playSound } from '@/services/audio';
+import { warmNightBackground } from '@/services/nightBackgroundPreparation';
 
 const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
@@ -24,6 +25,10 @@ export default function DailyScreen() {
     const today = new Date();
     return new Date(today.getFullYear(), today.getMonth(), 1);
   });
+
+  useEffect(() => {
+    if (hydrated) warmNightBackground();
+  }, [hydrated]);
 
   useEffect(() => {
     const refresh = () => setNow(new Date());
@@ -68,6 +73,10 @@ export default function DailyScreen() {
     playSound('tap');
     setMonth((previous) => new Date(previous.getFullYear(), previous.getMonth() + offset, 1));
   };
+  const openPuzzle = (key: string) => {
+    warmNightBackground();
+    router.push({ pathname: '/game', params: { dailyDate: key } });
+  };
 
   return <Screen style={{ paddingTop: insets.top + 8, paddingBottom: insets.bottom + 12 }}>
     <View style={styles.header}>
@@ -108,7 +117,7 @@ export default function DailyScreen() {
             return <View key={key} style={styles.daySlot}>
               <Pressable
                 disabled={!available}
-                onPress={() => { playSound('tap'); router.push({ pathname: '/game', params: { dailyDate: key } }); }}
+                onPress={() => { playSound('tap'); openPuzzle(key); }}
                 accessibilityRole="button"
                 accessibilityLabel={`${MONTHS[date.getMonth()]} ${date.getDate()}${today ? ', today' : ''}${played ? ', completed' : available ? ', playable' : ', unavailable'}`}
                 accessibilityState={{ disabled: !available }}
@@ -133,7 +142,7 @@ export default function DailyScreen() {
       </View>
       <Text style={[styles.note, { color: colors.mutedForeground }]}>New puzzle each day, right where you are.</Text>
     </ScrollView>
-    {!completed.has(todayKey) && <PrimaryButton onPress={() => router.push({ pathname: '/game', params: { dailyDate: todayKey } })} testID="daily-play-today">PLAY TODAY'S HUNT</PrimaryButton>}
+    {!completed.has(todayKey) && <PrimaryButton onPress={() => openPuzzle(todayKey)} testID="daily-play-today">PLAY TODAY'S HUNT</PrimaryButton>}
   </Screen>;
 }
 

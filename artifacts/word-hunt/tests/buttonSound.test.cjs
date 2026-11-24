@@ -157,5 +157,6 @@ test('raw home, category, and daily navigation handlers include ordinary taps', 
   assert.match(categories, /playSound\('tap'\);\s*router\.push\(\{\s*pathname: '\/mode'/);
   assert.match(daily, /playSound\('tap'\);\s*router\.canGoBack\(\)/);
   assert.match(daily, /playSound\('tap'\);\s*setMonth\(/);
-  assert.match(daily, /playSound\('tap'\);\s*router\.push\(\{\s*pathname: '\/game', params: \{ dailyDate: key \}/);
+  assert.match(daily, /playSound\('tap'\);\s*openPuzzle\(key\)/);
+  assert.match(daily, /const openPuzzle = \(key: string\) => \{\s*warmNightBackground\(\);\s*router\.push\(\{\s*pathname: '\/game', params: \{ dailyDate: key \}/);
 });

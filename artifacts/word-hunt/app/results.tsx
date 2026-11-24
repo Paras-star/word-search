@@ -17,6 +17,7 @@ import {
 } from '@/services/ads';
 import { REWARDED_COINS } from '@/services/adConfig';
 import { logAd } from '@/services/adDiagnostics';
+import { warmNightBackground } from '@/services/nightBackgroundPreparation';
 
 export default function ResultsScreen() {
   const router = useRouter();
@@ -34,6 +35,12 @@ export default function ResultsScreen() {
   const [rewardedReady, setRewardedReady] = useState(false);
   const [watching, setWatching] = useState(false);
   const [adMessage, setAdMessage] = useState('');
+
+  useEffect(() => {
+    if (onboarding && resultStep === onboardingStep - 1 && getOnboardingStep(onboardingStep)) {
+      warmNightBackground();
+    }
+  }, [onboarding, resultStep, onboardingStep]);
 
   useEffect(() => {
     if (isOnboardingRoute || isDailyRoute || onboardingStep < 6) return;
@@ -73,9 +80,12 @@ export default function ResultsScreen() {
   if (isOnboardingRoute) {
     if (!onboarding || resultStep !== onboardingStep - 1) return <Redirect href="/" />;
     const next = getOnboardingStep(onboardingStep);
-    return <IntroCompletion onNext={() => router.replace(next
-      ? { pathname: '/game', params: { onboardingStep: String(onboardingStep) } }
-      : { pathname: '/mode', params: { categoryId: 'animals' } })}
+    return <IntroCompletion onNext={() => {
+      if (next) warmNightBackground();
+      router.replace(next
+        ? { pathname: '/game', params: { onboardingStep: String(onboardingStep) } }
+        : { pathname: '/mode', params: { categoryId: 'animals' } });
+    }}
       onHome={() => router.replace('/')} />;
   }
   if (isDailyRoute) {

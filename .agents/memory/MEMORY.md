@@ -18,3 +18,4 @@
 - [Google Play update policy](google-play-update-policy.md) — normal Play Store updates only; no custom in-app or push-notification update system.
 - [Upload key safety](upload-key-safety.md) — preserve existing EAS credentials; require verified encrypted external backups and separate activation approval.
 - [Puzzle background artwork](puzzle-background-artwork.md) — preserve night and Animal artwork; fix moon/header collisions and contrast through scoped UI changes, not reframing.
+- [Expo web background preloading](expo-web-background-preloading.md) — no-store assets can reload after URL prefetch; verify delayed navigation and share a retained prepared result.

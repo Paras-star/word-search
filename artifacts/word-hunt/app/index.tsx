@@ -13,6 +13,7 @@ import { createCoinReward, HOME_REWARDED_COINS } from '@/services/rewardedBenefi
 import { RewardedAdButton } from '@/components/RewardedAdButton';
 import { useRewardedAd } from '@/hooks/useRewardedAd';
 import { AdBanner } from '@/components/AdBanner';
+import { warmNightBackground } from '@/services/nightBackgroundPreparation';
 
 export default function HomeScreen() {
   const router = useRouter();
@@ -26,6 +27,9 @@ export default function HomeScreen() {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [bounds, setBounds] = useState<{ w: number; h: number } | null>(null);
   useEffect(() => subscribeToAds(() => setPrivacyOptionsAvailable(canOpenPrivacyOptions())), []);
+  useEffect(() => {
+    if (hydrated && onboardingStep < 6) warmNightBackground();
+  }, [hydrated, onboardingStep]);
   useFocusEffect(useCallback(() => {
     if (Platform.OS !== 'android') return;
     // Modern Android is already edge-to-edge; these also enable transparency
@@ -40,6 +44,7 @@ export default function HomeScreen() {
   if (!hydrated) return <BrandLoading />;
   const play = () => {
     if (onboardingStep < 6) {
+      warmNightBackground();
       router.push({ pathname: '/game', params: { onboardingStep: String(onboardingStep) } });
       return;
     }

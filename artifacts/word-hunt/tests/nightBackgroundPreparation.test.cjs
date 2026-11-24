@@ -28,7 +28,7 @@ function service(loader) {
   return { ...module.exports, calls };
 }
 
-function component(api) {
+function component(api, os = 'android') {
   let state, initialized = false, cleanup, effectRan = false, dirty = false, writes = 0, tree;
   const warnings = [], module = { exports: {} };
   const absoluteFill = { position: 'absolute', top: 0, bottom: 0, left: 0, right: 0 };
@@ -42,7 +42,7 @@ function component(api) {
         useEffect: effect => { if (!effectRan) { effectRan = true; cleanup = effect(); } },
       };
       if (name === 'react/jsx-runtime') return { jsx: (type, props) => ({ type, props }) };
-      if (name === 'react-native') return { View: 'View', StyleSheet: { absoluteFill } };
+      if (name === 'react-native') return { View: 'View', StyleSheet: { absoluteFill }, Platform: { OS: os } };
       if (name === 'expo-image') return { Image: 'ExpoImage' };
       if (name === '@/services/nightBackgroundPreparation') return api;
       throw Error(name);
@@ -94,6 +94,65 @@ test('failed night preparation rejects and can retry without poisoning the cache
   fails = false;
   assert.equal(await api.prepareNightBackground(), image);
   assert.equal(api.calls.length, 2);
+});
+
+test('web preparation and display share one retained reference, including repeated navigation without HTTP caching', async () => {
+  const load = deferred(), image = { nativeRefType: 'image', uri: 'blob:retained-night' };
+  const api = service(() => load.promise);
+  const first = api.prepareNightBackground();
+  const a = component(api, 'web'), b = component(api, 'web');
+  assert.equal(api.prepareNightBackground(), first);
+  assert.deepEqual(api.calls, [[456]]);
+  assert.equal(a.tree.props.children.props.source, undefined, 'mounted image does not start an independent PNG request while preparation is pending');
+  a.unmount();
+  load.resolve(image);
+  await first; await a.flush(); await b.flush();
+  assert.equal(a.writes, 0);
+  assert.equal(b.tree.props.children.props.source, image);
+  b.unmount();
+  for (let visit = 0; visit < 10; visit++) {
+    const screen = component(api, 'web');
+    assert.equal(screen.tree.props.children.props.source, image, 'warm background is available on the first render');
+    await screen.flush();
+    screen.unmount();
+  }
+  assert.equal(api.calls.length, 1);
+  assert.equal(await api.prepareNightBackground(), image);
+});
+
+test('web preparation failure displays the original source fallback and allows a later retry', async () => {
+  let succeeds = false;
+  const image = { nativeRefType: 'image' };
+  const api = service(async () => { if (!succeeds) throw Error('Preparation unavailable'); return image; });
+  const h = component(api, 'web');
+  assert.equal(h.tree.props.testID, 'night-background', 'the layer mounts immediately and never gates gameplay');
+  await h.flush();
+  assert.equal(h.tree.props.children.props.source, 456);
+  assert.equal(h.warnings.length, 1);
+  assert.equal(api.getPreparedNightBackground(), null);
+  succeeds = true;
+  assert.equal(await api.prepareNightBackground(), image);
+  assert.equal(api.calls.length, 2);
+  h.unmount();
+});
+
+test('early warmup never blocks its caller or leaks a rejected preparation, including synchronous loader failures', async () => {
+  for (const os of ['android', 'ios', 'web']) {
+    let fails = true;
+    const load = () => { if (fails) throw Error('Preparation unavailable'); return Promise.resolve(true); };
+    const api = service(load);
+    const originalWarn = console.warn, warnings = [];
+    try {
+      console.warn = (...args) => warnings.push(args);
+      assert.equal(api.warmNightBackground(), undefined, 'navigation has no promise to await');
+      for (let turn = 0; turn < 12; turn++) await Promise.resolve();
+      assert.equal(warnings.length, 1);
+      assert.equal(api.getPreparedNightBackground(), null);
+      fails = false;
+      await api.prepareNightBackground();
+      assert.notEqual(api.getPreparedNightBackground(), null);
+    } finally { console.warn = originalWarn; }
+  }
 });
 
 test('night rendering immediately uses the source, then adopts the decoded reference without changing centered cover', async () => {
@@ -166,4 +225,57 @@ test('all six introductory puzzles and Calendar use night exclusively; normal an
     'selection is independent of category identity, including future categories');
   assert.ok(source.indexOf('<NightPuzzleBackground />') < source.indexOf('<Header title={category.name}'),
     'night layer stays behind gameplay controls');
+});
+
+test('Home, introductory results and Calendar warm before navigation without changing destinations', () => {
+  const readAst = file => {
+    const source = fs.readFileSync(path.join(root, file), 'utf8');
+    const ast = ts.createSourceFile(file, source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
+    const nodes = [];
+    const visit = node => { nodes.push(node); ts.forEachChild(node, visit); };
+    visit(ast);
+    return { ast, nodes };
+  };
+  const evaluate = (expression, bindings) =>
+    new Function(...Object.keys(bindings), compile(`return (${expression});`))(...Object.values(bindings));
+  const fixtures = [
+    ['app/index.tsx', 'play'],
+    ['app/daily.tsx', 'openPuzzle'],
+    ['app/results.tsx', null],
+  ];
+  for (const [file, handler] of fixtures) {
+    const { ast, nodes } = readAst(file);
+    const warmup = nodes.find(node => ts.isCallExpression(node) && node.expression.getText(ast) === 'useEffect'
+      && node.arguments[0]?.getText(ast).includes('warmNightBackground'));
+    assert.ok(warmup, `${file} preloads on the preceding screen`);
+    const expression = handler
+      ? nodes.find(node => ts.isVariableDeclaration(node) && node.name.getText(ast) === handler).initializer
+      : nodes.find(node => ts.isJsxAttribute(node) && node.name.getText(ast) === 'onNext').initializer.expression;
+    for (let step = 0; step < 6; step++) {
+      const events = [];
+      const bindings = {
+        hydrated: true, onboardingStep: file.includes('results') ? step + 1 : step,
+        onboarding: {}, resultStep: step, next: step < 5 ? {} : undefined,
+        getOnboardingStep: index => index < 6 ? {} : undefined,
+        warmNightBackground: () => { events.push('prepare'); },
+        router: { push: route => events.push(route), replace: route => events.push(route) },
+      };
+      evaluate(warmup.arguments[0].getText(ast), bindings)();
+      assert.deepEqual(events, file.includes('results') && step === 5 ? [] : ['prepare']);
+      events.length = 0;
+      evaluate(expression.getText(ast), bindings)('2026-11-24');
+      const destination = file.includes('daily')
+        ? { pathname: '/game', params: { dailyDate: '2026-11-24' } }
+        : file.includes('results') && step === 5
+          ? { pathname: '/mode', params: { categoryId: 'animals' } }
+          : { pathname: '/game', params: { onboardingStep: String(bindings.onboardingStep) } };
+      assert.deepEqual(events, file.includes('results') && step === 5 ? [destination] : ['prepare', destination]);
+    }
+    const events = [];
+    evaluate(warmup.arguments[0].getText(ast), {
+      hydrated: false, onboardingStep: 6, onboarding: undefined, resultStep: null,
+      getOnboardingStep: () => undefined, warmNightBackground: () => events.push('prepare'),
+    })();
+    assert.deepEqual(events, [], 'unhydrated or non-introductory results do not preload');
+  }
 });
