@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { Alert, type LayoutChangeEvent, Image, Platform, Pressable, StatusBar, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import { Alert, AppState, type LayoutChangeEvent, Image, Platform, Pressable, StatusBar, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Screen, CoinPill } from '@/components/GameUI';
@@ -15,6 +15,7 @@ import { useRewardedAd } from '@/hooks/useRewardedAd';
 import { AdBanner } from '@/components/AdBanner';
 import { warmNightBackground } from '@/services/nightBackgroundPreparation';
 import { warmChestScenery } from '@/services/chestSceneryPreparation';
+import { scheduleHomeChestSceneryPreparation } from '@/services/homeChestSceneryPreparation';
 
 export default function HomeScreen() {
   const router = useRouter();
@@ -31,6 +32,10 @@ export default function HomeScreen() {
   useEffect(() => {
     if (hydrated && onboardingStep < 6) warmNightBackground();
   }, [hydrated, onboardingStep]);
+  useFocusEffect(useCallback(() => {
+    if (!hydrated) return;
+    return scheduleHomeChestSceneryPreparation();
+  }, [hydrated]));
   useFocusEffect(useCallback(() => {
     if (Platform.OS !== 'android') return;
     // Modern Android is already edge-to-edge; these also enable transparency

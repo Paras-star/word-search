@@ -167,7 +167,7 @@ test('scene preparation failure warns, falls back to original artwork and retrie
   next.unmount();
 });
 
-test('Home starts only on chest intent and navigates synchronously even if scenery is still pending', () => {
+test('Home keeps chest press-in as a synchronous fallback while idle preparation is focus-scoped', () => {
   const source = read('app/index.tsx');
   const ast = ts.createSourceFile('index.tsx', source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
   const nodes = [];
@@ -176,13 +176,18 @@ test('Home starts only on chest intent and navigates synchronously even if scene
     attr => attr.name?.getText(ast) === 'testID' && attr.initializer?.text === 'treasure-chest-button'));
   const attr = name => chest.attributes.properties.find(a => a.name?.getText(ast) === name).initializer.expression;
   assert.equal(attr('onPressIn').getText(ast), 'warmChestScenery');
+  assert.match(attr('onPress').getText(ast), /warmChestScenery\(\)/);
   const events = [];
   const press = new Function('warmChestScenery', 'playSound', 'router', compile(`return (${attr('onPress').getText(ast)});`))(
     () => { events.push('scenery'); }, () => events.push('tap'), { push: route => events.push(route) });
   assert.equal(press(), undefined);
   assert.deepEqual(events, ['scenery', 'tap', '/treasure-chest']);
-  assert.equal(nodes.filter(node => ts.isCallExpression(node)
-    && node.expression.getText(ast) === 'warmChestScenery').length, 1, 'no startup, focus or idle preload');
+  const focusEffect = nodes.find(node => ts.isCallExpression(node)
+    && node.expression.getText(ast) === 'useFocusEffect'
+    && node.getText(ast).includes('scheduleHomeChestSceneryPreparation'));
+  assert.ok(focusEffect, 'Home schedules preparation only through its focus lifecycle');
+  assert.match(focusEffect.getText(ast), /if \(!hydrated\) return/);
+  assert.match(focusEffect.getText(ast), /return scheduleHomeChestSceneryPreparation\(\)/);
   assert.doesNotMatch(source, /prepareChestAssets|prepareClosedChest|CHEST_ATLASES/);
   assert.doesNotMatch(read('app/_layout.tsx'), /chestSceneryPreparation|prepareChestScenery|warmChestScenery/);
 });
