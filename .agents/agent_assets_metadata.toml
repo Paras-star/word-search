@@ -1,0 +1,30 @@
+uploads = []
+generated = []
+
+[[outputs]]
+id = "pptu6tmtCvlQSzXTB8Ci5"
+uri = "file://.local/verification/word-hunt-mobile-ui/step5-results-390x844.png"
+type = "image"
+title = "Level 5 completion — 390 × 844"
+description = "Captured after completing all six introductory puzzles with real drags."
+logical_id = "bf63069a-3d60-4fce-b65b-27d46d74d531"
+content_hash = "sha256:791d0b05a2bf05093ce1d33cb71c53603cdc68242a13a24891bae17d7c9cfbad"
+size = 515328
+mtime_ms = 1795523345824
+storage_uri = "gcs://replit-rams-assets-pike/rams/assets/repl:6330ea3b-2615-4284-a9d6-c16d89a9a821/bf63069a-3d60-4fce-b65b-27d46d74d531/183b4d62-0dcf-4f26-8ae6-03f0d606e654"
+storage_version_token = "1795523358619941"
+content_type = "image/png"
+
+[[outputs]]
+id = "7mNjUY3J7LipXniQ5SeIY"
+uri = "file://.local/verification/word-hunt-mobile-ui/collection-mixed-393x852.png"
+type = "image"
+title = "Collection Room — 393 × 852"
+description = "Correct viewport-sized background with mixed owned and locked collectibles."
+logical_id = "c9fcdd9b-a0ac-4f6c-98b5-45191a91d3a1"
+content_hash = "sha256:8229205678cd551cdac216bbd8eec987f1aea20d7a3b34a9f81994ba6b13d5d3"
+size = 404813
+mtime_ms = 1795523345821
+storage_uri = "gcs://replit-rams-assets-pike/rams/assets/repl:6330ea3b-2615-4284-a9d6-c16d89a9a821/c9fcdd9b-a0ac-4f6c-98b5-45191a91d3a1/8b977b9e-b7fd-4e1d-b5fe-5b7b4d622911"
+storage_version_token = "1795523359882159"
+content_type = "image/png"

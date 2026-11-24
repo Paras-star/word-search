@@ -102,7 +102,15 @@ if (!fs.existsSync(WEB_INDEX)) {
 
 const server = http.createServer((req, res) => {
   const url = new URL(req.url || '/', `http://${req.headers.host}`);
-  let pathname = url.pathname;
+  let pathname;
+  try {
+    // Expo exports keep spaces in filenames, while browsers request them as %20.
+    pathname = decodeURIComponent(url.pathname);
+  } catch {
+    res.writeHead(400);
+    res.end('Bad Request');
+    return;
+  }
 
   if (basePath && pathname.startsWith(basePath)) {
     pathname = pathname.slice(basePath.length) || '/';

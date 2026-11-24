@@ -114,7 +114,7 @@ test('invalid and stale results keep existing guards, and normal/Daily results d
 });
 
 test('requested viewports and shorter devices fit inside safe bounds with original ratios and descending widths', () => {
-  for (const [width, height] of [[360, 640], [412, 915], [320, 480], [915, 412]]) {
+  for (const [width, height] of [[390, 844], [393, 852], [360, 780], [360, 640], [412, 915], [320, 480], [915, 412]]) {
     for (const os of ['web', 'ios', 'android']) {
       const { tree } = harness({ width, height, os });
       const content = tree.props.children[1];

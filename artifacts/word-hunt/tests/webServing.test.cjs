@@ -18,6 +18,11 @@ function serverHarness() {
     // Model Expo's public-folder copy using the actual maintained file.
     [path.join(webRoot, 'app-ads.txt'), fs.readFileSync(path.join(root, 'public/app-ads.txt'))],
     [audioSource, fs.readFileSync(audioSource)],
+    ...['Nice Work', 'Next Panel', 'Home Panel'].map(name => {
+      const bytes = fs.readFileSync(path.join(root, 'assets/images', `${name}.png`));
+      const hash = createHash('md5').update(bytes).digest('hex');
+      return [path.join(webRoot, 'assets/assets/images', `${name}.${hash}.png`), bytes];
+    }),
   ]);
   const fakeFs = {
     existsSync: file => files.has(file),
@@ -89,4 +94,26 @@ test('audio fallback does not expose source paths or accept unrelated hashes', (
   ]) {
     assert.equal(request(url).status, 404, url);
   }
+});
+
+test('intro artwork URLs decode spaces before looking up exported PNGs', () => {
+  const request = serverHarness();
+  for (const name of ['Nice Work', 'Next Panel', 'Home Panel']) {
+    const bytes = fs.readFileSync(path.join(root, 'assets/images', `${name}.png`));
+    const hash = createHash('md5').update(bytes).digest('hex');
+    const response = request(`/assets/assets/images/${encodeURIComponent(name)}.${hash}.png`);
+    assert.equal(response.status, 200, name);
+    assert.equal(response.headers['content-type'], 'image/png');
+    assert.deepEqual(response.body, bytes);
+  }
+});
+
+test('malformed escapes fail explicitly and encoded paths cannot expose server files', () => {
+  const request = serverHarness();
+  assert.equal(request('/assets/bad%ZZ.png').status, 400);
+  for (const url of [
+    '/assets/%2e%2e/%2e%2e/server/serve.js',
+    '/assets/%2e%2e%2f%2e%2e%2fserver/serve.js',
+    '/assets/assets/images/Nice%2520Work.wrong.png',
+  ]) assert.equal(request(url).status, 404, url);
 });

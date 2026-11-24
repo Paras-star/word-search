@@ -90,7 +90,7 @@ export default function CollectionScreen() {
   );
 
   const shell = (children: React.ReactNode) => (
-    <ImageBackground source={BACKGROUND} style={styles.root} resizeMode="cover" testID="collection-background">
+    <ImageBackground source={BACKGROUND} style={styles.root} imageStyle={styles.backgroundImage} resizeMode="cover" testID="collection-background">
       <View style={[StyleSheet.absoluteFill, { backgroundColor: collectionColors.nightOverlay }]} />
       <View style={[styles.root, { paddingTop: topInset }]}>
         <Header
@@ -159,6 +159,8 @@ export default function CollectionScreen() {
 
 const styles = StyleSheet.create({
   root: { flex: 1 },
+  // Override RN Web's intrinsic PNG dimensions, not the scrolling panel geometry.
+  backgroundImage: { width: '100%', height: '100%' },
   headerTitle: {
     color: collectionColors.title,
     textShadowColor: collectionColors.titleShadow,

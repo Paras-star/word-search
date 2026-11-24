@@ -127,7 +127,7 @@ test('every rarity renders actual owned art and locked placeholders from its own
   }
 });
 
-function screenHarness({ ids = [], fail = false, newId } = {}) {
+function screenHarness({ ids = [], fail = false, newId, width = 360, height = 640 } = {}) {
   const hooks = [];
   let cursor = 0, effects = [], tree;
   const react = {
@@ -144,7 +144,7 @@ function screenHarness({ ids = [], fail = false, newId } = {}) {
   const screen = load('app/collection.tsx', {
     react,
     'react/jsx-runtime': { jsx, jsxs: jsx, Fragment: 'Fragment' },
-    'react-native': { ...native, useWindowDimensions: () => ({ width: 360, height: 640 }) },
+    'react-native': { ...native, useWindowDimensions: () => ({ width, height }) },
     'expo-router': { useRouter: () => ({ back() {} }), useLocalSearchParams: () => ({ newDumplingId: newId }) },
     'react-native-safe-area-context': { useSafeAreaInsets: () => ({ top: 0, bottom: 0 }) },
     '@/components/GameUI': { Header: 'Header', LoadingScreen: 'LoadingScreen' },
@@ -199,4 +199,21 @@ test('failed collection reads retain the explicit error and retry without resett
   await h.settle();
   assert.ok(find(h.tree, 'collection-progress'));
   assert.equal(find(h.tree, 'collection-retry'), undefined);
+});
+
+test('background explicitly fills its container without resizing the five panels or list', async () => {
+  for (const [width, height] of [[390, 844], [393, 852], [360, 780]]) {
+    const h = screenHarness({ width, height });
+    await h.settle();
+    const background = find(h.tree, 'collection-background');
+    assert.deepEqual(background.props.imageStyle, { width: '100%', height: '100%' });
+    assert.equal(background.props.resizeMode, 'cover');
+    assert.equal(background.props.source, '../assets/images/backgrounds/night-forest-background.png');
+    const list = find(h.tree, 'collection-panels');
+    assert.equal(list.props.data.length, 5);
+    assert.equal(list.props.data.reduce((sum, panel) => sum + panel.items.length, 0), 30);
+    for (const item of list.props.data) {
+      assert.equal(list.props.renderItem({ item }).props.children.props.width, width - 20);
+    }
+  }
 });
