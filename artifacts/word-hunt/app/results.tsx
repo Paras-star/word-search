@@ -3,6 +3,7 @@ import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Redirect, useLocalSearchParams, useRouter } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import { Header, Screen, PrimaryButton, SoftButton } from '@/components/GameUI';
+import IntroCompletion from '@/components/IntroCompletion';
 import { CATEGORIES, getCategory } from '@/data/categories';
 import { nextCategoryId } from '@/game/progression';
 import { getOnboardingStep } from '@/game/onboarding';
@@ -72,27 +73,10 @@ export default function ResultsScreen() {
   if (isOnboardingRoute) {
     if (!onboarding || resultStep !== onboardingStep - 1) return <Redirect href="/" />;
     const next = getOnboardingStep(onboardingStep);
-    return <Screen>
-      <Header title={next ? 'Hunt complete' : 'Animals unlocked'} onBack={() => router.replace('/')} />
-      <ScrollView style={styles.scroll} contentContainerStyle={styles.content}>
-        <View style={[styles.icon, { backgroundColor: colors.accent }]}><Feather name="check" size={40} color={colors.success} /></View>
-        <Text style={[styles.title, { color: colors.foreground }]}>{next ? 'Nice work' : 'Animals unlocked!'}</Text>
-        <Text style={[styles.copy, { color: colors.mutedForeground }]}>
-          {next ? `Next: ${next.words.length} words. Keep hunting to unlock Animals.` : 'Your first category is ready. The normal Word Hunt begins now!'}
-        </Text>
-        <View style={styles.stats}>
-          <View style={[styles.stat, { backgroundColor: colors.card, borderColor: colors.border }]}><Text style={[styles.label, { color: colors.mutedForeground }]}>SCORE</Text><Text style={[styles.value, { color: colors.foreground }]}>{params.score ?? '0'}</Text></View>
-          <View style={[styles.stat, { backgroundColor: colors.card, borderColor: colors.border }]}><Text style={[styles.label, { color: colors.mutedForeground }]}>TIME</Text><Text style={[styles.value, { color: colors.foreground }]}>{formatTime(Number(params.time ?? 0))}</Text></View>
-          <View style={[styles.stat, { backgroundColor: colors.card, borderColor: colors.border }]}><Text style={[styles.label, { color: colors.mutedForeground }]}>COINS</Text><Text style={[styles.value, { color: colors.orange }]}>+10</Text></View>
-        </View>
-        <PrimaryButton onPress={() => router.replace(next
-          ? { pathname: '/game', params: { onboardingStep: String(onboardingStep) } }
-          : { pathname: '/mode', params: { categoryId: 'animals' } })}>
-          {next ? `NEXT: ${next.words.length} WORDS` : 'PLAY ANIMALS'}
-        </PrimaryButton>
-        <SoftButton onPress={() => router.replace('/')}>HOME</SoftButton>
-      </ScrollView>
-    </Screen>;
+    return <IntroCompletion onNext={() => router.replace(next
+      ? { pathname: '/game', params: { onboardingStep: String(onboardingStep) } }
+      : { pathname: '/mode', params: { categoryId: 'animals' } })}
+      onHome={() => router.replace('/')} />;
   }
   if (isDailyRoute) {
     if (!params.dailyDate || !parseLocalDateKey(params.dailyDate) || !completedDailyPuzzles.includes(params.dailyDate)) {
