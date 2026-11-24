@@ -31,21 +31,38 @@ import { getNightHeaderTitleStyle, nightPuzzleColors, nightPuzzleTextStyle } fro
 function cellKey(cell: Cell) { return `${cell.row}-${cell.col}`; }
 function sameCell(a: Cell, b: Cell) { return a.row === b.row && a.col === b.col; }
 function nearCurrentLine(start: Cell, end: Cell, current: Cell[], size: number): Cell[] {
-  if (current.length < 3) return [];
-  const rowStep = current[1].row - start.row;
-  const colStep = current[1].col - start.col;
-  const rowDistance = (end.row - start.row) * rowStep;
-  const colDistance = (end.col - start.col) * colStep;
+  if (current.length < 1) return [];
+  let rowStep: number;
+  let colStep: number;
   let steps: number;
-  if (rowStep === 0) {
-    if (Math.abs(end.row - start.row) !== 1 || colDistance < 2) return [];
-    steps = colDistance;
-  } else if (colStep === 0) {
-    if (Math.abs(end.col - start.col) !== 1 || rowDistance < 2) return [];
-    steps = rowDistance;
-  } else {
-    if (rowDistance < 2 || colDistance < 2 || Math.abs(rowDistance - colDistance) !== 1) return [];
+  if (current.length === 1) {
+    // Establish a diagonal on the first off-axis move when the endpoint is
+    // only one neighboring cell away from its nearest diagonal cell.
+    const rowDelta = end.row - start.row;
+    const colDelta = end.col - start.col;
+    const rowDistance = Math.abs(rowDelta);
+    const colDistance = Math.abs(colDelta);
+    if (rowDistance < 1 || colDistance < 1
+      || Math.max(rowDistance, colDistance) > 2
+      || Math.abs(rowDistance - colDistance) !== 1) return [];
+    rowStep = Math.sign(rowDelta);
+    colStep = Math.sign(colDelta);
     steps = Math.min(rowDistance, colDistance);
+  } else {
+    rowStep = current[1].row - start.row;
+    colStep = current[1].col - start.col;
+    const rowDistance = (end.row - start.row) * rowStep;
+    const colDistance = (end.col - start.col) * colStep;
+    if (rowStep === 0) {
+      if (Math.abs(end.row - start.row) !== 1 || colDistance < 2) return [];
+      steps = colDistance;
+    } else if (colStep === 0) {
+      if (Math.abs(end.col - start.col) !== 1 || rowDistance < 2) return [];
+      steps = rowDistance;
+    } else {
+      if (rowDistance < 2 || colDistance < 2 || Math.abs(rowDistance - colDistance) !== 1) return [];
+      steps = Math.min(rowDistance, colDistance);
+    }
   }
   return lineCells(start, { row: start.row + rowStep * steps, col: start.col + colStep * steps }, size);
 }
