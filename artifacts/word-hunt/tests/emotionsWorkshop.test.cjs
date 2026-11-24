@@ -99,7 +99,8 @@ test('Tape Measure displays naturally while remaining one eleven-letter normaliz
   assert.ok(!category.words.includes('TAPE') && !category.words.includes('MEASURE'));
   assert.equal('Tape Measure'.replace(/\s/g, '').toUpperCase(), 'TAPEMEASURE');
   assert.equal(generatePuzzle(category).placements.TAPEMEASURE.cells.length, 11);
-  assert.match(read('app/game.tsx'), /\{category\.wordLabels\?\.\[word\] \?\? word\}/);
+  assert.match(read('app/game.tsx'), /wordLabels=\{category\.wordLabels\}/);
+  assert.match(read('app/game.tsx'), /\{wordLabels\?\.\[word\] \?\? word\}/);
 });
 
 test('the actual screen handler solves every new word once, with normal scoring and found paths', () => {

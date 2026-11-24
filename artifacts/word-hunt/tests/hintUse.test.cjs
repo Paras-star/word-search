@@ -7,6 +7,7 @@ const root = path.resolve(__dirname, '..');
 const source = fs.readFileSync(path.join(root, 'app/game.tsx'), 'utf8');
 const ast = ts.createSourceFile('game.tsx', source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
 function callback(name, bindings) {
+  bindings = { useCallback: fn => fn, ...bindings };
   let declaration;
   function visit(node) {
     if (ts.isVariableDeclaration(node) && node.name.getText(ast) === name) declaration = node;

@@ -9,6 +9,7 @@ const gameSource = fs.readFileSync(path.join(root, 'app/game.tsx'), 'utf8');
 const gameAst = ts.createSourceFile('game.tsx', gameSource, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
 
 function callback(name, bindings) {
+  bindings = { useCallback: fn => fn, ...bindings };
   let declaration;
   function visit(node) {
     if (ts.isVariableDeclaration(node) && node.name.getText(gameAst) === name) declaration = node;

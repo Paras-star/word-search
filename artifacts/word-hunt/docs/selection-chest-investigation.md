@@ -2,6 +2,10 @@
 
 Date: 2026-11-24. **Investigation only; no performance fixes implemented.**
 
+This report describes the original investigation snapshot. The subsequently
+approved selection experiment is tracked separately in
+[selection-render-isolation.md](selection-render-isolation.md).
+
 ## Conclusions for review
 
 1. **Selection-driven React work is the largest measured application-side cost

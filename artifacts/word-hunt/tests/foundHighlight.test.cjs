@@ -147,7 +147,7 @@ test('the screen uses discovery-ordered highlights, without altering word-list o
   assert.match(source, /name=\{foundWords\.includes\(word\) \? 'check' : 'circle'\}/);
   assert.match(source, /color=\{foundWords\.includes\(word\) \? colors\.success : colors\.border\}/);
   assert.match(source, /textDecorationLine: foundWords\.includes\(word\) \? 'line-through' : 'none'/);
-  assert.match(source, /color: selectedKeys\.has\(`\$\{rowIndex\}-\$\{colIndex\}`\) \? '#FFFFFF' : colors\.foreground/);
+  assert.match(source, /color=\{selectedKeys\.has\(`\$\{rowIndex\}-\$\{colIndex\}`\) \? '#FFFFFF' : colors\.foreground\}/);
 });
 
 test('all pastel fills keep strong contrast against the unchanged dark letter color', () => {

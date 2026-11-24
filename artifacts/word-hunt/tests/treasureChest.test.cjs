@@ -331,8 +331,10 @@ const protectedGroups = {
   // retains byte-identical completion/touch guards. Authorized generator allocation
   // optimization is covered by the full-output and PRNG fixtures in puzzleDeterminism.
   // Shared category background/prepared image reuse. Phase 2's isolated
-  // introductory/Daily background is stripped below; all gameplay stays frozen.
-  gameplay: [['game', 'app/game.tsx'], '995a5c04051db9427bb23e759601794b9f5f6a14aad670567b6bb89a8076d06b'],
+  // introductory/Daily background is stripped below. The user also approved
+  // presentation-only render isolation; selectionRendering.test.cjs separately
+  // freezes the original input, timer, completion, hint, and generation logic.
+  gameplay: [['game', 'app/game.tsx'], '31a537a3460805a77f50cad654705400ff8b3e224391f597b2c758e9f25e3dc6'],
   // Retains the authorized Continue-only interstitial transition/cancellation API.
   // app.json includes the approved Android versionCode change from 6 to 7;
   // the ad-service files remain unchanged. Behavioral safeguards are covered in ads.test.cjs.

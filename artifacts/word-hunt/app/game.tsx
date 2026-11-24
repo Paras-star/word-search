@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { PanResponder, Platform, Pressable, StyleSheet, Text, View, useWindowDimensions, type GestureResponderEvent } from 'react-native';
 import { Image } from 'expo-image';
 import { Redirect, useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
@@ -55,6 +55,61 @@ const BOARD_MAX_WIDTH = 380;
 const NON_BOARD_HEIGHT = 350;
 
 type GameParams = { categoryId?: string; mode?: GameMode; seed?: string; onboardingStep?: string; dailyDate?: string };
+
+// Primitive visual props let unchanged cells skip work without comparing paths or
+// changing the responder, explicit rows, or measured content view.
+const GridCell = memo(function GridCell({ letter, backgroundColor, borderColor, borderRadius, color }: {
+  letter: string; backgroundColor: string; borderColor: string; borderRadius?: number; color: string;
+}) {
+  return <View style={[styles.cell, { backgroundColor, borderColor, borderRadius }]}>
+    <Text style={[styles.letter, { color }]}>{letter}</Text>
+  </View>;
+});
+
+const PuzzleGrid = memo(function PuzzleGrid({ puzzle, selectedCells, hintCells, foundCellColors, gridContentRef, onLayout, panHandlers }: {
+  puzzle: Puzzle;
+  selectedCells: Cell[];
+  hintCells: Cell[];
+  foundCellColors: Map<string, string>;
+  gridContentRef: React.RefObject<View | null>;
+  onLayout: () => void;
+  panHandlers: ReturnType<typeof PanResponder.create>['panHandlers'];
+}) {
+  const colors = useColors();
+  const selectedKeys = useMemo(() => new Set(selectedCells.map(cellKey)), [selectedCells]);
+  const hintKeys = useMemo(() => new Set(hintCells.map(cellKey)), [hintCells]);
+  const getCellStyle = (cell: Cell) => {
+    const key = cellKey(cell);
+    const foundColor = foundCellColors.get(key);
+    if (selectedKeys.has(key)) return { backgroundColor: colors.primary, borderColor: colors.primary, borderRadius: 4 };
+    if (hintKeys.has(key)) return { backgroundColor: colors.accent };
+    if (foundColor !== undefined) return { backgroundColor: foundColor, borderColor: foundColor };
+    return { backgroundColor: colors.card };
+  };
+
+  return <View ref={gridContentRef} style={Platform.OS === 'web' ? [styles.gridContent, styles.webGridContent] : styles.gridContent} onLayout={onLayout} {...panHandlers}>
+    {puzzle.grid.map((row, rowIndex) => <View key={rowIndex} style={styles.gridRow}>
+      {row.map((letter, colIndex) => {
+        const cellStyle = getCellStyle({ row: rowIndex, col: colIndex });
+        return <GridCell key={colIndex} letter={letter}
+          backgroundColor={cellStyle.backgroundColor}
+          borderColor={cellStyle.borderColor ?? colors.border}
+          borderRadius={cellStyle.borderRadius}
+          color={selectedKeys.has(`${rowIndex}-${colIndex}`) ? '#FFFFFF' : colors.foreground} />;
+      })}
+    </View>)}
+  </View>;
+});
+
+const WordTargets = memo(function WordTargets({ words, foundWords, wordLabels, expandedWordCount }: {
+  words: string[]; foundWords: string[]; wordLabels?: Record<string, string>; expandedWordCount: number;
+}) {
+  const colors = useColors();
+  return <>
+    <View style={styles.listHeader}><Text style={[styles.listTitle, { color: colors.foreground }]}>Find these words</Text><Text style={[styles.progress, { color: colors.mutedForeground }]}>{foundWords.length}/{words.length}</Text></View>
+    <View style={[styles.words, expandedWordCount > 0 && { maxHeight: Math.ceil(expandedWordCount / 3) * 29, overflow: 'visible' }]}>{words.map((word) => <View key={word} style={styles.wordItem}><Feather name={foundWords.includes(word) ? 'check' : 'circle'} size={14} color={foundWords.includes(word) ? colors.success : colors.border} /><Text style={[styles.word, { color: foundWords.includes(word) ? colors.foundWord : colors.foreground, textDecorationLine: foundWords.includes(word) ? 'line-through' : 'none' }]}>{wordLabels?.[word] ?? word}</Text></View>)}</View>
+  </>;
+});
 
 export default function GameScreen() {
   const params = useLocalSearchParams<GameParams>();
@@ -145,7 +200,7 @@ function GameSession({ params }: { params: GameParams }) {
       hintTimeout.current = null;
     };
   }, [puzzle.id]));
-  const watchHintAd = () => {
+  const watchHintAd = useCallback(() => {
     if (adPaused.current || hintAd.loading || completionStarted.current || foundWords.length === puzzle.words.length) return;
     const onEarned = createHintReward(
       puzzle.id,
@@ -160,7 +215,7 @@ function GameSession({ params }: { params: GameParams }) {
       // Keep the ad presentation out of classic-mode final-time bookkeeping.
       startTime.current += Date.now() - pausedAt;
     });
-  };
+  }, [hintAd.loading, hintAd.watch, foundWords.length, puzzle.id, puzzle.words.length]);
 
   const finish = useCallback(async () => {
     if (completionStarted.current) return;
@@ -240,7 +295,7 @@ function GameSession({ params }: { params: GameParams }) {
 
   useEffect(() => { if (foundWords.length === puzzle.words.length) void finish(); }, [finish, foundWords.length, puzzle.words.length]);
 
-  const refreshGridBounds = () => {
+  const refreshGridBounds = useCallback(() => {
     const version = ++measurementVersion.current;
     gridBoundsRef.current = null;
     gridContentRef.current?.measureInWindow((x, y, width, height) => {
@@ -248,7 +303,7 @@ function GameSession({ params }: { params: GameParams }) {
         gridBoundsRef.current = { x, y, width, height };
       }
     });
-  };
+  }, []);
 
   const cellFromEvent = (event: GestureResponderEvent): Cell | null => {
     const bounds = gridBoundsRef.current;
@@ -349,21 +404,44 @@ function GameSession({ params }: { params: GameParams }) {
     playSound('hint');
   };
 
-  const selectedKeys = useMemo(() => new Set(selectedCells.map(cellKey)), [selectedCells]);
-  const hintKeys = useMemo(() => new Set(hintCells.map(cellKey)), [hintCells]);
   const foundCellColors = useMemo(
     () => buildFoundHighlights(foundWords, foundPaths).cellColors,
     [foundWords, foundPaths],
   );
 
-  const getCellStyle = (cell: Cell) => {
-    const key = cellKey(cell);
-    const foundColor = foundCellColors.get(key);
-    if (selectedKeys.has(key)) return { backgroundColor: colors.primary, borderColor: colors.primary, borderRadius: 4 };
-    if (hintKeys.has(key)) return { backgroundColor: colors.accent };
-    if (foundColor !== undefined) return { backgroundColor: foundColor, borderColor: foundColor };
-    return { backgroundColor: colors.card };
-  };
+  const background = useMemo(() => <>
+    {!usesCategoryBackground && <NightPuzzleBackground />}
+    {usesCategoryBackground && (
+      <View pointerEvents="none" style={StyleSheet.absoluteFill} testID="animals-background">
+        <Image source={animalBackground ?? ANIMALS_BACKGROUND_SOURCE}
+          style={[StyleSheet.absoluteFill, { width: '100%', height: '100%' }]}
+          contentFit="cover" contentPosition="center" transition={0} accessible={false} />
+      </View>
+    )}
+  </>, [usesCategoryBackground, animalBackground]);
+  const isDaily = Boolean(daily);
+  const isOnboarding = Boolean(onboarding);
+  const categoryName = category.name;
+  const header = useMemo(() => <Header title={categoryName} onBack={() => isDaily ? (router.canGoBack() ? router.back() : router.replace('/daily')) : isOnboarding ? router.replace('/') : router.back()} right={<CoinPill coins={coins} />} foregroundColor={usesCategoryBackground ? undefined : nightPuzzleColors.foreground} titleStyle={usesCategoryBackground ? undefined : [nightPuzzleTextStyle, getNightHeaderTitleStyle(width, height)]} />,
+    [categoryName, isDaily, isOnboarding, router, coins, usesCategoryBackground, width, height]);
+  const hintsEmpty = hints === 0;
+  const allWordsFound = foundWords.length === puzzle.words.length;
+  const hintFooter = useMemo(() => <View style={[styles.hintFooterRow, { paddingBottom: bottom }]}>
+    <RewardedAdButton
+      variant="bar"
+      label="WATCH AD ·"
+      loading={hintAd.loading}
+      reward={`+${REWARDED_HINTS} HINTS`}
+      status={hintAd.status}
+      onDismiss={hintAd.dismiss}
+      emphasized={hintsEmpty}
+      disabled={allWordsFound}
+      onPress={watchHintAd}
+      accessibilityLabel={`Watch an ad for ${REWARDED_HINTS} extra hints`}
+      testID="hint-rewarded-button"
+      style={styles.hintAd}
+    />
+  </View>, [bottom, hintAd.loading, hintAd.status, hintAd.dismiss, hintsEmpty, allWordsFound, watchHintAd]);
 
   const finishingPreviousStep = Boolean(onboarding && completionStarted.current && requestedStep === onboardingStep - 1);
   if (onboardingStep < 6 && (!onboarding || requestedStep !== onboardingStep) && !finishingPreviousStep) {
@@ -378,41 +456,18 @@ function GameSession({ params }: { params: GameParams }) {
   if (!onboarding && !daily && !isCategoryUnlocked(categoryIndex, completedLevels, CATEGORIES)) return <Redirect href="/categories" />;
 
   return <Screen style={styles.screen}>
-    {!usesCategoryBackground && <NightPuzzleBackground />}
-    {usesCategoryBackground && (
-      <View pointerEvents="none" style={StyleSheet.absoluteFill} testID="animals-background">
-        <Image source={animalBackground ?? ANIMALS_BACKGROUND_SOURCE}
-          style={[StyleSheet.absoluteFill, { width: '100%', height: '100%' }]}
-          contentFit="cover" contentPosition="center" transition={0} accessible={false} />
-      </View>
-    )}
-    <Header title={category.name} onBack={() => daily ? (router.canGoBack() ? router.back() : router.replace('/daily')) : onboarding ? router.replace('/') : router.back()} right={<CoinPill coins={coins} />} foregroundColor={usesCategoryBackground ? undefined : nightPuzzleColors.foreground} titleStyle={usesCategoryBackground ? undefined : [nightPuzzleTextStyle, getNightHeaderTitleStyle(width, height)]} />
+    {background}
+    {header}
     <View style={styles.metaRow}><View><Text style={[styles.scoreLabel, { color: colors.mutedForeground }, nightTextStyle]}>SCORE</Text><Text style={[styles.score, { color: colors.foreground }, nightTextStyle]}>{score}</Text></View><View style={[styles.timerPill, { backgroundColor: mode === 'time' && timeLeft < 30 ? colors.accent : colors.card, borderColor: mode === 'time' && timeLeft < 30 ? colors.warning : colors.border }]}><Feather name="clock" size={16} color={mode === 'time' && timeLeft < 30 ? colors.warning : colors.primary} /><Text style={[styles.timerText, { color: mode === 'time' && timeLeft < 30 ? colors.warning : colors.foreground }]}>{formatTime(mode === 'time' ? timeLeft : elapsed)}</Text></View><Pressable accessible accessibilityRole="button" onPress={useHint} disabled={hints <= 0} accessibilityState={{ disabled: hints <= 0 }} accessibilityLabel={`Use hint, ${hints} ${hints === 1 ? 'hint' : 'hints'} left`} accessibilityHint="Highlights one unfound word and uses one hint" style={[styles.hintButton, { backgroundColor: colors.card, borderColor: colors.border }]} testID="hint-balance"><Feather name="zap" size={15} color={colors.primary} /><Text style={[styles.hintText, { color: colors.foreground }]}>{hints}</Text></Pressable></View>
     {onboarding && <Text style={[styles.tutorialHelp, { color: colors.mutedForeground }, nightTextStyle]}>
       {requestedStep === 0 ? 'Touch the first letter, drag in a straight line through a word below, then release.' : `Find all ${onboarding.words.length} words to earn 10 coins.`}
     </Text>}
     {daily && <Text style={[styles.tutorialHelp, { color: colors.mutedForeground }, nightTextStyle]}>Daily challenge · {rawDailyDate} · +20 coins</Text>}
-    <View style={[styles.gridWrap, { width: boardSize }]}><View style={[styles.grid, { borderColor: colors.border }]}><View ref={gridContentRef} style={Platform.OS === 'web' ? [styles.gridContent, styles.webGridContent] : styles.gridContent} onLayout={refreshGridBounds} {...panResponder.panHandlers}>{puzzle.grid.map((row, rowIndex) => <View key={rowIndex} style={styles.gridRow}>{row.map((letter, colIndex) => <View key={colIndex} style={[styles.cell, { borderColor: colors.border }, getCellStyle({ row: rowIndex, col: colIndex })]}><Text style={[styles.letter, { color: selectedKeys.has(`${rowIndex}-${colIndex}`) ? '#FFFFFF' : colors.foreground }]}>{letter}</Text></View>)}</View>)}</View></View></View>
-    <View style={styles.listHeader}><Text style={[styles.listTitle, { color: colors.foreground }]}>Find these words</Text><Text style={[styles.progress, { color: colors.mutedForeground }]}>{foundWords.length}/{puzzle.words.length}</Text></View>
-    <View style={[styles.words, expandedWordCount > 0 && { maxHeight: Math.ceil(expandedWordCount / 3) * 29, overflow: 'visible' }]}>{puzzle.words.map((word) => <View key={word} style={styles.wordItem}><Feather name={foundWords.includes(word) ? 'check' : 'circle'} size={14} color={foundWords.includes(word) ? colors.success : colors.border} /><Text style={[styles.word, { color: foundWords.includes(word) ? colors.foundWord : colors.foreground, textDecorationLine: foundWords.includes(word) ? 'line-through' : 'none' }]}>{category.wordLabels?.[word] ?? word}</Text></View>)}</View>
+    <View style={[styles.gridWrap, { width: boardSize }]}><View style={[styles.grid, { borderColor: colors.border }]}><PuzzleGrid puzzle={puzzle} selectedCells={selectedCells} hintCells={hintCells} foundCellColors={foundCellColors} gridContentRef={gridContentRef} onLayout={refreshGridBounds} panHandlers={panResponder.panHandlers} /></View></View>
+    <WordTargets words={puzzle.words} foundWords={foundWords} wordLabels={category.wordLabels} expandedWordCount={expandedWordCount} />
     {feedback !== 'idle' && <Text style={[styles.feedback, { color: feedback === 'bonus' ? colors.orange : colors.warning }]}>{feedback === 'bonus' ? '+5 bonus word' : 'That word is not on the list'}</Text>}
     {finishError && <SoftButton onPress={() => { setFinishError(false); completionStarted.current = false; void finish(); }}>{daily ? 'RETRY SAVING DAILY PUZZLE' : 'RETRY SAVING COMPLETED LEVEL'}</SoftButton>}
-    <View style={[styles.hintFooterRow, { paddingBottom: bottom }]}>
-      <RewardedAdButton
-        variant="bar"
-        label="WATCH AD ·"
-        loading={hintAd.loading}
-        reward={`+${REWARDED_HINTS} HINTS`}
-        status={hintAd.status}
-        onDismiss={hintAd.dismiss}
-        emphasized={hints === 0}
-        disabled={foundWords.length === puzzle.words.length}
-        onPress={watchHintAd}
-        accessibilityLabel={`Watch an ad for ${REWARDED_HINTS} extra hints`}
-        testID="hint-rewarded-button"
-        style={styles.hintAd}
-      />
-    </View>
+    {hintFooter}
   </Screen>;
 }
 

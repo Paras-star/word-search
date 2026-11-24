@@ -223,7 +223,7 @@ test('all six introductory puzzles and Calendar use night exclusively; normal an
   assert.deepEqual(choose('0', '2026-11-23'), { animal: false, night: true });
   assert.deepEqual(choose(undefined, undefined), { animal: true, night: false },
     'selection is independent of category identity, including future categories');
-  assert.ok(source.indexOf('<NightPuzzleBackground />') < source.indexOf('<Header title={category.name}'),
+  assert.ok(source.indexOf('    {background}') < source.indexOf('    {header}'),
     'night layer stays behind gameplay controls');
 });
 
