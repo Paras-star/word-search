@@ -32,3 +32,16 @@ The independent closed-first entry approach is confirmed working by the user on 
 **Why:** On 2026-10-05, the user explicitly confirmed that the Treasure Chest entry/loading fix passed physical Android testing.
 
 **How to apply:** Preserve this confirmed entry approach in future work. This confirmation covers entry/loading, not blanket approval of future changes or permission to build or publish.
+
+Keep synthetic browser input/render timings, media play-promise timings, and image
+load/decode observations separate from physical-phone latency and actual painted
+readiness. Development React profiling can concentrate cost in rendering without
+establishing the published phone's bottleneck.
+
+**Why:** The user requires evidence before selection or chest optimizations, and
+browser/native execution and image caches have different preparation semantics.
+
+**How to apply:** Record browser/build conditions, fixed seed and saved progression,
+compare lower-overhead controls, distinguish network/load/decode/display, and seek
+separate device acceptance before claiming an improvement. Do not spend user coins
+to measure presentation readiness; use isolated storage and cancel confirmation.

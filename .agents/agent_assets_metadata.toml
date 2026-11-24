@@ -28,3 +28,17 @@ mtime_ms = 1795523345821
 storage_uri = "gcs://replit-rams-assets-pike/rams/assets/repl:6330ea3b-2615-4284-a9d6-c16d89a9a821/c9fcdd9b-a0ac-4f6c-98b5-45191a91d3a1/8b977b9e-b7fd-4e1d-b5fe-5b7b4d622911"
 storage_version_token = "1795523359882159"
 content_type = "image/png"
+
+[[outputs]]
+id = "HKyAnkdUY1aK7lyLdgAK1"
+uri = "file://.local/verification/word-hunt-performance/report.html"
+type = "html"
+title = "Selection and chest readiness investigation"
+description = "Measured selection/render/audio costs, cold and warm chest timelines, limitations, and targeted recommendations. No optimizations implemented."
+logical_id = "4e34a685-7d8c-48da-bb75-819b54f587d0"
+content_hash = "sha256:364893f94272f13ff85cc6e9771e109935e0899c7faed3aad2916e2def4c6165"
+size = 28790
+mtime_ms = 1795524935965
+storage_uri = "gcs://replit-rams-assets-pike/rams/assets/repl:6330ea3b-2615-4284-a9d6-c16d89a9a821/4e34a685-7d8c-48da-bb75-819b54f587d0/08f604a6-7578-4764-8130-c2f6d31599fb"
+storage_version_token = "1795524971920856"
+content_type = "text/html"
