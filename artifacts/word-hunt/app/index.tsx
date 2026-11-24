@@ -14,6 +14,7 @@ import { RewardedAdButton } from '@/components/RewardedAdButton';
 import { useRewardedAd } from '@/hooks/useRewardedAd';
 import { AdBanner } from '@/components/AdBanner';
 import { warmNightBackground } from '@/services/nightBackgroundPreparation';
+import { warmChestScenery } from '@/services/chestSceneryPreparation';
 
 export default function HomeScreen() {
   const router = useRouter();
@@ -68,7 +69,7 @@ export default function HomeScreen() {
       <Pressable onPress={() => { playSound('tap'); setSettingsOpen(true); }} hitSlop={4} accessibilityRole="button" accessibilityLabel="Settings" testID="settings-button" style={({ pressed }) => [styles.gearButton, { opacity: pressed ? 0.7 : 1 }]}>
         <Text style={styles.calendarIcon}>⚙️</Text>
       </Pressable>
-      <Pressable onPress={() => { playSound('tap'); router.push('/treasure-chest'); }} hitSlop={6} accessibilityRole="button" accessibilityLabel="Treasure Chest, 700 coins" testID="treasure-chest-button" style={({ pressed }) => [styles.chestButton, { opacity: pressed ? 0.7 : 1 }]}>
+      <Pressable onPressIn={warmChestScenery} onPress={() => { warmChestScenery(); playSound('tap'); router.push('/treasure-chest'); }} hitSlop={6} accessibilityRole="button" accessibilityLabel="Treasure Chest, 700 coins" testID="treasure-chest-button" style={({ pressed }) => [styles.chestButton, { opacity: pressed ? 0.7 : 1 }]}>
         <View pointerEvents="none" style={styles.chestImageSlot}>
           <Image source={require('../assets/images/chests/treasure-chest.png')} style={styles.chestImage} resizeMode="contain" />
         </View>

@@ -13,7 +13,14 @@ const js = ts.transpileModule(read('components/ChestScene.tsx'), {
   compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020, jsx: ts.JsxEmit.ReactJSX },
 }).outputText;
 new Function('require', 'module', 'exports', js)(name => {
-  if (name === 'react') return { useState: () => [box, next => { box = next; }] };
+  if (name === 'react') return {
+    useState: initial => typeof initial === 'function' ? [initial(), () => {}] : [box, next => { box = next; }],
+    useEffect: () => {},
+  };
+  if (name === 'expo-image') return { Image: 'Image' };
+  if (name === '@/services/chestSceneryPreparation') return {
+    CHEST_SCENERY_SOURCE: 789, getPreparedChestScenery: () => null,
+  };
   if (name === 'react/jsx-runtime') return { jsx, jsxs: jsx, Fragment: 'Fragment' };
   if (name === 'react-native') return {
     View: 'View', Image: 'Image', StyleSheet: { absoluteFill: { position: 'absolute' } },

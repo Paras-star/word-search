@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
-import { Image, StyleSheet, useWindowDimensions, View, type LayoutChangeEvent } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { StyleSheet, useWindowDimensions, View, type LayoutChangeEvent } from 'react-native';
+import { Image } from 'expo-image';
+import { CHEST_SCENERY_SOURCE, getPreparedChestScenery, prepareChestScenery } from '@/services/chestSceneryPreparation';
 
-const BG = require('@/assets/images/chests/chest-background.png');
 const BG_W = 937;
 const BG_H = 1678;
 
@@ -36,12 +37,29 @@ export function useChestSceneLayout() {
 
 /** Shared scenery only: paid/free reward state and animation remain callers' own. */
 export function ChestScene({ layout, children }: { layout: ChestSceneLayout; children: React.ReactNode }) {
+  const [background, setBackground] = useState(() => ({
+    image: getPreparedChestScenery(),
+    failed: false,
+  }));
+  useEffect(() => {
+    let active = true;
+    // Direct links and free rewards also share this single-flight loader.
+    // No original-source request competes with preparation while pending.
+    void prepareChestScenery().then(image => {
+      if (active) setBackground({ image, failed: false });
+    }).catch(error => {
+      console.warn('[Word Hunt chest] Scenery preparation failed; using the source image.', error);
+      if (active) setBackground({ image: null, failed: true });
+    });
+    return () => { active = false; };
+  }, []);
+  const source = background.image ?? (background.failed ? CHEST_SCENERY_SOURCE : undefined);
   const { W, safeCover, imgW, imgH, imgX, imgY, backingScale, stage, chestLeft, chestTop } = layout;
   return (
     <>
       <View pointerEvents="none" style={StyleSheet.absoluteFill} testID="chest-scene-background">
-        {!safeCover && <Image accessible={false} source={BG} style={{ position: 'absolute', left: (W - BG_W * backingScale) / 2, top: -BG_H * 0.18 * backingScale, width: BG_W * backingScale, height: BG_H * backingScale }} />}
-        <Image accessible={false} source={BG} style={{ position: 'absolute', left: imgX, top: imgY, width: imgW, height: imgH }} resizeMode="contain" testID="chest-scene-artwork" />
+        {!safeCover && <Image accessible={false} source={source} contentFit="cover" contentPosition="center" transition={0} style={{ position: 'absolute', left: (W - BG_W * backingScale) / 2, top: -BG_H * 0.18 * backingScale, width: BG_W * backingScale, height: BG_H * backingScale }} />}
+        <Image accessible={false} source={source} style={{ position: 'absolute', left: imgX, top: imgY, width: imgW, height: imgH }} contentFit="contain" contentPosition="center" transition={0} testID="chest-scene-artwork" />
       </View>
       <View style={{ position: 'absolute', left: chestLeft, top: chestTop, width: stage, height: stage }} testID="chest-scene-placement">
         {children}
