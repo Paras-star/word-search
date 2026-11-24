@@ -3,3 +3,6 @@
 
 # No need to store the pnpm store twice.
 .local
+
+# Disposable development performance harness; never application runtime code.
+artifacts/word-hunt/performance

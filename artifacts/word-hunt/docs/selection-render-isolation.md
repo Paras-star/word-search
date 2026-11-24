@@ -2,6 +2,10 @@
 
 Date: 2026-11-24.
 
+Additional same-source early/late-board coverage is recorded separately in
+[selection-late-game-performance.md](selection-late-game-performance.md).
+It does not replace the historical before/after results below.
+
 ## Scope and approval
 
 The user reviewed the proposal based on

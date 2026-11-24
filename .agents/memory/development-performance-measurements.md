@@ -27,3 +27,18 @@ the whole current tree can falsely attribute unchanged descendants to a new comm
 **How to apply:** Use disposable function-entry counters for child render counts;
 describe subtree `actualDuration` as render work, not DOM commit time or native
 frame loss. Keep all such instrumentation out of shipped source.
+
+Separate handler-state checkpoints from rendered-state snapshots, and keep
+measurement runs free of concurrent validation workloads.
+
+**Why:** React can defer a render after an input handler has already updated its
+live selection. Reading the previous render's closure can falsely suggest missed
+input. A CDP command acknowledgement can also precede trusted DOM input delivery.
+Concurrent test/typecheck work changes the scheduling load between
+comparison arms.
+
+**How to apply:** Read the live gesture state for delivered-input checkpoints,
+acknowledge browser event delivery before interpreting a checkpoint, use rendered
+snapshots only to describe presentation, and finish CPU-heavy verification before
+collecting performance evidence. Discard exploratory samples
+that violate either condition rather than combining them with accepted results.
