@@ -328,10 +328,11 @@ const protectedGroups = {
   launcher: [['assets/launcher'], '136ee046e2237636381c94267ca00af85a447c1035dbd85d122b836c890191c9'],
   // Authorized expanded target layout for Anatomy, Emotions and Workshop, plus
   // natural target labels. Category tests preserve old puzzles; rewardedUi.test.cjs
-  // retains byte-identical completion/touch guards. The puzzle engine is unchanged.
+  // retains byte-identical completion/touch guards. Authorized generator allocation
+  // optimization is covered by the full-output and PRNG fixtures in puzzleDeterminism.
   // Shared category background/prepared image reuse. Phase 2's isolated
   // introductory/Daily background is stripped below; all gameplay stays frozen.
-  gameplay: [['game', 'app/game.tsx'], '26e4d734a28093fc3ad7bb027ef4573168480cbb565a183abff386bccab7a1aa'],
+  gameplay: [['game', 'app/game.tsx'], '995a5c04051db9427bb23e759601794b9f5f6a14aad670567b6bb89a8076d06b'],
   // Retains the authorized Continue-only interstitial transition/cancellation API.
   // app.json includes the approved Android versionCode change from 6 to 7;
   // the ad-service files remain unchanged. Behavioral safeguards are covered in ads.test.cjs.

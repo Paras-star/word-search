@@ -64,8 +64,15 @@ function cellsFor(word: string, start: Cell, direction: Cell): Cell[] {
   }));
 }
 
-function canPlace(grid: string[][], word: string, cells: Cell[]): boolean {
-  return cells.every(({ row, col }) => row >= 0 && col >= 0 && row < grid.length && col < grid.length && (grid[row][col] === '' || grid[row][col] === word[cells.findIndex((cell) => cell.row === row && cell.col === col)]));
+function canPlace(grid: string[][], word: string, row: number, col: number, direction: Cell): boolean {
+  for (let index = 0; index < word.length; index += 1) {
+    if (row < 0 || col < 0 || row >= grid.length || col >= grid.length) return false;
+    const letter = grid[row][col];
+    if (letter !== '' && letter !== word[index]) return false;
+    row += direction.row;
+    col += direction.col;
+  }
+  return true;
 }
 
 function placeWord(grid: string[][], word: string, cells: Cell[]) {
@@ -90,7 +97,7 @@ export function generatePuzzle(
     let reverseCount = 0;
     let failed = false;
     for (const [wordIndex, word] of orderedWords.entries()) {
-      const candidates: { start: Cell; direction: Cell; cells: Cell[] }[] = [];
+      const candidates: { row: number; col: number; direction: Cell }[] = [];
       for (let row = 0; row < size; row += 1) {
         for (let col = 0; col < size; col += 1) {
           for (const direction of shuffled(directions, random)) {
@@ -100,8 +107,9 @@ export function generatePuzzle(
               reverseCount >= options.maxReverseWords &&
               isReverseDirection(direction)
             ) continue;
-            const cells = cellsFor(word, { row, col }, direction);
-            if (canPlace(grid, word, cells)) candidates.push({ start: { row, col }, direction, cells });
+            // Validate without allocating a path for every rejected/unused candidate.
+            // Keep the enumeration and shuffle untouched: their order determines seeded output.
+            if (canPlace(grid, word, row, col, direction)) candidates.push({ row, col, direction });
           }
         }
       }
@@ -111,9 +119,11 @@ export function generatePuzzle(
       const preferred = candidates.filter(({ direction }) => isReverseDirection(direction) === preferReverse);
       const choices = preferred.length ? preferred : candidates;
       const candidate = choices[Math.floor(random() * choices.length)];
+      const start = { row: candidate.row, col: candidate.col };
+      const cells = cellsFor(word, start, candidate.direction);
       if (isReverseDirection(candidate.direction)) reverseCount += 1;
-      placeWord(grid, word, candidate.cells);
-      placements[word] = { word, start: candidate.start, end: candidate.cells[candidate.cells.length - 1], cells: candidate.cells };
+      placeWord(grid, word, cells);
+      placements[word] = { word, start, end: cells[cells.length - 1], cells };
     }
     if (!failed) {
       for (let row = 0; row < size; row += 1) for (let col = 0; col < size; col += 1) if (!grid[row][col]) grid[row][col] = LETTERS[Math.floor(random() * LETTERS.length)];
