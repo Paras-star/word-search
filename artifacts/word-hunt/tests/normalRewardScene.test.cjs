@@ -2,6 +2,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
+const zlib = require('node:zlib');
 const ts = require('typescript');
 
 const root = path.resolve(__dirname, '..');
@@ -16,6 +17,59 @@ const expand = tree => {
   return { ...tree, props: { ...tree.props, children: [tree.props?.children].flat(Infinity).map(expand) } };
 };
 const style = value => Object.assign({}, ...[value].flat(Infinity).filter(Boolean));
+function readPngTransparency(file) {
+  const data = fs.readFileSync(file);
+  assert.equal(data.toString('hex', 0, 8), '89504e470d0a1a0a');
+  const width = data.readUInt32BE(16);
+  const height = data.readUInt32BE(20);
+  assert.equal(data[24], 8, 'banner must use 8-bit channels');
+  assert.equal(data[25], 6, 'banner must use RGBA channels');
+  assert.equal(data[28], 0, 'interlaced PNGs are not expected');
+  const chunks = [];
+  for (let offset = 8; offset < data.length;) {
+    const length = data.readUInt32BE(offset);
+    if (data.toString('ascii', offset + 4, offset + 8) === 'IDAT') {
+      chunks.push(data.subarray(offset + 8, offset + 8 + length));
+    }
+    offset += length + 12;
+  }
+  const raw = zlib.inflateSync(Buffer.concat(chunks));
+  const stride = width * 4;
+  let prior = Buffer.alloc(stride);
+  let transparent = 0;
+  let opaqueBlack = 0;
+  const corners = [];
+  for (let y = 0; y < height; y++) {
+    const rowStart = y * (stride + 1);
+    const filter = raw[rowStart];
+    const row = Buffer.alloc(stride);
+    for (let i = 0; i < stride; i++) {
+      const left = i >= 4 ? row[i - 4] : 0;
+      const above = prior[i];
+      const upperLeft = i >= 4 ? prior[i - 4] : 0;
+      let predictor = 0;
+      if (filter === 1) predictor = left;
+      else if (filter === 2) predictor = above;
+      else if (filter === 3) predictor = Math.floor((left + above) / 2);
+      else if (filter === 4) {
+        const p = left + above - upperLeft;
+        const pa = Math.abs(p - left);
+        const pb = Math.abs(p - above);
+        const pc = Math.abs(p - upperLeft);
+        predictor = pa <= pb && pa <= pc ? left : pb <= pc ? above : upperLeft;
+      } else assert.equal(filter, 0, 'unsupported PNG filter');
+      row[i] = (raw[rowStart + i + 1] + predictor) & 255;
+    }
+    for (let x = 0; x < width; x++) {
+      const i = x * 4;
+      if (row[i + 3] === 0) transparent++;
+      if (row[i + 3] === 255 && row[i] === 0 && row[i + 1] === 0 && row[i + 2] === 0) opaqueBlack++;
+      if ((x === 0 || x === width - 1) && (y === 0 || y === height - 1)) corners.push(row[i + 3]);
+    }
+    prior = row;
+  }
+  return { width, height, transparent, opaqueBlack, corners };
+}
 function load(file, mocks = {}) {
   const module = { exports: {} };
   const output = ts.transpileModule(fs.readFileSync(path.join(root, file), 'utf8'), {
@@ -41,8 +95,8 @@ const scenery = {
   prepareChestScenery: async () => 'prepared-beach',
 };
 function harness({ width = 393, height = 852, dumpling = catalog.DUMPLINGS[0], revealed = true,
-  opening = true, loading = false, busy = false, error = null, insets = {} } = {}) {
-  const native = { Platform: { OS: 'web' }, Pressable: 'Pressable', ScrollView: 'ScrollView',
+  opening = true, loading = false, busy = false, error = null, insets = {}, platform = 'web' } = {}) {
+  const native = { Platform: { OS: platform }, Pressable: 'Pressable', ScrollView: 'ScrollView',
     Text: 'Text', View: 'View', StyleSheet: { create: s => s, absoluteFill: {} },
     useWindowDimensions: () => ({ width, height }) };
   const shared = load('components/ChestScene.tsx', {
@@ -67,9 +121,9 @@ function harness({ width = 393, height = 852, dumpling = catalog.DUMPLINGS[0], r
 
 test('all 30 actual catalog rewards use their exact catalog name, rarity banner and unchanged artwork', () => {
   const expected = {
-    Common: 'Common_Banner_1795628061910.png', Uncommon: 'Uncommon_Banner_1795628061910.png',
-    Rare: 'Rare_Banner_1795628061909.png', Epic: 'Epic_Banner_1795628061909.png',
-    Legendary: 'Legendary_Banner_1795628061908.png',
+    Common: 'Common_Transparent_Banner_1795631362659.png', Uncommon: 'Uncommon_Transparent_Banner_1795631362659.png',
+    Rare: 'Rare_Transparent_Banner_1795631362661.png', Epic: 'Epic_Transparent_Banner_1795631362660.png',
+    Legendary: 'Legendary_Transparent_Banner_1795631362661.png',
   };
   const seen = new Set();
   for (const dumpling of catalog.DUMPLINGS) {
@@ -88,6 +142,24 @@ test('all 30 actual catalog rewards use their exact catalog name, rarity banner 
   }
   assert.deepEqual([...seen], catalog.DUMPLING_RARITIES);
   assert.throws(() => harness().api.getRarityBanner('Unknown'), /Unknown rarity/);
+});
+
+test('all five replacement rarity banners preserve their original transparent artwork without black backdrops', () => {
+  const expected = {
+    Common: 'Common_Transparent_Banner_1795631362659.png',
+    Uncommon: 'Uncommon_Transparent_Banner_1795631362659.png',
+    Rare: 'Rare_Transparent_Banner_1795631362661.png',
+    Epic: 'Epic_Transparent_Banner_1795631362660.png',
+    Legendary: 'Legendary_Transparent_Banner_1795631362661.png',
+  };
+  assert.equal(harness().api.BANNER_RATIO, 866 / 288);
+  for (const filename of Object.values(expected)) {
+    const image = readPngTransparency(path.resolve(root, '..', '..', 'attached_assets', filename));
+    assert.deepEqual([image.width, image.height], [866, 288]);
+    assert.ok(image.transparent > 0, `${filename} has transparent pixels`);
+    assert.deepEqual(image.corners, [0, 0, 0, 0], `${filename} corners reveal the scene behind it`);
+    assert.equal(image.opaqueBlack, 0, `${filename} contains no opaque black background`);
+  }
 });
 
 test('closed-first entry and opening preserve the real ChestReveal contract and prevent premature navigation', () => {
@@ -150,6 +222,19 @@ test('narrow, short and desktop layouts scroll without collisions and retain exa
       assert.ok(panel.fontSize * 0.6 * d.name.length <= panel.width + 0.01);
     }
   }
+});
+
+test('reward artwork renders once at the safe-area-aware scene position', () => {
+  const { tree, api } = harness({ width: 393, height: 852, platform: 'ios', insets: { top: 47 } });
+  const rootStyle = style(find(tree, 'normal-reward-scene').props.style);
+  const scroll = find(tree, 'reward-scroll');
+  assert.equal(rootStyle.backgroundColor, palette.homeColors.background);
+  assert.equal(scroll.props.contentContainerStyle.paddingTop, 47);
+  assert.equal(nodes(tree).filter(node => node.type === 'ChestScene').length, 1);
+  assert.equal(nodes(tree).filter(node => node.type === 'Image' && node.props.blurRadius).length, 0);
+  assert.equal(nodes(tree).filter(node => node.props.testID === 'chest-scene-background').length, 0);
+  assert.doesNotMatch(fs.readFileSync(path.join(root, 'components/NormalRewardScene.tsx'), 'utf8'), /blurRadius|styles\.veil/);
+  assert.equal(api.getNormalRewardLayout(393).scene.imgY, 0);
 });
 
 test('result panel reuses Daily completion styling with actual normal-level values and no old cream sheet', () => {

@@ -23,7 +23,7 @@ function usePreparedScenerySource() {
 
 const BG_W = 937;
 const BG_H = 1678;
-export const BANNER_RATIO = 2172 / 724;
+export const BANNER_RATIO = 866 / 288;
 export const COLLECTION_RATIO = 866 / 288;
 export const CONTINUE_RATIO = 942 / 265;
 const COLLECTION = require('../assets/images/home/collection-button.png');
@@ -31,11 +31,11 @@ const CONTINUE = require('../../../attached_assets/Continue_1795628061907.png');
 
 /** Explicit, exhaustive rarity -> banner artwork mapping. */
 export const RARITY_BANNERS: Record<DumplingRarity, ImageSourcePropType> = {
-  Common: require('../../../attached_assets/Common_Banner_1795628061910.png'),
-  Uncommon: require('../../../attached_assets/Uncommon_Banner_1795628061910.png'),
-  Rare: require('../../../attached_assets/Rare_Banner_1795628061909.png'),
-  Epic: require('../../../attached_assets/Epic_Banner_1795628061909.png'),
-  Legendary: require('../../../attached_assets/Legendary_Banner_1795628061908.png'),
+  Common: require('../../../attached_assets/Common_Transparent_Banner_1795631362659.png'),
+  Uncommon: require('../../../attached_assets/Uncommon_Transparent_Banner_1795631362659.png'),
+  Rare: require('../../../attached_assets/Rare_Transparent_Banner_1795631362661.png'),
+  Epic: require('../../../attached_assets/Epic_Transparent_Banner_1795631362660.png'),
+  Legendary: require('../../../attached_assets/Legendary_Transparent_Banner_1795631362661.png'),
 };
 
 export function getRarityBanner(rarity: DumplingRarity): ImageSourcePropType {
@@ -113,10 +113,6 @@ export default function NormalRewardScene(p: Props) {
   const scenery = usePreparedScenerySource();
 
   return <View style={styles.screen} testID="normal-reward-scene">
-    <View pointerEvents="none" style={StyleSheet.absoluteFill}>
-      <Image source={scenery} style={styles.fill} contentFit="cover" blurRadius={18} transition={0} accessible={false} />
-      <View style={[StyleSheet.absoluteFill, styles.veil]} />
-    </View>
     <ScrollView style={styles.screen} testID="reward-scroll" showsVerticalScrollIndicator={false}
       contentContainerStyle={{ alignItems: 'center', paddingTop: top, paddingBottom: bottom, paddingLeft: insets.left, paddingRight: insets.right }}>
       <View style={{ width: L.W, height: L.totalH, overflow: 'hidden' }}>
@@ -172,9 +168,8 @@ export default function NormalRewardScene(p: Props) {
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1 },
+  screen: { flex: 1, backgroundColor: homeColors.background },
   fill: { width: '100%', height: '100%' },
-  veil: { backgroundColor: 'rgba(21,61,72,0.18)' },
   close: { position: 'absolute', top: 10, left: 12, width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255,240,208,0.85)', zIndex: 2 },
   namePanel: { position: 'absolute', alignItems: 'center', justifyContent: 'center' },
   name: {

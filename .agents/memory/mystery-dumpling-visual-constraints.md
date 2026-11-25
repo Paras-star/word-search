@@ -9,11 +9,11 @@ Use only the supplied 30 dumpling artworks, exact catalog names and five supplie
 
 **How to apply:** Reference the supplied individual assets without altering their designs. Effects may surround a dumpling but must not modify it. Animate only visible owned dumplings; never reintroduce the retired room image or illustrated map.
 
-Preserve the supplied normal-reward rarity banners and image buttons exactly, including any opaque black pixels surrounding the banner artwork. Do not treat the black surround as permission to remove a background or substitute transparent artwork.
+The five newly supplied transparent normal-reward rarity banners supersede the earlier opaque-banner uploads. Keep their alpha transparency, proportions, rarity mapping, and image-button artwork intact.
 
-**Why:** The user explicitly requires the supplied artwork unchanged; the five normal-reward banner uploads are RGB images rather than transparent PNGs.
+**Why:** The user explicitly replaced the black-backed banners and requires the beach to show through their transparent exterior.
 
-**How to apply:** Use the original uploaded assets at their actual locations and adjust only their layout and overlaid catalog-name text. Any artwork cleanup requires separate approval.
+**How to apply:** Use the latest uploaded transparent PNGs at their actual locations, preserve their dimensions and artwork, and adjust only the overlaid catalog-name text.
 
 Verify complete rarity-banner names in a real narrow browser, not only with mocked layout checks or React Native's automatic text fitting.
 
