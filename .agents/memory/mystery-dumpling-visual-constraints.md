@@ -9,6 +9,18 @@ Use only the supplied 30 dumpling artworks, exact catalog names and five supplie
 
 **How to apply:** Reference the supplied individual assets without altering their designs. Effects may surround a dumpling but must not modify it. Animate only visible owned dumplings; never reintroduce the retired room image or illustrated map.
 
+Preserve the supplied normal-reward rarity banners and image buttons exactly, including any opaque black pixels surrounding the banner artwork. Do not treat the black surround as permission to remove a background or substitute transparent artwork.
+
+**Why:** The user explicitly requires the supplied artwork unchanged; the five normal-reward banner uploads are RGB images rather than transparent PNGs.
+
+**How to apply:** Use the original uploaded assets at their actual locations and adjust only their layout and overlaid catalog-name text. Any artwork cleanup requires separate approval.
+
+Verify complete rarity-banner names in a real narrow browser, not only with mocked layout checks or React Native's automatic text fitting.
+
+**Why:** React Native Web left long uppercase names ellipsized despite `adjustsFontSizeToFit`; a layout calculation using average lowercase glyph widths passed unit tests but underestimated the rendered bold text and letter spacing.
+
+**How to apply:** Budget for uppercase glyph widths, tracking and padding explicitly, and confirm the full names in actual phone-width and desktop screenshots. Keep text inside the banner's central panel, clear of its emblem and leaves.
+
 Keep all three supplied Treasure Chest PNGs unchanged, including their transparency, and preserve the Home chest icon. For opening/reveal visuals, the supplied chest-opening video now supersedes the still PNGs as the authoritative animation source.
 
 **Why:** The user subsequently required the exact video's chest, motion, effects and sound, while explicitly preserving the other artwork and Home experience.

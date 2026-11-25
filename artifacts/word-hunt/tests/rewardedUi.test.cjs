@@ -77,7 +77,7 @@ function rewardScreenHarness(options = {}) {
   const params = { categoryId: 'animals', mode: 'classic', score: '100', time: '12', puzzleId: 'puzzle-one', ...options.params };
   const saved = { id: 'reward-one', puzzleId: params.puzzleId, dumplingId: 'one', rarity: 'Common', collectionState: 'earned', ...options.reward };
   const progress = { hydrated: true, onboardingStep: 6, ...options.progress };
-  const calls = { registrations: [], shows: [], navigation: [] };
+  const calls = { registrations: [], shows: [], navigation: [], collections: [] };
   const counted = options.counted ?? new Set();
   const slots = [];
   let cursor = 0, effects = [], focusCleanup, focusCallback, stateListener, tree;
@@ -127,7 +127,11 @@ function rewardScreenHarness(options = {}) {
     };
     if (name === '@/services/dumplingRewards') return {
       getPendingReward: async () => options.noReward ? null : saved,
-      collectReward: async () => ({ reward: saved, isDuplicate: !!options.duplicate }),
+      collectReward: async id => {
+        calls.collections.push(id);
+        if (options.collectReward) return options.collectReward(id);
+        return { reward: { ...saved, collectionState: 'collected' }, isDuplicate: !!options.duplicate };
+      },
     };
     if (name === '@/services/ads') return {
       registerCompletedPuzzle: id => { if (!counted.has(id)) { counted.add(id); calls.registrations.push(id); } },
@@ -164,6 +168,9 @@ function rewardScreenHarness(options = {}) {
     return match(node.props ?? {}) ? node : find(node.props?.children, match);
   };
   const press = label => {
+    const scene = find(tree, props => typeof props.onCollection === 'function');
+    const sceneAction = { 'VIEW COLLECTION ROOM': 'onCollection', CONTINUE: 'onContinue' }[label];
+    if (scene && sceneAction) return scene.props[sceneAction]();
     const node = find(tree, props => props.testID === label || props.children?.includes(label));
     assert.ok(node, `Missing action ${label}`);
     return node.props.onPress();
@@ -171,11 +178,10 @@ function rewardScreenHarness(options = {}) {
   const flush = async () => { await Promise.resolve(); await Promise.resolve(); render(); };
   return {
     params, progress, calls, counted, render, press, flush,
+    get scene() { return find(tree, props => typeof props.onCollection === 'function')?.props; },
     mount: async () => { render(); await flush(); },
     collect: async () => {
-      find(tree, props => props.testID === 'reward-chest-tap').props.onRevealed();
-      render();
-      await press('reward-collect');
+      find(tree, props => typeof props.onRevealed === 'function').props.onRevealed();
       render();
     },
     blur: () => { focusCleanup?.(); focusCleanup = null; },
@@ -192,10 +198,80 @@ test('reward counts before either choice; collection is immediate, ad-free, and 
     assert.deepEqual(screen.calls.registrations, ['puzzle-one']);
     assert.equal(screen.calls.shows.length, 0);
     await screen.collect();
-    screen.press('VIEW COLLECTION ROOM');
+    const collection = screen.press('VIEW COLLECTION ROOM');
     screen.press('CONTINUE'); // Competing rapid tap cannot change the destination.
+    await collection;
     assert.deepEqual(screen.calls.navigation, [{ pathname: '/collection', params: duplicate ? undefined : { newDumplingId: 'one' } }]);
     assert.equal(screen.calls.shows.length, 0);
+    screen.unmount();
+  }
+});
+
+test('normal reward image buttons save once before navigating and never award extra coins', async () => {
+  let resolveSave;
+  const screen = rewardScreenHarness({
+    collectReward: () => new Promise(resolve => { resolveSave = resolve; }),
+  });
+  await screen.mount();
+  await screen.collect();
+  const pending = screen.press('VIEW COLLECTION ROOM');
+  screen.press('VIEW COLLECTION ROOM');
+  screen.press('CONTINUE');
+  screen.render();
+  assert.equal(screen.scene.busy, true);
+  assert.deepEqual(screen.calls.collections, ['reward-one']);
+  assert.deepEqual(screen.calls.navigation, []);
+  assert.deepEqual(screen.calls.shows, []);
+  assert.equal(screen.scene.score, '100');
+  assert.equal(screen.scene.time, '0:12');
+  assert.equal(screen.scene.coins, '+50');
+  resolveSave({ reward: { id: 'reward-one', collectionState: 'collected' }, isDuplicate: false });
+  await pending;
+  assert.deepEqual(screen.calls.navigation, [{ pathname: '/collection', params: { newDumplingId: 'one' } }]);
+  screen.unmount();
+});
+
+test('a failed normal reward save blocks navigation and ads, then either image button can retry', async () => {
+  let attempts = 0;
+  const screen = rewardScreenHarness({
+    collectReward: async () => {
+      if (++attempts === 1) throw Error('storage unavailable');
+      return { reward: { id: 'reward-one', collectionState: 'collected' }, isDuplicate: true };
+    },
+  });
+  await screen.mount();
+  await screen.collect();
+  await screen.press('CONTINUE');
+  screen.render();
+  assert.equal(screen.scene.busy, false);
+  assert.equal(screen.scene.revealed, true);
+  assert.match(screen.scene.error, /could not be saved.*retry/);
+  assert.deepEqual(screen.calls.navigation, []);
+  assert.deepEqual(screen.calls.shows, []);
+  await screen.press('VIEW COLLECTION ROOM');
+  assert.deepEqual(screen.calls.collections, ['reward-one', 'reward-one']);
+  assert.deepEqual(screen.calls.navigation, [{ pathname: '/collection', params: undefined }]);
+  assert.deepEqual(screen.calls.shows, []);
+  screen.unmount();
+});
+
+test('leaving the reward screen while its save is pending cannot trigger stale navigation or ads', async () => {
+  for (const choice of ['CONTINUE', 'VIEW COLLECTION ROOM']) {
+    let resolveSave;
+    const screen = rewardScreenHarness({
+      collectReward: () => new Promise(resolve => { resolveSave = resolve; }),
+    });
+    await screen.mount();
+    await screen.collect();
+    const pending = screen.press(choice);
+    screen.blur();
+    screen.refocus();
+    screen.press(choice);
+    assert.equal(screen.calls.collections.length, 1, 'refocusing cannot start a competing save');
+    resolveSave({ reward: { id: 'reward-one', collectionState: 'collected' }, isDuplicate: false });
+    await pending;
+    assert.deepEqual(screen.calls.navigation, []);
+    assert.deepEqual(screen.calls.shows, []);
     screen.unmount();
   }
 });
@@ -229,9 +305,10 @@ test('Continue attempts once and reaches Results once for every ad outcome or re
     const screen = rewardScreenHarness();
     await screen.mount();
     await screen.collect();
-    screen.press('CONTINUE');
+    const continuation = screen.press('CONTINUE');
     screen.press('CONTINUE');
     screen.press('VIEW COLLECTION ROOM');
+    await continuation;
     assert.equal(screen.calls.shows.length, 1);
     assert.equal(screen.calls.navigation.length, 0);
     if (status === 'rejected') screen.calls.reject(new Error('SDK failure'));
@@ -247,7 +324,7 @@ test('invalid reward completion cannot borrow prior eligibility but Continue sti
   const screen = rewardScreenHarness({ reward: { puzzleId: 'other' } });
   await screen.mount();
   await screen.collect();
-  screen.press('CONTINUE');
+  await screen.press('CONTINUE');
   assert.equal(screen.calls.shows.length, 0);
   assert.equal(screen.calls.navigation[0].pathname, '/results');
   screen.unmount();
@@ -261,7 +338,7 @@ test('daily reward Continue never counts or attempts an interstitial and preserv
     assert.deepEqual(screen.calls.registrations, []);
     assert.equal(screen.counted.size, 0);
     await screen.collect();
-    screen.press('CONTINUE');
+    await screen.press('CONTINUE');
     screen.press('CONTINUE');
     assert.equal(screen.calls.shows.length, 0);
     assert.deepEqual(screen.calls.navigation, [{ pathname: '/results', params: screen.params }]);
@@ -274,7 +351,7 @@ test('daily reward Collection navigation remains immediate, highlighted, and ad-
   const screen = rewardScreenHarness({ params: { dailyDate: '2026-10-28' } });
   await screen.mount();
   await screen.collect();
-  screen.press('VIEW COLLECTION ROOM');
+  await screen.press('VIEW COLLECTION ROOM');
   assert.deepEqual(screen.calls.registrations, []);
   assert.equal(screen.calls.shows.length, 0);
   assert.deepEqual(screen.calls.navigation, [{ pathname: '/collection', params: { newDumplingId: 'one' } }]);
@@ -286,7 +363,7 @@ test('leaving/unmounting cancels stale ad/navigation; background prevents presen
     const screen = rewardScreenHarness();
     await screen.mount();
     await screen.collect();
-    screen.press('CONTINUE');
+    await screen.press('CONTINUE');
     assert.equal(screen.calls.shows[0].canPresent(), true);
     screen[action]();
     assert.equal(screen.calls.shows[0].signal.aborted, true);

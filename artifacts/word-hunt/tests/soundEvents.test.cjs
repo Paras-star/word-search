@@ -168,7 +168,9 @@ test('completion, coin, and dumpling sounds are tied to persisted reward stages'
   const rewardSource = fs.readFileSync(path.join(root, 'app/reward.tsx'), 'utf8');
   assert.match(rewardSource, /mounted\.current = false;\s*stopDumplingSounds\(\)/);
   assert.match(rewardSource, /if \(mounted\.current\) setStage\('revealed'\)/);
-  assert.match(rewardSource, /<ChestReveal opening=\{stage !== 'basket'\}/);
+  assert.match(rewardSource, /<NormalRewardScene dumpling=\{dumpling\} opening=\{stage !== 'basket'\}/);
+  const sceneSource = fs.readFileSync(path.join(root, 'components/NormalRewardScene.tsx'), 'utf8');
+  assert.match(sceneSource, /<ChestReveal opening=\{p\.opening\} dumpling=\{p\.dumpling\}/);
   const chestSource = fs.readFileSync(path.join(root, 'components/ChestReveal.tsx'), 'utf8');
   assert.match(chestSource, /const CUE = 'chestOpening'/);
   assert.match(chestSource, /await startSound\(CUE\)/);

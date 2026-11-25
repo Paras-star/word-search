@@ -98,7 +98,7 @@ test('measured screen bounds take precedence and invalid layout events cannot co
 });
 
 test('all reward categories share the same layout and animation without borrowing purchase behavior', () => {
-  for (const file of ['app/reward.tsx', 'app/treasure-chest.tsx']) {
+  for (const file of ['app/treasure-chest.tsx']) {
     const source = read(file);
     assert.match(source, /const \{ layout, onLayout \} = useChestSceneLayout\(\)/);
     assert.match(source, /<ChestScene layout=\{layout\}>/);
@@ -106,6 +106,11 @@ test('all reward categories share the same layout and animation without borrowin
     assert.doesNotMatch(source, /const BG_W|const chestLeft|const chestTop/);
   }
   const reward = read('app/reward.tsx');
+  const normalScene = read('components/NormalRewardScene.tsx');
+  assert.match(reward, /<NormalRewardScene/);
+  assert.match(normalScene, /getChestSceneLayout\(W, artH\)/);
+  assert.match(normalScene, /<ChestScene layout=\{L\.scene\}>/);
+  assert.match(normalScene, /<ChestReveal/);
   assert.doesNotMatch(reward, /purchaseTreasureChest|TREASURE_CHEST_COST|\b700\b/);
   assert.match(reward, /collectReward\(reward\.id\)/);
   const shared = read('components/ChestScene.tsx');

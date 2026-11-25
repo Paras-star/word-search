@@ -276,7 +276,9 @@ test('Home button uses the supplied icon beneath the unchanged settings gear and
 test('both reward screens share the chest component but only the paid screen invokes purchase', () => {
   const paid = fs.readFileSync(path.join(root, 'app/treasure-chest.tsx'), 'utf8');
   const normal = fs.readFileSync(path.join(root, 'app/reward.tsx'), 'utf8');
-  for (const source of [paid, normal]) assert.match(source, /<ChestReveal/);
+  const normalScene = fs.readFileSync(path.join(root, 'components/NormalRewardScene.tsx'), 'utf8');
+  for (const source of [paid, normalScene]) assert.match(source, /<ChestReveal/);
+  assert.match(normal, /<NormalRewardScene/);
   assert.match(paid, /game\.purchaseTreasureChest\(requestId\)/);
   assert.doesNotMatch(normal, /purchaseTreasureChest|TREASURE_CHEST_COST|\b700\b/);
   assert.doesNotMatch(paid, /collectReward\(|awardCoins\(/);

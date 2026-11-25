@@ -26,7 +26,15 @@ function rewardHarness() {
     useMemo: fn => fn(),
   };
   class Value { interpolate() { return {}; } }
-  const jsx = (type, props) => ({ type, props });
+  const jsx = (type, props) => type === 'NormalRewardScene'
+    ? { type, props: { ...props, children: [{
+      type: 'ChestReveal', props: {
+        testID: 'reward-chest-tap', opening: props.opening, dumpling: props.dumpling,
+        disabled: props.loading || !props.dumpling || props.opening || props.revealed,
+        onPress: props.onOpen, onRevealed: props.onRevealed,
+      },
+    }] } }
+    : ({ type, props });
   const dumpling = { id: 'd', name: 'Dumpling', rarity: 'Common' };
   const requireMock = name => {
     if (name === 'react') return react;
@@ -50,6 +58,7 @@ function rewardHarness() {
     };
     if (name === 'react-native-safe-area-context') return { useSafeAreaInsets: () => ({ top: 0, bottom: 0 }) };
     if (name === '@/components/GameUI') return { PrimaryButton: 'PrimaryButton', SoftButton: 'SoftButton' };
+    if (name === '@/components/NormalRewardScene') return { __esModule: true, default: 'NormalRewardScene' };
     if (name === '@/components/ChestReveal') return { ChestReveal: 'ChestReveal' };
     if (name === '@/components/ChestScene') return {
       ChestScene: 'ChestScene',
