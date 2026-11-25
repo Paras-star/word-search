@@ -21,4 +21,4 @@
 - [Expo web background preloading](expo-web-background-preloading.md) — no-store assets can reload after URL prefetch; verify delayed navigation and share a retained prepared result.
 - [Published artwork verification](published-artwork-verification.md) — successful Expo preview images do not establish published asset availability; verify HTTP responses separately from layout.
 - [Development performance measurements](development-performance-measurements.md) — pin source against Fast Refresh; count child calls, not retained fiber flags.
-- [Approved Daily Hunt visuals](daily-hunt-approved-design.md) — final calendar design is approved and must remain unchanged; design approval does not authorize publishing.
+- [Approved Daily Hunt visuals](daily-hunt-approved-design.md) — calendar and completion designs are approved baselines; visual approval does not authorize builds or publishing.
