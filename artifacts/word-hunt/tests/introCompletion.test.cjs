@@ -50,6 +50,7 @@ function harness({ step = 0, savedStep = step + 1, width = 360, height = 640,
     '@expo/vector-icons': { Feather: 'Feather' },
     '@/components/GameUI': { Screen: 'Screen', Header: 'Header', PrimaryButton: 'PrimaryButton', SoftButton: 'SoftButton' },
     '@/components/IntroCompletion': { __esModule: true, default: IntroCompletion },
+    '@/components/DailyCompletion': { __esModule: true, default: 'DailyCompletion' },
     '@/data/categories': { CATEGORIES: [], getCategory: () => ({ id: 'animals', name: 'Animals' }) },
     '@/game/progression': { nextCategoryId: () => 'food' },
     '@/game/onboarding': onboarding,
@@ -108,7 +109,7 @@ test('invalid and stale results keep existing guards, and normal/Daily results d
   assert.equal(harness({ params: { categoryId: 'animals' }, savedStep: 2 }).tree.type, 'Redirect');
   for (const params of [{ categoryId: 'animals' }, { dailyDate: '2026-11-24' }]) {
     const { tree } = harness({ params, savedStep: 6 });
-    assert.equal(tree.type, 'Screen');
+    assert.equal(tree.type, params.dailyDate ? 'DailyCompletion' : 'Screen');
     assert.equal(find(tree, 'intro-completion'), undefined);
   }
 });

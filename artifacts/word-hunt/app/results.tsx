@@ -4,6 +4,7 @@ import { Redirect, useLocalSearchParams, useRouter } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import { Header, Screen, PrimaryButton, SoftButton } from '@/components/GameUI';
 import IntroCompletion from '@/components/IntroCompletion';
+import DailyCompletion from '@/components/DailyCompletion';
 import { CATEGORIES, getCategory } from '@/data/categories';
 import { nextCategoryId } from '@/game/progression';
 import { getOnboardingStep } from '@/game/onboarding';
@@ -92,21 +93,13 @@ export default function ResultsScreen() {
     if (!params.dailyDate || !parseLocalDateKey(params.dailyDate) || !completedDailyPuzzles.includes(params.dailyDate)) {
       return <Redirect href="/daily" />;
     }
-    return <Screen>
-      <Header title="Daily Puzzle" onBack={() => router.canGoBack() ? router.back() : router.replace('/daily')} />
-      <ScrollView style={styles.scroll} contentContainerStyle={styles.content}>
-        <View style={[styles.icon, { backgroundColor: colors.accent }]}><Text style={{ fontSize: 38 }}>👑</Text></View>
-        <Text style={[styles.title, { color: colors.foreground }]}>Daily Puzzle Complete!</Text>
-        <Text style={[styles.copy, { color: colors.mutedForeground }]}>{params.dailyDate} is complete. Your crown is waiting on the calendar.</Text>
-        <View style={styles.stats}>
-          <View style={[styles.stat, { backgroundColor: colors.card, borderColor: colors.border }]}><Text style={[styles.label, { color: colors.mutedForeground }]}>SCORE</Text><Text style={[styles.value, { color: colors.foreground }]}>{params.score ?? '0'}</Text></View>
-          <View style={[styles.stat, { backgroundColor: colors.card, borderColor: colors.border }]}><Text style={[styles.label, { color: colors.mutedForeground }]}>TIME</Text><Text style={[styles.value, { color: colors.foreground }]}>{formatTime(Number(params.time ?? 0))}</Text></View>
-          <View style={[styles.stat, { backgroundColor: colors.card, borderColor: colors.border }]}><Text style={[styles.label, { color: colors.mutedForeground }]}>COINS</Text><Text style={[styles.value, { color: colors.orange }]}>+20</Text></View>
-        </View>
-        <PrimaryButton onPress={() => router.canGoBack() ? router.back() : router.replace('/daily')}>BACK TO CALENDAR</PrimaryButton>
-        <SoftButton onPress={() => router.replace('/')}>HOME</SoftButton>
-      </ScrollView>
-    </Screen>;
+    return <DailyCompletion
+      date={params.dailyDate}
+      score={params.score ?? '0'}
+      time={formatTime(Number(params.time ?? 0))}
+      onCalendar={() => router.canGoBack() ? router.back() : router.replace('/daily')}
+      onHome={() => router.replace('/')}
+    />;
   }
   return <Screen>
     <Header title={gameOver ? 'Time is up' : 'Hunt complete'} onBack={() => proceed('/')} />

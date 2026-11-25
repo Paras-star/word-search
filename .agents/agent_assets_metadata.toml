@@ -84,3 +84,45 @@ mtime_ms = 1795605873834
 storage_uri = "gcs://replit-rams-assets-pike/rams/assets/repl:6330ea3b-2615-4284-a9d6-c16d89a9a821/aa06ccda-6110-4625-8048-027fb4676b7e/8f32d1c7-be69-4b68-b18b-775e7837aea8"
 storage_version_token = "1795605935786352"
 content_type = "image/png"
+
+[[outputs]]
+id = "Niv3fItHFTbup16pFkAu4"
+uri = "file://.local/screenshots/daily-completion-393x852.png"
+type = "image"
+title = "Daily completion · 393 × 852"
+description = "Redesigned screen with original artwork and isolated sample completion data."
+logical_id = "b2695c1c-afc1-4fb5-85b5-e9e1109888a5"
+content_hash = "sha256:efec7a52171c2c892c7b162108420e562188545f392dff9fbfcaab1582623231"
+size = 473205
+mtime_ms = 1795608667418
+storage_uri = "gcs://replit-rams-assets-pike/rams/assets/repl:6330ea3b-2615-4284-a9d6-c16d89a9a821/b2695c1c-afc1-4fb5-85b5-e9e1109888a5/7e36adc9-7b65-4d25-93b2-07d75f7828fc"
+storage_version_token = "1795608766749414"
+content_type = "image/png"
+
+[[outputs]]
+id = "ehW7YNtLuoJ65EmE-zz-h"
+uri = "file://.local/screenshots/daily-completion-320x480.png"
+type = "image"
+title = "Narrow screen · 320 × 480"
+description = "Top of the short-screen scrolling layout."
+logical_id = "743c2527-7154-4a28-8989-14596ad2f743"
+content_hash = "sha256:cf62a3e9613fdba09d182e06217dd60583b6c401c8afc779402f743bc8fd6682"
+size = 243148
+mtime_ms = 1795608671510
+storage_uri = "gcs://replit-rams-assets-pike/rams/assets/repl:6330ea3b-2615-4284-a9d6-c16d89a9a821/743c2527-7154-4a28-8989-14596ad2f743/e06da5f5-0525-43f4-a8e0-52053f936d32"
+storage_version_token = "1795608768791338"
+content_type = "image/png"
+
+[[outputs]]
+id = "19gd5mbZFFfUlUMWgKEsK"
+uri = "file://.local/screenshots/daily-completion-320x480-bottom.png"
+type = "image"
+title = "Narrow screen · scrolled to navigation"
+description = "Both original navigation panels remain reachable on a short display."
+logical_id = "053ba69d-e99e-44d1-88d6-67c262eac7ff"
+content_hash = "sha256:8b1c20c37b7766bacabeb8c5363aad795f469816786728ffa95616b1c8e62038"
+size = 250376
+mtime_ms = 1795608671770
+storage_uri = "gcs://replit-rams-assets-pike/rams/assets/repl:6330ea3b-2615-4284-a9d6-c16d89a9a821/053ba69d-e99e-44d1-88d6-67c262eac7ff/6ba87bf1-3b9f-4c2e-83c2-7a49f99a2afb"
+storage_version_token = "1795608770165776"
+content_type = "image/png"
