@@ -1,0 +1,141 @@
+import React from 'react';
+import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Feather } from '@expo/vector-icons';
+import { localDateKey } from '@/game/daily';
+import { DAILY_MONTHS, DAILY_WEEKDAYS, dailyCellModel, monthCells } from '@/components/dailyCalendarState';
+
+export const DAILY_ART = {
+  calendar: require('@/assets/images/daily/calendar.png'),
+  regular: require('@/assets/images/daily/regular-dumpling.png'),
+  crowned: require('@/assets/images/daily/crowned-dumpling.png'),
+  golden: require('@/assets/images/daily/golden-selected-dumpling.png'),
+};
+
+// Native pixel geometry of calendar.png (448 x 556). Only the transparent
+// exterior padding is cropped away (by an overflow-hidden frame and a negative
+// image offset); the bitmap itself is drawn at its original uniform scale.
+// The mask covers the baked month title, arrows, weekdays, numbers and sample
+// dumplings while leaving the rings, wooden frame and page edges untouched.
+export const CALENDAR_ART = { width: 448, height: 556 };
+export const CALENDAR_VISIBLE = { x: 28, y: 65, width: 404, height: 347 };
+export const CALENDAR_MASK = { left: 44, top: 119, width: 366, height: 268 };
+/** Smallest uniform scale that keeps six-week rows ~32pt tall. */
+export const MIN_SIX_WEEK_SCALE = 0.9;
+
+/** ~90% of the safe viewport width, never below the six-week minimum scale. */
+export function calendarWidth(viewportWidth: number, left: number, right: number, rows: number) {
+  const available = viewportWidth - left - right;
+  const preferred = Math.min(available * 0.92, 500);
+  const minimum = rows >= 6 ? CALENDAR_VISIBLE.width * MIN_SIX_WEEK_SCALE : 0;
+  const width = Math.max(preferred, minimum);
+  return { width, available, scrollsHorizontally: width + 8 > available };
+}
+
+export function calendarLayout(width: number, rows: number) {
+  const s = width / CALENDAR_VISIBLE.width;
+  const compact = rows >= 6;
+  const monthRow = (compact ? 34 : 40) * s;
+  const weekRow = (compact ? 18 : 22) * s;
+  const gridPad = (compact ? 2 : 6) * s;
+  const mask = {
+    left: (CALENDAR_MASK.left - CALENDAR_VISIBLE.x) * s,
+    top: (CALENDAR_MASK.top - CALENDAR_VISIBLE.y) * s,
+    width: CALENDAR_MASK.width * s,
+    height: CALENDAR_MASK.height * s,
+  };
+  const inset = 6 * s;
+  const gridH = mask.height - monthRow - weekRow - gridPad;
+  const cellW = (mask.width - inset * 2) / 7;
+  const rowH = gridH / rows;
+  return {
+    s, monthRow, weekRow, mask, inset, gridH, cellW, rowH,
+    height: CALENDAR_VISIBLE.height * s,
+    image: { left: -CALENDAR_VISIBLE.x * s, top: -CALENDAR_VISIBLE.y * s, width: CALENDAR_ART.width * s, height: CALENDAR_ART.height * s },
+    // Never taller than a row, so adjacent dumplings cannot overlap.
+    art: Math.min(cellW * 0.94, rowH),
+  };
+}
+
+const INK = '#4A230C';
+const INK_SOFT = '#8A5A33';
+const PAPER = '#FFEFD1';
+const RULE = '#E9D2AE';
+const GOLD = '#E8A317';
+
+export function DailyCalendar({ width, month, now, completed, selected, canGoNext, onShiftMonth, onSelect }: {
+  width: number;
+  month: Date;
+  now: Date;
+  completed: ReadonlySet<string>;
+  selected: string;
+  canGoNext: boolean;
+  onShiftMonth: (offset: number) => void;
+  onSelect: (key: string) => void;
+}) {
+  const cells = monthCells(month);
+  const L = calendarLayout(width, cells.length / 7);
+  const { s, cellW, rowH, gridH, art } = L;
+  const numberSize = Math.max(11, Math.min(17, rowH * 0.46, cellW * 0.36));
+  const todayKey = localDateKey(now);
+
+  return <View style={{ width, height: L.height, overflow: 'hidden' }} testID="daily-calendar">
+    <Image source={DAILY_ART.calendar} testID="daily-calendar-art" style={{ position: 'absolute', ...L.image }} resizeMode="stretch" accessibilityIgnoresInvertColors />
+    <View testID="daily-calendar-mask" style={[styles.mask, { ...L.mask, borderRadius: 6 * s, paddingHorizontal: L.inset }]}>
+      <View style={[styles.monthRow, { height: L.monthRow }]}>
+        <Pressable onPress={() => onShiftMonth(-1)} accessibilityRole="button" accessibilityLabel="Previous month" testID="daily-prev-month" hitSlop={10} style={({ pressed }) => [styles.arrow, { width: 30 * s, height: 26 * s, borderRadius: 7 * s, opacity: pressed ? 0.65 : 1 }]}>
+          <Feather name="chevron-left" size={Math.max(15, 19 * s)} color={INK} />
+        </Pressable>
+        <Text style={[styles.monthLabel, { fontSize: Math.max(16, 21 * s) }]} accessibilityRole="header" numberOfLines={1} adjustsFontSizeToFit>{DAILY_MONTHS[month.getMonth()]} {month.getFullYear()}</Text>
+        <Pressable onPress={() => onShiftMonth(1)} disabled={!canGoNext} accessibilityRole="button" accessibilityLabel="Next month" accessibilityState={{ disabled: !canGoNext }} testID="daily-next-month" hitSlop={10} style={[styles.arrow, { width: 30 * s, height: 26 * s, borderRadius: 7 * s, opacity: canGoNext ? 1 : 0.32 }]}>
+          <Feather name="chevron-right" size={Math.max(15, 19 * s)} color={INK} />
+        </Pressable>
+      </View>
+      <View style={[styles.weekRow, { height: L.weekRow }]}>
+        {DAILY_WEEKDAYS.map((day) => <Text key={day} style={[styles.weekday, { fontSize: Math.max(10, 12.5 * s) }]}>{day}</Text>)}
+      </View>
+      <View style={[styles.grid, { height: gridH }]}>
+        {cells.map((date, index) => {
+          const col = index % 7;
+          const row = Math.floor(index / 7);
+          const frame = { width: cellW, height: rowH, borderLeftWidth: col === 0 ? 1 : 0, borderTopWidth: row === 0 ? 1 : 0 };
+          if (!date) return <View key={`blank-${index}`} style={[styles.cell, frame]} />;
+          const cell = dailyCellModel(date, now, completed, selected);
+          const source = cell.completed ? DAILY_ART.crowned : cell.selected ? DAILY_ART.golden : cell.selectable ? DAILY_ART.regular : null;
+          return <View key={cell.key} style={[styles.cell, frame, cell.completed && cell.selected ? styles.completedSelected : null]}>
+            <Pressable
+              disabled={!cell.selectable}
+              onPress={() => onSelect(cell.key)}
+              accessibilityRole="button"
+              accessibilityLabel={cell.label}
+              accessibilityState={{ disabled: !cell.selectable, selected: cell.selected }}
+              testID={`daily-date-${cell.key}`}
+              style={({ pressed }) => [styles.hit, { opacity: pressed ? 0.75 : 1, transform: [{ scale: pressed ? 0.94 : 1 }] }]}
+            >
+              {source ? <Image source={source} testID={`daily-art-${cell.state}-${cell.key}`} style={{ width: art, height: art, marginTop: cell.completed ? -art * 0.06 : 0 }} resizeMode="contain" /> : null}
+              {!cell.completed ? <Text style={[styles.dayNumber, source ? styles.dayOnArt : null, {
+                fontSize: numberSize,
+                top: source ? rowH / 2 - numberSize * 0.4 : undefined,
+                textDecorationLine: cell.key === todayKey && !source ? 'underline' : 'none',
+              }]}>{cell.day}</Text> : null}
+            </Pressable>
+          </View>;
+        })}
+      </View>
+    </View>
+  </View>;
+}
+
+const styles = StyleSheet.create({
+  mask: { position: 'absolute', backgroundColor: PAPER },
+  monthRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingTop: 4 },
+  arrow: { backgroundColor: '#FFF6E4', borderWidth: 1, borderColor: '#D9B88A', alignItems: 'center', justifyContent: 'center' },
+  monthLabel: { flex: 1, textAlign: 'center', fontFamily: 'Inter_700Bold', color: INK, letterSpacing: -0.3, marginHorizontal: 6 },
+  weekRow: { flexDirection: 'row', alignItems: 'center' },
+  weekday: { flex: 1, textAlign: 'center', fontFamily: 'Inter_600SemiBold', color: INK_SOFT },
+  grid: { flexDirection: 'row', flexWrap: 'wrap', borderColor: RULE },
+  cell: { borderColor: RULE, borderRightWidth: 1, borderBottomWidth: 1, alignItems: 'center', justifyContent: 'center', overflow: 'visible' },
+  completedSelected: { backgroundColor: '#FBE0A0', borderColor: GOLD, borderWidth: 2 },
+  hit: { width: '100%', height: '100%', alignItems: 'center', justifyContent: 'center' },
+  dayNumber: { fontFamily: 'Inter_700Bold', color: INK },
+  dayOnArt: { position: 'absolute' },
+});

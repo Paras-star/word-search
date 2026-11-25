@@ -289,3 +289,290 @@ test('retry after a lost storage response reloads the recorded award and cannot 
   );
   assert.equal(JSON.parse(values.get(PROGRESS_KEY)).coins, 100);
 });
+function loadSelection() {
+  const daily = loadDaily();
+  return loadTypeScript('components/dailyCalendarState.ts', (name) => {
+    if (name === '@/game/daily') return daily;
+    throw new Error(`Unexpected selection runtime import: ${name}`);
+  });
+}
+
+test('calendar redesign: default selection is today, even when completed', () => {
+  const sel = loadSelection();
+  const now = localDate(2026, 10, 25);
+  assert.equal(sel.effectiveSelection(null, now), '2026-11-25');
+  const done = new Set(['2026-11-25']);
+  const cell = sel.dailyCellModel(localDate(2026, 10, 25), now, done, sel.effectiveSelection(null, now));
+  assert.equal(cell.state, 'completed');
+  assert.equal(cell.selected, true);
+  assert.equal(sel.launchableDate('2026-11-25', now, done), null);
+  assert.match(sel.ctaAccessibilityLabel('2026-11-25', now, done), /already completed/);
+});
+
+test('calendar redesign: selection moves, regular / golden / crowned / plain states', () => {
+  const sel = loadSelection();
+  const now = localDate(2026, 10, 25);
+  const done = new Set(['2026-11-24']);
+  const state = (d, s) => sel.dailyCellModel(localDate(2026, 10, d), now, done, s).state;
+  assert.equal(state(25, '2026-11-25'), 'selected');
+  assert.equal(state(22, '2026-11-25'), 'available');
+  assert.equal(state(24, '2026-11-25'), 'completed');
+  assert.equal(state(22, '2026-11-22'), 'selected');
+  assert.equal(state(25, '2026-11-22'), 'available');
+  assert.equal(state(19, '2026-11-22'), 'plain');
+  assert.equal(state(26, '2026-11-22'), 'plain');
+  const golden = sel.monthCells(localDate(2026, 10, 1)).filter(Boolean)
+    .map((d) => sel.dailyCellModel(d, now, done, '2026-11-22')).filter((c) => c.selected);
+  assert.equal(golden.length, 1);
+  assert.equal(done.size, 1, 'selection never touches completion records');
+});
+
+test('calendar redesign: completed dates are selectable but never launch; catch-up launches', () => {
+  const sel = loadSelection();
+  const now = localDate(2026, 10, 25);
+  const done = new Set(['2026-11-24']);
+  assert.equal(sel.isDailyDateSelectable('2026-11-24', now), true);
+  const cell = sel.dailyCellModel(localDate(2026, 10, 24), now, done, '2026-11-24');
+  assert.equal(cell.state, 'completed');
+  assert.equal(cell.selected, true);
+  assert.match(cell.label, /selected, completed/);
+  assert.equal(sel.launchableDate('2026-11-24', now, done), null);
+  assert.equal(sel.launchableDate('2026-11-20', now, done), '2026-11-20');
+  assert.match(sel.ctaAccessibilityLabel('2026-11-20', now, done), /catch-up hunt for November 20/);
+});
+
+test('calendar redesign: eligibility window, future disabled, expired selection cannot launch', () => {
+  const sel = loadSelection();
+  const now = localDate(2026, 10, 25);
+  assert.equal(sel.isDailyDateSelectable('2026-11-20', now), true);
+  assert.equal(sel.isDailyDateSelectable('2026-11-19', now), false);
+  assert.equal(sel.isDailyDateSelectable('2026-11-26', now), false);
+  const future = sel.dailyCellModel(localDate(2026, 10, 26), now, new Set(), '2026-11-25');
+  assert.equal(future.selectable, false);
+  assert.match(future.label, /unavailable/);
+  const later = localDate(2026, 10, 27);
+  assert.equal(sel.launchableDate('2026-11-20', later, new Set()), null);
+  assert.equal(sel.effectiveSelection('2026-11-20', later), '2026-11-27');
+});
+
+test('calendar redesign: dynamic month grids incl. six-week months', () => {
+  const sel = loadSelection();
+  assert.equal(sel.monthCells(localDate(2026, 10, 1)).length, 35);
+  assert.equal(sel.monthCells(localDate(2026, 7, 1)).length, 42); // Aug 2026 starts Saturday
+  assert.equal(sel.monthCells(localDate(2026, 1, 1)).length, 28); // Feb 2026 starts Sunday
+  const cells = sel.monthCells(localDate(2026, 7, 1));
+  assert.equal(cells[6].getDate(), 1);
+  assert.equal(cells.filter(Boolean).length, 31);
+});
+
+test('calendar redesign: screen wiring, assets and month navigation', () => {
+  const screen = fs.readFileSync(path.join(root, 'app/daily.tsx'), 'utf8');
+  const calendar = fs.readFileSync(path.join(root, 'components/DailyCalendar.tsx'), 'utf8');
+  assert.doesNotMatch(screen, /CoinPill|November|legend/i);
+  assert.doesNotMatch(calendar, /November|2026/);
+  assert.match(screen, /setSelectedKey\(key\)/);
+  assert.match(screen, /const key = launchKey;\s*if \(!key\) return;\s*playSound\('tap'\);\s*openPuzzle\(key\)/);
+  assert.match(screen, /params: \{ dailyDate: key \}/);
+  assert.match(screen, /canGoNext=\{!isCurrentMonth\}/);
+  assert.match(screen, /previous\.getMonth\(\) \+ offset/);
+  for (const id of ['daily-back', 'daily-play-today']) assert.match(screen, new RegExp(id));
+  for (const id of ['daily-prev-month', 'daily-next-month', 'daily-date-']) assert.match(calendar, new RegExp(id));
+  const pairs = {
+    'regular-dumpling.png': 'regular_dumpling_1795603968691.png',
+    'crowned-dumpling.png': 'crowned_dumpling_1795603968699.png',
+    'golden-selected-dumpling.png': 'golden_selected_dumpling_1795603968702.png',
+    'calendar.png': 'Calendar_1795603968708.png',
+    'play-todays-hunt.png': "Play_Today's_Hunt_Button_1795603968712.png",
+    'calendar-background.png': 'Calendar_Background_1795603968718.png',
+  };
+  const attached = path.resolve(root, '../../attached_assets');
+  for (const [local, source] of Object.entries(pairs)) {
+    const mine = fs.readFileSync(path.join(root, 'assets/images/daily', local));
+    if (fs.existsSync(path.join(attached, source))) assert.ok(mine.equals(fs.readFileSync(path.join(attached, source))), local);
+    assert.match(screen + calendar, new RegExp(local.replace('.', '\\.')));
+  }
+  assert.doesNotMatch(screen + calendar, /\p{Extended_Pictographic}/u);
+});
+
+// Rendered screen harness: executes app/daily.tsx and components/DailyCalendar.tsx
+// with deterministic hooks and host-component stubs, then fires real handlers.
+function dailyScreenHarness({ now = localDate(2026, 10, 25), completed = [], width = 390, platform = 'ios', insets = { top: 47, bottom: 34, left: 0, right: 0 } } = {}) {
+  const RealDate = Date;
+  const fixed = now.getTime();
+  global.Date = class extends RealDate {
+    constructor(...args) { if (args.length) super(...args); else super(fixed); }
+    static now() { return fixed; }
+  };
+  const calls = { navigation: [], sounds: [], generated: [] };
+  const slots = [];
+  let cursor = 0, tree;
+  const react = {
+    createElement: (type, props, ...children) => typeof type === 'function'
+      ? type({ ...props, children })
+      : { type, props: { ...props, children } },
+    useState: (value) => {
+      const i = cursor++;
+      if (!(i in slots)) slots[i] = typeof value === 'function' ? value() : value;
+      return [slots[i], (next) => { slots[i] = typeof next === 'function' ? next(slots[i]) : next; }];
+    },
+    useEffect: () => { cursor++; },
+  };
+  const daily = loadDaily();
+  const transpile = (file, req) => {
+    const out = ts.transpileModule(fs.readFileSync(path.join(root, file), 'utf8'), {
+      compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020, jsx: ts.JsxEmit.React, esModuleInterop: true },
+    }).outputText;
+    const m = { exports: {} };
+    new Function('require', 'module', 'exports', out)(req, m, m.exports);
+    return m.exports;
+  };
+  const selection = loadSelection();
+  const hosts = ['View', 'Text', 'Image', 'ImageBackground', 'Pressable', 'ScrollView'];
+  const native = Object.fromEntries(hosts.map((h) => [h, h]));
+  const base = (name) => {
+    if (name === 'react') return { __esModule: true, default: react, ...react };
+    if (name === 'react-native') return {
+      ...native, StyleSheet: { create: (s) => s }, Platform: { OS: platform },
+      AppState: { addEventListener: () => ({ remove() {} }) },
+      useWindowDimensions: () => ({ width, height: 844 }),
+    };
+    if (name === '@expo/vector-icons') return { Feather: 'Feather' };
+    if (name === '@/game/daily') return daily;
+    if (name === '@/components/dailyCalendarState') return selection;
+    if (name.startsWith('@/assets/')) return { asset: name };
+    throw new Error(`Unexpected import ${name}`);
+  };
+  const calendar = transpile('components/DailyCalendar.tsx', base);
+  const screen = transpile('app/daily.tsx', (name) => {
+    if (name === 'expo-router') return { Redirect: 'Redirect', useRouter: () => ({ push: (d) => calls.navigation.push(d), canGoBack: () => true, back() {}, replace() {} }) };
+    if (name === 'react-native-safe-area-context') return { useSafeAreaInsets: () => insets };
+    if (name === '@/components/GameUI') return { Screen: 'Screen' };
+    if (name === '@/components/DailyCalendar') return calendar;
+    if (name === '@/hooks/useColors') return { useColors: () => ({}) };
+    if (name === '@/context/GameProvider') return { useGame: () => ({ completedDailyPuzzles: completed, hydrated: true, onboardingStep: 6 }) };
+    if (name === '@/game/dailyPuzzle') return { getDailyPuzzle: (k) => calls.generated.push(k) };
+    if (name === '@/services/audio') return { playSound: (s) => calls.sounds.push(s) };
+    if (name === '@/services/nightBackgroundPreparation') return { warmNightBackground() {} };
+    return base(name);
+  });
+  const render = () => { cursor = 0; tree = screen.default(); return tree; };
+  const all = (node, match, acc = []) => {
+    if (!node || typeof node !== 'object') return acc;
+    if (Array.isArray(node)) { node.forEach((n) => all(n, match, acc)); return acc; }
+    if (match(node.props ?? {}, node)) acc.push(node);
+    all(node.props?.children, match, acc);
+    return acc;
+  };
+  const byId = (id) => all(tree, (p) => p.testID === id)[0];
+  const press = (id) => { const n = byId(id); assert.ok(n, `missing ${id}`); if (!n.props.disabled) n.props.onPress(); render(); };
+  const monthTitle = () => all(tree, (p, n) => n.type === 'Text' && p.accessibilityRole === 'header')
+    .map((n) => [].concat(n.props.children).join('')).find((t) => /\d{4}/.test(t));
+  const restore = () => { global.Date = RealDate; };
+  render();
+  return { calls, byId, press, render, all, tree: () => tree, monthTitle, calendar, restore };
+}
+
+test('rendered: today selected by default, date tap moves golden selection without navigating', (t) => {
+  const h = dailyScreenHarness();
+  t.after(h.restore);
+  assert.ok(h.byId('daily-art-selected-2026-11-25'));
+  assert.ok(h.byId('daily-art-available-2026-11-22'));
+  h.press('daily-date-2026-11-22');
+  assert.deepEqual(h.calls.navigation, []);
+  assert.ok(h.byId('daily-art-selected-2026-11-22'));
+  assert.ok(h.byId('daily-art-available-2026-11-25'));
+  assert.equal(h.all(h.tree(), (p) => /^daily-art-selected-/.test(p.testID ?? '')).length, 1);
+  h.press('daily-play-today');
+  assert.deepEqual(h.calls.navigation, [{ pathname: '/game', params: { dailyDate: '2026-11-22' } }]);
+});
+
+test('rendered: CTA launches today; future dates disabled and inert', (t) => {
+  const h = dailyScreenHarness();
+  t.after(h.restore);
+  const future = h.byId('daily-date-2026-11-26');
+  assert.equal(future.props.disabled, true);
+  h.press('daily-date-2026-11-26');
+  assert.ok(h.byId('daily-art-selected-2026-11-25'));
+  h.press('daily-play-today');
+  assert.deepEqual(h.calls.navigation, [{ pathname: '/game', params: { dailyDate: '2026-11-25' } }]);
+});
+
+test('rendered: completed today keeps crown + selection, CTA disabled with reason', (t) => {
+  const h = dailyScreenHarness({ completed: ['2026-11-25', '2026-11-23'] });
+  t.after(h.restore);
+  assert.ok(h.byId('daily-art-completed-2026-11-25'));
+  assert.equal(h.byId('daily-date-2026-11-25').props.accessibilityState.selected, true);
+  const cta = h.byId('daily-play-today');
+  assert.equal(cta.props.disabled, true);
+  assert.match(cta.props.accessibilityLabel, /already completed/);
+  h.press('daily-play-today');
+  assert.deepEqual(h.calls.navigation, []);
+  h.press('daily-date-2026-11-23');
+  assert.ok(h.byId('daily-art-completed-2026-11-23'));
+  assert.equal(h.byId('daily-play-today').props.disabled, true);
+  h.press('daily-date-2026-11-24');
+  assert.equal(h.byId('daily-play-today').props.disabled, false);
+  h.press('daily-play-today');
+  assert.deepEqual(h.calls.navigation, [{ pathname: '/game', params: { dailyDate: '2026-11-24' } }]);
+});
+
+test('rendered: month navigation is dynamic and next is disabled on current month', (t) => {
+  const h = dailyScreenHarness();
+  t.after(h.restore);
+  assert.equal(h.monthTitle(), 'November 2026');
+  assert.equal(h.byId('daily-next-month').props.disabled, true);
+  h.press('daily-prev-month');
+  assert.equal(h.monthTitle(), 'October 2026');
+  assert.ok(h.byId('daily-date-2026-10-31'));
+  assert.equal(h.byId('daily-date-2026-10-20').props.disabled, true);
+  h.press('daily-prev-month'); h.press('daily-prev-month');
+  assert.equal(h.monthTitle(), 'August 2026');
+  assert.equal(h.all(h.tree(), (p) => /^daily-date-/.test(p.testID ?? '')).length, 31);
+  h.press('daily-next-month'); h.press('daily-next-month'); h.press('daily-next-month');
+  assert.equal(h.monthTitle(), 'November 2026');
+  assert.ok(h.calls.sounds.length >= 6);
+});
+
+test('rendered layout: transparent padding cropped, overlay in cropped space, ~90% width', (t) => {
+  const h = dailyScreenHarness({ width: 390 });
+  t.after(h.restore);
+  const frame = h.byId('daily-calendar');
+  const flat = (st) => Object.assign({}, ...[].concat(st).flat(Infinity).filter(Boolean));
+  const fs_ = flat(frame.props.style);
+  assert.equal(fs_.overflow, 'hidden');
+  assert.ok(fs_.width / 390 > 0.88 && fs_.width / 390 < 0.95, `width ${fs_.width}`);
+  const s = fs_.width / 404;
+  assert.ok(Math.abs(fs_.height - 347 * s) < 0.01);
+  const img = flat(h.byId('daily-calendar-art').props.style);
+  assert.ok(Math.abs(img.left + 28 * s) < 0.01 && Math.abs(img.top + 65 * s) < 0.01);
+  assert.ok(Math.abs(img.width / img.height - 448 / 556) < 1e-9, 'aspect preserved');
+  const mask = flat(h.byId('daily-calendar-mask').props.style);
+  assert.ok(Math.abs(mask.left - 16 * s) < 0.01 && Math.abs(mask.top - 54 * s) < 0.01);
+});
+
+test('layout: six-week rows stay >= 32pt, images never exceed a row, narrow screens scroll', () => {
+  const h = dailyScreenHarness();
+  h.restore();
+  const { calendarWidth, calendarLayout } = h.calendar;
+  for (const vw of [320, 360, 375, 390, 430]) {
+    const six = calendarWidth(vw, 0, 0, 6);
+    const L = calendarLayout(six.width, 6);
+    assert.ok(L.rowH >= 32, `${vw}: ${L.rowH}`);
+    assert.ok(L.art <= L.rowH && L.art <= L.cellW);
+    assert.equal(six.scrollsHorizontally, six.width + 8 > six.available);
+  }
+  assert.equal(calendarWidth(320, 0, 0, 6).scrollsHorizontally, true);
+  assert.equal(calendarWidth(390, 0, 0, 6).scrollsHorizontally, false);
+  assert.equal(calendarWidth(390, 0, 0, 5).width, 390 * 0.92);
+  assert.equal(calendarWidth(430, 44, 44, 5).available, 342);
+});
+
+test('rendered: web uses minimum safe-area header/footer padding', (t) => {
+  const h = dailyScreenHarness({ platform: 'web', insets: { top: 0, bottom: 0, left: 0, right: 0 } });
+  t.after(h.restore);
+  const src = fs.readFileSync(path.join(root, 'app/daily.tsx'), 'utf8');
+  assert.match(src, /Math\.max\(insets\.top, 67\)/);
+  assert.match(src, /Math\.max\(insets\.bottom, 34\)/);
+  const header = h.all(h.tree(), (p) => [].concat(p.style).some((s) => s && s.paddingTop === 73))[0];
+  assert.ok(header, 'web header pads 67 + 6');
+});
