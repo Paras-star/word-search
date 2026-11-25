@@ -9,7 +9,25 @@ export const DAILY_ART = {
   regular: require('@/assets/images/daily/regular-dumpling.png'),
   crowned: require('@/assets/images/daily/crowned-dumpling.png'),
   golden: require('@/assets/images/daily/golden-selected-dumpling.png'),
+  paper: require('@/assets/images/daily/calendar-background.png'),
 };
+
+/** Clean parchment region of calendar-background.png (1182 x 1330): below the
+ *  wood strip (ends y~340), above the corner clouds (start y~1100), no dates. */
+export const PAPER_ART = { width: 1182, height: 1330 };
+export const PAPER_SOURCE = { x: 250, y: 380, width: 750, height: 650 };
+
+/** Uniform cover-scale of PAPER_SOURCE into the mask, centred within the region. */
+export function paperTexture(maskWidth: number, maskHeight: number) {
+  const k = Math.max(maskWidth / PAPER_SOURCE.width, maskHeight / PAPER_SOURCE.height);
+  return {
+    k,
+    left: -(PAPER_SOURCE.x + (PAPER_SOURCE.width - maskWidth / k) / 2) * k,
+    top: -(PAPER_SOURCE.y + (PAPER_SOURCE.height - maskHeight / k) / 2) * k,
+    width: PAPER_ART.width * k,
+    height: PAPER_ART.height * k,
+  };
+}
 
 // Native pixel geometry of calendar.png (448 x 556). Only the transparent
 // exterior padding is cropped away (by an overflow-hidden frame and a negative
@@ -81,6 +99,8 @@ export function DailyCalendar({ width, month, now, completed, selected, canGoNex
   return <View style={{ width, height: L.height, overflow: 'hidden' }} testID="daily-calendar">
     <Image source={DAILY_ART.calendar} testID="daily-calendar-art" style={{ position: 'absolute', ...L.image }} resizeMode="stretch" accessibilityIgnoresInvertColors />
     <View testID="daily-calendar-mask" style={[styles.mask, { ...L.mask, borderRadius: 6 * s, paddingHorizontal: L.inset }]}>
+      <Image source={DAILY_ART.paper} testID="daily-calendar-paper" accessible={false} resizeMode="stretch" style={[styles.paper, (({ k: _k, ...r }) => r)(paperTexture(L.mask.width, L.mask.height))]} />
+      <View pointerEvents="none" style={styles.paperWash} />
       <View style={[styles.monthRow, { height: L.monthRow }]}>
         <Pressable onPress={() => onShiftMonth(-1)} accessibilityRole="button" accessibilityLabel="Previous month" testID="daily-prev-month" hitSlop={10} style={({ pressed }) => [styles.arrow, { width: 30 * s, height: 26 * s, borderRadius: 7 * s, opacity: pressed ? 0.65 : 1 }]}>
           <Feather name="chevron-left" size={Math.max(15, 19 * s)} color={INK} />
@@ -126,7 +146,9 @@ export function DailyCalendar({ width, month, now, completed, selected, canGoNex
 }
 
 const styles = StyleSheet.create({
-  mask: { position: 'absolute', backgroundColor: PAPER },
+  mask: { position: 'absolute', backgroundColor: PAPER, overflow: 'hidden' },
+  paper: { position: 'absolute', pointerEvents: 'none' },
+  paperWash: { position: 'absolute', left: 0, top: 0, right: 0, bottom: 0, backgroundColor: 'rgba(255, 243, 222, 0.28)' },
   monthRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingTop: 4 },
   arrow: { backgroundColor: '#FFF6E4', borderWidth: 1, borderColor: '#D9B88A', alignItems: 'center', justifyContent: 'center' },
   monthLabel: { flex: 1, textAlign: 'center', fontFamily: 'Inter_700Bold', color: INK, letterSpacing: -0.3, marginHorizontal: 6 },

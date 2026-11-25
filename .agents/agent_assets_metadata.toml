@@ -42,3 +42,45 @@ mtime_ms = 1795524935965
 storage_uri = "gcs://replit-rams-assets-pike/rams/assets/repl:6330ea3b-2615-4284-a9d6-c16d89a9a821/4e34a685-7d8c-48da-bb75-819b54f587d0/08f604a6-7578-4764-8130-c2f6d31599fb"
 storage_version_token = "1795524971920856"
 content_type = "text/html"
+
+[[outputs]]
+id = "KPe1skV1kSiWAmYDe6O1K"
+uri = "file://.local/verification/daily-refinement/393x852.png"
+type = "image"
+title = "Daily Hunt — 393 × 852"
+description = "Refined cream header, textured calendar paper and bounded Play-button spacing."
+logical_id = "0c6b7b57-4a94-4d83-b980-8b0da2b3a281"
+content_hash = "sha256:c85dc061d16ad06a2f8bba5f476c0ac9bd6d178f0bfad3627566eb80e1ff36dc"
+size = 368833
+mtime_ms = 1795605867898
+storage_uri = "gcs://replit-rams-assets-pike/rams/assets/repl:6330ea3b-2615-4284-a9d6-c16d89a9a821/0c6b7b57-4a94-4d83-b980-8b0da2b3a281/79e6c236-7fd0-4a75-8c01-a2c0c78ae72c"
+storage_version_token = "1795605932834348"
+content_type = "image/png"
+
+[[outputs]]
+id = "UGHTer77qnZ9RB6jop7WE"
+uri = "file://.local/verification/daily-refinement/320x568.png"
+type = "image"
+title = "Daily Hunt — 320 × 568"
+description = "Narrow, short-screen preview with scrolling preserved."
+logical_id = "22b2d653-9d27-4c56-b9ee-0ee3bb16bed2"
+content_hash = "sha256:92993df948a600a03a2370e0c31e6ae8009553b7a52c90d0a30ca7b84fd5ee5f"
+size = 193518
+mtime_ms = 1795605870946
+storage_uri = "gcs://replit-rams-assets-pike/rams/assets/repl:6330ea3b-2615-4284-a9d6-c16d89a9a821/22b2d653-9d27-4c56-b9ee-0ee3bb16bed2/2b56051e-4e5a-4bc5-b6fb-1e83b8b0073b"
+storage_version_token = "1795605934254216"
+content_type = "image/png"
+
+[[outputs]]
+id = "gzedHSXk1pLPYzxl1_VX7"
+uri = "file://.local/verification/daily-refinement/430x932.png"
+type = "image"
+title = "Daily Hunt — 430 × 932"
+description = "Taller mobile preview with full-height background coverage."
+logical_id = "aa06ccda-6110-4625-8048-027fb4676b7e"
+content_hash = "sha256:9e65be170e0a3da20fb81cb58113ffa455f89454c14582b94c58744f9fbba6c4"
+size = 433922
+mtime_ms = 1795605873834
+storage_uri = "gcs://replit-rams-assets-pike/rams/assets/repl:6330ea3b-2615-4284-a9d6-c16d89a9a821/aa06ccda-6110-4625-8048-027fb4676b7e/8f32d1c7-be69-4b68-b18b-775e7837aea8"
+storage_version_token = "1795605935786352"
+content_type = "image/png"

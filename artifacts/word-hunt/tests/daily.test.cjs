@@ -396,7 +396,7 @@ test('calendar redesign: screen wiring, assets and month navigation', () => {
 
 // Rendered screen harness: executes app/daily.tsx and components/DailyCalendar.tsx
 // with deterministic hooks and host-component stubs, then fires real handlers.
-function dailyScreenHarness({ now = localDate(2026, 10, 25), completed = [], width = 390, platform = 'ios', insets = { top: 47, bottom: 34, left: 0, right: 0 } } = {}) {
+function dailyScreenHarness({ now = localDate(2026, 10, 25), completed = [], width = 390, height = 844, platform = 'ios', insets = { top: 47, bottom: 34, left: 0, right: 0 } } = {}) {
   const RealDate = Date;
   const fixed = now.getTime();
   global.Date = class extends RealDate {
@@ -434,7 +434,7 @@ function dailyScreenHarness({ now = localDate(2026, 10, 25), completed = [], wid
     if (name === 'react-native') return {
       ...native, StyleSheet: { create: (s) => s }, Platform: { OS: platform },
       AppState: { addEventListener: () => ({ remove() {} }) },
-      useWindowDimensions: () => ({ width, height: 844 }),
+      useWindowDimensions: () => ({ width, height }),
     };
     if (name === '@expo/vector-icons') return { Feather: 'Feather' };
     if (name === '@/game/daily') return daily;
@@ -575,4 +575,61 @@ test('rendered: web uses minimum safe-area header/footer padding', (t) => {
   assert.match(src, /Math\.max\(insets\.bottom, 34\)/);
   const header = h.all(h.tree(), (p) => [].concat(p.style).some((s) => s && s.paddingTop === 73))[0];
   assert.ok(header, 'web header pads 67 + 6');
+});
+
+test('visual: paper texture is clipped, decorative, from a date-free background region', (t) => {
+  const h = dailyScreenHarness({ width: 393 });
+  t.after(h.restore);
+  const flat = (st) => Object.assign({}, ...[].concat(st).flat(Infinity).filter(Boolean));
+  const { PAPER_SOURCE, PAPER_ART, paperTexture, calendarLayout, DAILY_ART } = h.calendar;
+  assert.equal(DAILY_ART.paper.asset, '@/assets/images/daily/calendar-background.png');
+  assert.ok(PAPER_SOURCE.y >= 345 && PAPER_SOURCE.y + PAPER_SOURCE.height <= 1090, 'avoids wood and clouds');
+  assert.ok(PAPER_SOURCE.x + PAPER_SOURCE.width <= PAPER_ART.width);
+  const mask = flat(h.byId('daily-calendar-mask').props.style);
+  assert.equal(mask.overflow, 'hidden');
+  const paper = h.byId('daily-calendar-paper');
+  assert.equal(flat(paper.props.style).pointerEvents, 'none');
+  assert.equal(paper.props.accessible, false);
+  const p = flat(paper.props.style);
+  const k = p.width / PAPER_ART.width;
+  assert.ok(Math.abs(p.height / PAPER_ART.height - k) < 1e-9, 'uniform scale');
+  // Visible window maps strictly inside the clean source region.
+  assert.ok(-p.left / k >= PAPER_SOURCE.x - 1e-6 && -p.top / k >= PAPER_SOURCE.y - 1e-6);
+  assert.ok((-p.left + mask.width) / k <= PAPER_SOURCE.x + PAPER_SOURCE.width + 1e-6);
+  assert.ok((-p.top + mask.height) / k <= PAPER_SOURCE.y + PAPER_SOURCE.height + 1e-6);
+  for (const w of [280, 404, 500]) for (const rows of [4, 5, 6]) {
+    const L = calendarLayout(w, rows); const tx = paperTexture(L.mask.width, L.mask.height);
+    assert.ok((-tx.left + L.mask.width) / tx.k <= PAPER_SOURCE.x + PAPER_SOURCE.width + 1e-6);
+    assert.ok((-tx.top + L.mask.height) / tx.k <= PAPER_SOURCE.y + PAPER_SOURCE.height + 1e-6);
+  }
+  const bg = h.byId('daily-background-art');
+  assert.equal(flat(bg.props.style).pointerEvents, 'none');
+  assert.equal(bg.props.accessible, false);
+});
+
+test('visual: cream header sits above the wood strip and CTA gap is bounded', (t) => {
+  const h = dailyScreenHarness({ platform: 'web', insets: { top: 0, bottom: 0, left: 0, right: 0 } });
+  t.after(h.restore);
+  const flat = (st) => Object.assign({}, ...[].concat(st).flat(Infinity).filter(Boolean));
+  const src = fs.readFileSync(path.join(root, 'app/daily.tsx'), 'utf8');
+  const header = h.all(h.tree(), (p) => flat(p.style).paddingTop === 73)[0];
+  assert.equal(flat(h.tree().props.style).overflow, 'hidden', 'overscaled background cannot expand the page viewport');
+  const hs = flat(header.props.style);
+  assert.equal(hs.backgroundColor, '#FFF0D2');
+  assert.equal(hs.height, 67 + 56);
+  const bg = flat(h.byId('daily-background-art').props.style);
+  const k = bg.width / 1182;
+  assert.ok(Math.abs(bg.top + 115 * k - hs.height) < 1e-6, 'wood begins under header');
+  assert.ok(Math.abs(bg.height / bg.width - 1330 / 1182) < 1e-9);
+  for (const [width, height] of [[393, 852], [320, 568], [430, 932]]) {
+    const sample = dailyScreenHarness({ width, height, platform: 'web' });
+    try {
+      const art = flat(sample.byId('daily-background-art').props.style);
+      assert.ok(art.top + art.height >= height - 1e-6, 'background covers tall viewports without a bottom seam');
+    } finally { sample.restore(); }
+  }
+  assert.match(src, /flexGrow: 0, flexShrink: 0/);
+  const cta = h.byId('daily-play-today');
+  const gap = flat(cta.props.style({ pressed: false })).marginTop;
+  assert.ok(gap >= 12 && gap <= 32, `gap ${gap}`);
 });
