@@ -126,3 +126,31 @@ mtime_ms = 1795608671770
 storage_uri = "gcs://replit-rams-assets-pike/rams/assets/repl:6330ea3b-2615-4284-a9d6-c16d89a9a821/053ba69d-e99e-44d1-88d6-67c262eac7ff/6ba87bf1-3b9f-4c2e-83c2-7a49f99a2afb"
 storage_version_token = "1795608770165776"
 content_type = "image/png"
+
+[[outputs]]
+id = "DJvEIhgHKssxCj3zTc2J-"
+uri = "file://.local/verification/daily-selection/selection-preview.gif"
+type = "image"
+title = "Daily Hunt · selection transition preview"
+description = "Isolated 393×852 browser capture showing the 200 ms selection fade and unchanged crowned dates. This recording is for visual review, not timing measurements."
+logical_id = "7d54ca37-de5d-4a2c-ac36-17b81a9bfa91"
+content_hash = "sha256:ebf3637cf9a01ef68855ee7fe323debaa557c69169d7945b04a75fe6530bc43d"
+size = 279585
+mtime_ms = 1795610054998
+storage_uri = "gcs://replit-rams-assets-pike/rams/assets/repl:6330ea3b-2615-4284-a9d6-c16d89a9a821/7d54ca37-de5d-4a2c-ac36-17b81a9bfa91/bb7c28bd-3f2d-471e-b7c2-13e09ea5cd39"
+storage_version_token = "1795610158188181"
+content_type = "image/gif"
+
+[[outputs]]
+id = "l3C5-Q62o53fX2caoY_9N"
+uri = "file://.local/verification/daily-selection/after-selected.png"
+type = "image"
+title = "Daily Hunt · settled selection"
+description = "Original artwork and calendar geometry, with November 24 selected and November 23 completed."
+logical_id = "d11520f5-499a-4be1-b7a7-14d35258857a"
+content_hash = "sha256:49c0f1dde887efc6a1146b35e1416b2d326742237c7880e14a51222b82b26509"
+size = 368805
+mtime_ms = 1795609826906
+storage_uri = "gcs://replit-rams-assets-pike/rams/assets/repl:6330ea3b-2615-4284-a9d6-c16d89a9a821/d11520f5-499a-4be1-b7a7-14d35258857a/caddf364-97fc-4a68-9546-272b3a88bd6c"
+storage_version_token = "1795610159563075"
+content_type = "image/png"

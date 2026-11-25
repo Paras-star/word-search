@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { AppState, Image, Platform, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { Redirect, useRouter } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
@@ -54,6 +54,13 @@ export default function DailyScreen() {
     const today = new Date();
     return new Date(today.getFullYear(), today.getMonth(), 1);
   });
+  const completed = useMemo(() => new Set(completedDailyPuzzles ?? []), [completedDailyPuzzles]);
+  const calendarRows = useMemo(() => monthCells(month).length / 7, [month]);
+  const selectDate = useCallback((key: string) => {
+    if (!isDailyDateSelectable(key, now)) return;
+    playSound('tap');
+    setSelectedKey(key);
+  }, [now]);
 
   useEffect(() => {
     if (hydrated) warmNightBackground();
@@ -89,25 +96,19 @@ export default function DailyScreen() {
 
   const currentMonth = new Date(now.getFullYear(), now.getMonth(), 1);
   const isCurrentMonth = month.getFullYear() === currentMonth.getFullYear() && month.getMonth() === currentMonth.getMonth();
-  const completed = new Set(completedDailyPuzzles ?? []);
   const selected = effectiveSelection(selectedKey, now);
   const launchKey = launchableDate(selected, now, completed);
   const isWeb = Platform.OS === 'web';
   const topInset = isWeb ? Math.max(insets.top, 67) : insets.top;
   const bottomInset = isWeb ? Math.max(insets.bottom, 34) : insets.bottom;
   const sideInset = Math.max(insets.left, insets.right);
-  const sizing = calendarWidth(windowWidth, insets.left, insets.right, monthCells(month).length / 7);
+  const sizing = calendarWidth(windowWidth, insets.left, insets.right, calendarRows);
   const playWidth = Math.min(sizing.available * 0.8, 380);
   const layout = dailyScreenLayout(windowWidth, windowHeight, topInset);
 
   const shiftMonth = (offset: number) => {
     playSound('tap');
     setMonth((previous) => new Date(previous.getFullYear(), previous.getMonth() + offset, 1));
-  };
-  const selectDate = (key: string) => {
-    if (!isDailyDateSelectable(key, now)) return;
-    playSound('tap');
-    setSelectedKey(key);
   };
   const openPuzzle = (key: string) => {
     warmNightBackground();

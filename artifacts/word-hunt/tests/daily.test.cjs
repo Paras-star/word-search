@@ -416,6 +416,10 @@ function dailyScreenHarness({ now = localDate(2026, 10, 25), completed = [], wid
       return [slots[i], (next) => { slots[i] = typeof next === 'function' ? next(slots[i]) : next; }];
     },
     useEffect: () => { cursor++; },
+    memo: fn => fn,
+    useMemo: fn => fn(),
+    useCallback: fn => fn,
+    useRef: value => ({ current: value }),
   };
   const daily = loadDaily();
   const transpile = (file, req) => {
@@ -433,6 +437,13 @@ function dailyScreenHarness({ now = localDate(2026, 10, 25), completed = [], wid
     if (name === 'react') return { __esModule: true, default: react, ...react };
     if (name === 'react-native') return {
       ...native, StyleSheet: { create: (s) => s }, Platform: { OS: platform },
+      Animated: {
+        View: 'AnimatedView',
+        Value: class {
+          constructor(value) { this.value = value; }
+          interpolate() { return { value: 1 - this.value }; }
+        },
+      },
       AppState: { addEventListener: () => ({ remove() {} }) },
       useWindowDimensions: () => ({ width, height }),
     };

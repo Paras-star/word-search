@@ -1,5 +1,5 @@
-import React from 'react';
-import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
+import React, { memo, useEffect, useMemo, useRef } from 'react';
+import { Animated, Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { localDateKey } from '@/game/daily';
 import { DAILY_MONTHS, DAILY_WEEKDAYS, dailyCellModel, monthCells } from '@/components/dailyCalendarState';
@@ -79,6 +79,84 @@ const INK_SOFT = '#8A5A33';
 const PAPER = '#FFEFD1';
 const RULE = '#E9D2AE';
 const GOLD = '#E8A317';
+export const SELECTION_FADE_MS = 200;
+const NO_COMPLETIONS: ReadonlySet<string> = new Set();
+
+/** Mount both sources immediately, including the invisible golden layer. This
+ * warms the small state artwork without awaiting prefetch or hiding the calendar.
+ * Selection only changes wrapper opacity/test IDs, never an Image's source. */
+function DumplingLayers({ selected, dateKey, art }: { selected: boolean; dateKey: string; art: number }) {
+  const golden = useRef(new Animated.Value(selected ? 1 : 0)).current;
+  const regular = useMemo(() => golden.interpolate({ inputRange: [0, 1], outputRange: [1, 0] }), [golden]);
+  const previous = useRef(selected);
+  useEffect(() => {
+    if (previous.current === selected) return;
+    previous.current = selected;
+    const animation = Animated.timing(golden, {
+      toValue: selected ? 1 : 0, duration: SELECTION_FADE_MS, useNativeDriver: true,
+    });
+    animation.start();
+    // Stop at the current opacity on rapid retaps, then animate toward the latest
+    // selection; an old completion callback can never restore a stale state.
+    return () => animation.stop();
+  }, [golden, selected]);
+  return <View style={{ width: art, height: art }} pointerEvents="none">
+    <Animated.View style={[styles.artLayer, { opacity: regular }]} testID={`daily-layer-regular-${dateKey}`}>
+      <Image source={DAILY_ART.regular} testID={!selected ? `daily-art-available-${dateKey}` : undefined}
+        accessible={false} style={{ width: art, height: art }} resizeMode="contain" />
+    </Animated.View>
+    <Animated.View style={[styles.artLayer, { opacity: golden }]} testID={`daily-layer-golden-${dateKey}`}>
+      <Image source={DAILY_ART.golden} testID={selected ? `daily-art-selected-${dateKey}` : undefined}
+        accessible={false} style={{ width: art, height: art }} resizeMode="contain" />
+    </Animated.View>
+  </View>;
+}
+
+type DateCellProps = {
+  date: Date;
+  now: Date;
+  completed: boolean;
+  selected: boolean;
+  firstColumn: boolean;
+  firstRow: boolean;
+  cellW: number;
+  rowH: number;
+  art: number;
+  numberSize: number;
+  onSelect: (key: string) => void;
+};
+
+// Stable dates, callback and primitive state/layout props let React skip every
+// unaffected date. Eligibility and accessibility still use the original model.
+const DailyDateCell = memo(function DailyDateCell({
+  date, now, completed, selected, firstColumn, firstRow, cellW, rowH, art, numberSize, onSelect,
+}: DateCellProps) {
+  const key = localDateKey(date);
+  const cell = dailyCellModel(date, now, completed ? new Set([key]) : NO_COMPLETIONS, selected ? key : '');
+  const hasArt = cell.completed || cell.selectable;
+  const frame = { width: cellW, height: rowH, borderLeftWidth: firstColumn ? 1 : 0, borderTopWidth: firstRow ? 1 : 0 };
+  return <View style={[styles.cell, frame, cell.completed && cell.selected ? styles.completedSelected : null]}>
+    <Pressable
+      disabled={!cell.selectable}
+      onPress={() => onSelect(cell.key)}
+      accessibilityRole="button"
+      accessibilityLabel={cell.label}
+      accessibilityState={{ disabled: !cell.selectable, selected: cell.selected }}
+      testID={`daily-date-${cell.key}`}
+      style={({ pressed }) => [styles.hit, { opacity: pressed ? 0.75 : 1, transform: [{ scale: pressed ? 0.94 : 1 }] }]}
+    >
+      {cell.completed
+        ? <Image source={DAILY_ART.crowned} testID={`daily-art-completed-${cell.key}`}
+          style={{ width: art, height: art, marginTop: -art * 0.06 }} resizeMode="contain" />
+        : cell.selectable ? <DumplingLayers selected={cell.selected} dateKey={cell.key} art={art} /> : null}
+      {!cell.completed ? <Text style={[styles.dayNumber, hasArt ? styles.dayOnArt : null, {
+        fontSize: numberSize,
+        top: hasArt ? rowH / 2 - numberSize * 0.4 : undefined,
+        textDecorationLine: cell.today && !hasArt ? 'underline' : 'none',
+      }]}>{cell.day}</Text> : null}
+    </Pressable>
+  </View>;
+});
 
 export function DailyCalendar({ width, month, now, completed, selected, canGoNext, onShiftMonth, onSelect }: {
   width: number;
@@ -90,11 +168,10 @@ export function DailyCalendar({ width, month, now, completed, selected, canGoNex
   onShiftMonth: (offset: number) => void;
   onSelect: (key: string) => void;
 }) {
-  const cells = monthCells(month);
-  const L = calendarLayout(width, cells.length / 7);
+  const cells = useMemo(() => monthCells(month), [month]);
+  const L = useMemo(() => calendarLayout(width, cells.length / 7), [width, cells.length]);
   const { s, cellW, rowH, gridH, art } = L;
   const numberSize = Math.max(11, Math.min(17, rowH * 0.46, cellW * 0.36));
-  const todayKey = localDateKey(now);
 
   return <View style={{ width, height: L.height, overflow: 'hidden' }} testID="daily-calendar">
     <Image source={DAILY_ART.calendar} testID="daily-calendar-art" style={{ position: 'absolute', ...L.image }} resizeMode="stretch" accessibilityIgnoresInvertColors />
@@ -119,26 +196,11 @@ export function DailyCalendar({ width, month, now, completed, selected, canGoNex
           const row = Math.floor(index / 7);
           const frame = { width: cellW, height: rowH, borderLeftWidth: col === 0 ? 1 : 0, borderTopWidth: row === 0 ? 1 : 0 };
           if (!date) return <View key={`blank-${index}`} style={[styles.cell, frame]} />;
-          const cell = dailyCellModel(date, now, completed, selected);
-          const source = cell.completed ? DAILY_ART.crowned : cell.selected ? DAILY_ART.golden : cell.selectable ? DAILY_ART.regular : null;
-          return <View key={cell.key} style={[styles.cell, frame, cell.completed && cell.selected ? styles.completedSelected : null]}>
-            <Pressable
-              disabled={!cell.selectable}
-              onPress={() => onSelect(cell.key)}
-              accessibilityRole="button"
-              accessibilityLabel={cell.label}
-              accessibilityState={{ disabled: !cell.selectable, selected: cell.selected }}
-              testID={`daily-date-${cell.key}`}
-              style={({ pressed }) => [styles.hit, { opacity: pressed ? 0.75 : 1, transform: [{ scale: pressed ? 0.94 : 1 }] }]}
-            >
-              {source ? <Image source={source} testID={`daily-art-${cell.state}-${cell.key}`} style={{ width: art, height: art, marginTop: cell.completed ? -art * 0.06 : 0 }} resizeMode="contain" /> : null}
-              {!cell.completed ? <Text style={[styles.dayNumber, source ? styles.dayOnArt : null, {
-                fontSize: numberSize,
-                top: source ? rowH / 2 - numberSize * 0.4 : undefined,
-                textDecorationLine: cell.key === todayKey && !source ? 'underline' : 'none',
-              }]}>{cell.day}</Text> : null}
-            </Pressable>
-          </View>;
+          const key = localDateKey(date);
+          return <DailyDateCell key={key} date={date} now={now}
+            completed={completed.has(key)} selected={key === selected}
+            firstColumn={col === 0} firstRow={row === 0}
+            cellW={cellW} rowH={rowH} art={art} numberSize={numberSize} onSelect={onSelect} />;
         })}
       </View>
     </View>
@@ -146,6 +208,7 @@ export function DailyCalendar({ width, month, now, completed, selected, canGoNex
 }
 
 const styles = StyleSheet.create({
+  artLayer: { position: 'absolute', left: 0, top: 0 },
   mask: { position: 'absolute', backgroundColor: PAPER, overflow: 'hidden' },
   paper: { position: 'absolute', pointerEvents: 'none' },
   paperWash: { position: 'absolute', left: 0, top: 0, right: 0, bottom: 0, backgroundColor: 'rgba(255, 243, 222, 0.28)' },
