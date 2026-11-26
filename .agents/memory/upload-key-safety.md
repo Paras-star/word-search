@@ -20,3 +20,9 @@ Google Play rejected reuse of the existing EAS public certificate because it was
 **Why:** The user reported this rejection; reusing the same certificate would repeat the rejected approach.
 
 **How to apply:** Do not propose the existing EAS certificate as a fresh upload-reset certificate.
+
+The user confirmed that the existing Expo production keystore SHA-256 fingerprint exactly matches Google Play Console's **Upload key certificate Classical Key** SHA-256 fingerprint. This was user-verified, not independently inspected by the agent.
+
+**Why:** The user completed the dashboard comparison after browser sign-in prevented agent verification.
+
+**How to apply:** Preserve the existing keystore. Treat this as the user's signing confirmation for the authorized build preparation, not permission to generate, replace, or reset keys.

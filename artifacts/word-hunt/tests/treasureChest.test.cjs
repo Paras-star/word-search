@@ -342,7 +342,7 @@ const protectedGroups = {
   // freezes the original input, timer, completion, hint, and generation logic.
   gameplay: [['game', 'app/game.tsx'], 'f9e87a2cad331f8138efef5a8ed62830aca20b859d3a737dc31495051bb117e0'],
   // Retains the authorized Continue-only interstitial transition/cancellation API.
-  // app.json includes the approved Android versionCode change from 6 to 7;
+  // Normalize only the approved Android versionCode change from 7 to 8 below;
   // the ad-service files remain unchanged. Behavioral safeguards are covered in ads.test.cjs.
   adsConfig: [['services/ads.ts', 'services/ads.native.ts', 'services/adConfig.ts', 'app.json'], '5c1a9e877357d40723d78301ffa767db08a1493e8136a31d7f87efdddb012a4c'],
   // Authorized Information & Support addition to the existing settings modal.
@@ -359,6 +359,10 @@ for (const [name, [paths, expected]] of Object.entries(protectedGroups)) {
     const hash = require('node:crypto').createHash('sha256');
     for (const relative of paths.flatMap(walk).sort()) {
       let bytes = fs.readFileSync(path.join(root, relative));
+      if (relative === 'app.json') {
+        assert.equal(JSON.parse(bytes.toString()).expo.android.versionCode, 8);
+        bytes = Buffer.from(bytes.toString().replace('"versionCode": 8', '"versionCode": 7'));
+      }
       if (relative === 'app/game.tsx') {
         // Only these exact visual additions are authorized for Phase 2.
         bytes = Buffer.from(bytes.toString()
