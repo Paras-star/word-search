@@ -39,16 +39,30 @@ export function prepareChestAssets(): Promise<PreparedChest> {
     // The small idle visual takes priority over the later opening resources.
     // RootLayout starts this before any game/reward route is rendered.
     await prepareClosedChest();
-    const atlases = [];
-    // Decode sequentially to avoid five large PNG decoders competing at startup.
-    for (const source of CHEST_ATLASES) atlases.push(await Image.loadAsync(source));
-    const front = await Image.loadAsync(CHEST_FRONT);
-    const dumplings = new Map<string, ImageRef>();
-    // Bound the cache: 384px is enough for a 175dp reveal at normal Android
-    // density, without retaining 30 full-resolution collectible bitmaps.
-    for (const d of DUMPLINGS) {
-      dumplings.set(d.id, await Image.loadAsync(d.asset as number, { maxWidth: 384, maxHeight: 384 }));
-    }
+    // Two bounded lanes: never decode multiple large atlases concurrently, but
+    // don't make the independent small rim/collectibles wait for all five.
+    // allSettled also prevents a retry overlapping an unfinished failed lane.
+    const lanes = await Promise.allSettled([
+      (async () => {
+        const atlases: ImageRef[] = [];
+        for (const source of CHEST_ATLASES) atlases.push(await Image.loadAsync(source));
+        return atlases;
+      })(),
+      (async () => {
+        const front = await Image.loadAsync(CHEST_FRONT);
+        const dumplings = new Map<string, ImageRef>();
+        // Preserve the existing 384px cap and exactly one cached ref per reward.
+        for (const d of DUMPLINGS) {
+          dumplings.set(d.id, await Image.loadAsync(d.asset as number, { maxWidth: 384, maxHeight: 384 }));
+        }
+        return { front, dumplings };
+      })(),
+    ]);
+    const [atlasLane, rewardLane] = lanes;
+    if (atlasLane.status === 'rejected') throw atlasLane.reason;
+    if (rewardLane.status === 'rejected') throw rewardLane.reason;
+    const atlases = atlasLane.value;
+    const { front, dumplings } = rewardLane.value;
     prepared = { atlases, front, dumplings };
     return prepared;
   })().catch(error => {

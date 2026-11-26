@@ -127,7 +127,7 @@ test('every rarity renders actual owned art and locked placeholders from its own
   }
 });
 
-function screenHarness({ ids = [], fail = false, newId, width = 360, height = 640 } = {}) {
+function screenHarness({ ids = [], fail = false, newId, width = 360, height = 640, active = true } = {}) {
   const hooks = [];
   let cursor = 0, effects = [], tree;
   const react = {
@@ -145,6 +145,7 @@ function screenHarness({ ids = [], fail = false, newId, width = 360, height = 64
     react,
     'react/jsx-runtime': { jsx, jsxs: jsx, Fragment: 'Fragment' },
     'react-native': { ...native, useWindowDimensions: () => ({ width, height }) },
+    'expo-image': { Image: 'Image' },
     'expo-router': { useRouter: () => ({ back() {} }), useLocalSearchParams: () => ({ newDumplingId: newId }) },
     'react-native-safe-area-context': { useSafeAreaInsets: () => ({ top: 0, bottom: 0 }) },
     '@/components/GameUI': { Header: 'Header', LoadingScreen: 'LoadingScreen' },
@@ -154,6 +155,8 @@ function screenHarness({ ids = [], fail = false, newId, width = 360, height = 64
     },
     '@/components/collection/RarityPanel': { RarityPanel: 'RarityPanel', panelHeight: panelModule.panelHeight },
     '@/components/collection/collectionTheme': { collectionColors: colors },
+    '@/hooks/usePreparedBackground': { usePreparedBackground: () => '../assets/images/backgrounds/night-forest-background.png' },
+    '@/hooks/useScreenActivity': { useScreenActivity: () => active },
   }).default;
   const h = {
     render() { cursor = 0; tree = screen(); const batch = effects; effects = []; batch.forEach(fn => fn()); return tree; },
@@ -206,8 +209,10 @@ test('background explicitly fills its container without resizing the five panels
     const h = screenHarness({ width, height });
     await h.settle();
     const background = find(h.tree, 'collection-background');
-    assert.deepEqual(background.props.imageStyle, { width: '100%', height: '100%' });
-    assert.equal(background.props.resizeMode, 'cover');
+    assert.deepEqual(background.props.style[1], { width: '100%', height: '100%' });
+    assert.equal(background.props.contentFit, 'cover');
+    assert.equal(background.props.contentPosition, 'center');
+    assert.equal(background.props.transition, 0);
     assert.equal(background.props.source, '../assets/images/backgrounds/night-forest-background.png');
     const list = find(h.tree, 'collection-panels');
     assert.equal(list.props.data.length, 5);
@@ -216,4 +221,37 @@ test('background explicitly fills its container without resizing the five panels
       assert.equal(list.props.renderItem({ item }).props.children.props.width, width - 20);
     }
   }
+});
+
+test('initial collection batch covers the viewport without mounting every rarity and retains new-item jumps', async () => {
+  const h = screenHarness({ width: 400, height: 800 });
+  await h.settle();
+  const list = find(h.tree, 'collection-panels');
+  assert.equal(list.props.initialNumToRender, 3);
+  assert.equal(list.props.maxToRenderPerBatch, 1);
+  assert.equal(list.props.windowSize, 3);
+  const jumped = screenHarness({ width: 400, height: 800, newId: 'ivory-classic' });
+  await jumped.settle();
+  const target = find(jumped.tree, 'collection-panels');
+  assert.equal(target.props.initialScrollIndex, 4);
+  assert.equal(target.props.initialNumToRender, 1);
+});
+
+test('a hidden collection suspends all slot animations even when list viewability remains stale', async () => {
+  const h = screenHarness({ active: false, ids: ['dragon-jade'] });
+  await h.settle();
+  let list = find(h.tree, 'collection-panels');
+  list.props.onViewableItemsChanged({ viewableItems: [{ item: list.props.data[0] }] });
+  h.render();
+  list = find(h.tree, 'collection-panels');
+  const panel = list.props.renderItem({ item: list.props.data[0] }).props.children;
+  assert.equal(panel.props.visibleIds.size, 0);
+  assert.equal(panel.props.owned.has('dragon-jade'), true);
+});
+
+test('decorative collection animations never hold an interaction handle that blocks progressive list batches', () => {
+  const source = read('components/collection/RarityPanel.tsx');
+  const animations = [...source.matchAll(/Animated\.(?:timing|spring)\([^,]+,\s*\{([^}]+)\}/g)];
+  assert.equal(animations.length, 14);
+  assert.ok(animations.every(x => /useNativeDriver: true/.test(x[1]) && /isInteraction: false/.test(x[1])));
 });

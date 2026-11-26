@@ -39,13 +39,50 @@ test('decoded native cache is single-flight and bounded; re-entry does not decod
   assert.equal(decoded[0].source, 6, 'small closed frame is decoded before any opening resources');
   assert.equal(refs.atlases.length, 5);
   assert.equal(refs.dumplings.size, 30);
-  assert.ok(decoded.slice(7).every(x => x.options.maxWidth === 384 && x.options.maxHeight === 384));
+  assert.ok(decoded.filter(x => x.source >= 100).every(x => x.options.maxWidth === 384 && x.options.maxHeight === 384));
   for (let i = 0; i < 25; i++) assert.equal(await cache.prepareChestAssets(), refs);
   assert.equal(decoded.length, 37);
   assert.equal(cache.getPreparedChest(), refs);
   assert.equal((await cache.prepareClosedChest()).source, 6);
   assert.equal(cache.getPreparedClosedChest().source, 6);
   assert.equal(decoded.length, 37);
+});
+
+test('cold preparation overlaps independent small images with only one atlas decoder and at most two total loads', async () => {
+  let now = 0, active = 0, atlasActive = 0, peak = 0, peakAtlases = 0, done = false;
+  const jobs = [];
+  const calls = [];
+  const cache = load('services/chestPreparation.ts', name => {
+    if (name === 'expo-image') return { Image: { loadAsync: (source, options) => {
+      calls.push({ source, options, at: now });
+      active++; peak = Math.max(peak, active);
+      if (source < 5) { atlasActive++; peakAtlases = Math.max(peakAtlases, atlasActive); }
+      return new Promise(resolve => jobs.push({ at: now + 10, finish() {
+        active--; if (source < 5) atlasActive--;
+        resolve({ source });
+      } }));
+    } } };
+    if (name === '@/data/dumplings') return { DUMPLINGS: Array.from({ length: 30 }, (_, i) => ({ id: `d${i}`, asset: 100 + i })) };
+    if (name === '@/components/chestAnimationData') return { CHEST_ATLASES: [0, 1, 2, 3, 4], CHEST_FRONT: 5, CHEST_CLOSED: 6 };
+    throw Error(name);
+  });
+  const pending = cache.prepareChestAssets().then(() => { done = true; });
+  while (!done) {
+    for (let i = 0; i < 12; i++) await Promise.resolve();
+    if (!jobs.length) { assert.ok(done); break; }
+    now = Math.min(...jobs.map(x => x.at));
+    const ready = jobs.filter(x => x.at === now);
+    for (const job of ready) { jobs.splice(jobs.indexOf(job), 1); job.finish(); }
+  }
+  await pending;
+  assert.equal(calls.length, 37);
+  assert.equal(now, 320, '10 ms simulated loads: closed + max(5 atlases, rim + 30 collectibles)');
+  assert.equal(peak, 2);
+  assert.equal(peakAtlases, 1);
+  assert.ok(calls.filter(x => x.source >= 100).every(x => x.options.maxWidth === 384 && x.options.maxHeight === 384));
+  assert.equal(calls[0].source, 6);
+  await cache.prepareChestAssets();
+  assert.equal(calls.length, 37, 'warm entry adds no image loads');
 });
 
 function nativeHarness({ preparationFails = false, cold = false, displayClosed = true, platform = 'android' } = {}) {

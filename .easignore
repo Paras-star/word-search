@@ -63,7 +63,15 @@ artifacts/word-hunt/**/.vercel
 artifacts/word-hunt/**/.env
 
 # Upload-only exclusions. Originals remain in the workspace.
-/attached_assets
+# Keep the directory traversable for the six runtime images below. All other
+# attachments (including nested folders) remain excluded.
+/attached_assets/*
+!/attached_assets/Common_Transparent_Banner_1795631362659.png
+!/attached_assets/Uncommon_Transparent_Banner_1795631362659.png
+!/attached_assets/Rare_Transparent_Banner_1795631362661.png
+!/attached_assets/Epic_Transparent_Banner_1795631362660.png
+!/attached_assets/Legendary_Transparent_Banner_1795631362661.png
+!/attached_assets/Continue_1795628061907.png
 /artifacts/word-hunt/tests
 /.agents
 

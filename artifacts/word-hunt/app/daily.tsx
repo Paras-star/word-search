@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { AppState, Image, Platform, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
-import { Redirect, useRouter } from 'expo-router';
+import { Redirect, useFocusEffect, useRouter } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Screen } from '@/components/GameUI';
@@ -66,8 +66,14 @@ export default function DailyScreen() {
     if (hydrated) warmNightBackground();
   }, [hydrated]);
 
-  useEffect(() => {
-    const refresh = () => setNow(new Date());
+  useFocusEffect(useCallback(() => {
+    const refresh = () => {
+      const current = new Date();
+      // Eligibility depends on the local date, not seconds/minutes. Avoid
+      // invalidating every memoized date cell on initial focus or minute ticks.
+      setNow(previous => localDateKey(previous) === localDateKey(current) ? previous : current);
+    };
+    refresh();
     const timer = setInterval(refresh, 60_000);
     const subscription = AppState.addEventListener('change', (state) => {
       if (state === 'active') refresh();
@@ -76,15 +82,15 @@ export default function DailyScreen() {
       clearInterval(timer);
       subscription.remove();
     };
-  }, []);
+  }, []));
 
-  useEffect(() => {
+  useFocusEffect(useCallback(() => {
     // Generate after the calendar has rendered, one date per turn. A date tap
     // then uses the already-built grid rather than blocking the route transition.
     const timers = dailyWindow(now).reverse().map((key, index) =>
       setTimeout(() => { getDailyPuzzle(key); }, index * 50));
     return () => timers.forEach(clearTimeout);
-  }, [todayKey]);
+  }, [todayKey]));
 
   if (!hydrated) return <Screen style={{ paddingTop: insets.top + 16 }}>
     <View style={[styles.loadingLine, { backgroundColor: colors.card, width: 132 }]} />

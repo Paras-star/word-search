@@ -11,7 +11,7 @@ import { useGame } from '@/context/GameProvider';
 import { useColors } from '@/hooks/useColors';
 import { AdBanner } from '@/components/AdBanner';
 import { playSound } from '@/services/audio';
-import { ANIMALS_BACKGROUND_SOURCE } from '@/services/animalBackgroundPreparation';
+import { usePreparedBackground } from '@/hooks/usePreparedBackground';
 
 const CATEGORY_TITLE = require('../assets/images/category-title.png');
 
@@ -19,6 +19,7 @@ export default function CategoriesScreen() {
   const router = useRouter();
   const colors = useColors();
   const insets = useSafeAreaInsets();
+  const background = usePreparedBackground('animals');
   const [coinWidth, setCoinWidth] = useState(96);
   const { coins, completedLevels, hydrated, onboardingStep } = useGame();
   if (!hydrated) return null;
@@ -27,7 +28,7 @@ export default function CategoriesScreen() {
   }
   return <Screen style={styles.screen}>
     <View pointerEvents="none" style={StyleSheet.absoluteFill} testID="categories-background">
-      <Image source={ANIMALS_BACKGROUND_SOURCE}
+      <Image source={background}
         style={[StyleSheet.absoluteFill, { width: '100%', height: '100%' }]}
         contentFit="cover" contentPosition="center" transition={0} accessible={false} />
     </View>

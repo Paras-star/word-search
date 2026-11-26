@@ -154,3 +154,17 @@ mtime_ms = 1795609826906
 storage_uri = "gcs://replit-rams-assets-pike/rams/assets/repl:6330ea3b-2615-4284-a9d6-c16d89a9a821/d11520f5-499a-4be1-b7a7-14d35258857a/caddf364-97fc-4a68-9546-272b3a88bd6c"
 storage_version_token = "1795610159563075"
 content_type = "image/png"
+
+[[outputs]]
+id = "RTwttptEM_Y9jDHSW27xO"
+uri = "file://artifacts/word-hunt/docs/final-optimisation-verification.md"
+type = "text"
+title = "Word Hunt final optimisation report"
+description = "Exact changed files, implemented changes, before/after measurements, test results, upload-rule verification, and Android validation limits."
+logical_id = "65cee642-ce38-4a19-97ce-adb39cc7f837"
+content_hash = "sha256:650f70436c5a2a6f1ba8f2899c7143bd9162b3bdd26231c0b34d4eb8efbdb428"
+size = 12671
+mtime_ms = 1795684271860
+storage_uri = "gcs://replit-rams-assets-pike/rams/assets/repl:6330ea3b-2615-4284-a9d6-c16d89a9a821/65cee642-ce38-4a19-97ce-adb39cc7f837/2c0bbfa1-a274-4443-8233-1b287d736e21"
+storage_version_token = "1795684322092497"
+content_type = "text/markdown"

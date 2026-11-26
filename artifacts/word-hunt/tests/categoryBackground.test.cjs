@@ -47,6 +47,7 @@ function harness(overrides = {}, os = 'android') {
     '@/components/AdBanner': { AdBanner: 'AdBanner' },
     '@/services/audio': { playSound: sound => sounds.push(sound) },
     '@/services/animalBackgroundPreparation': { ANIMALS_BACKGROUND_SOURCE: 123 },
+    '@/hooks/usePreparedBackground': { usePreparedBackground: kind => { assert.equal(kind, 'animals'); return 123; } },
     '../assets/images/category-title.png': 456,
   }).default;
   return { tree: screen(), routes, sounds, state, measurements };

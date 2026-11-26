@@ -51,28 +51,28 @@ function DumplingSlot({
     idleLoopRef.current = Animated.parallel([
       Animated.loop(
         Animated.sequence([
-          Animated.timing(floatAnim, { toValue: -4, duration: 1800, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
-          Animated.timing(floatAnim, { toValue: 0, duration: 1800, easing: Easing.inOut(Easing.sin), useNativeDriver: true })
+          Animated.timing(floatAnim, { toValue: -4, duration: 1800, easing: Easing.inOut(Easing.sin), useNativeDriver: true, isInteraction: false }),
+          Animated.timing(floatAnim, { toValue: 0, duration: 1800, easing: Easing.inOut(Easing.sin), useNativeDriver: true, isInteraction: false })
         ])
       ),
       Animated.loop(
         Animated.sequence([
-          Animated.timing(rotateAnim, { toValue: 1, duration: 2500, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
-          Animated.timing(rotateAnim, { toValue: -1, duration: 2500, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
-          Animated.timing(rotateAnim, { toValue: 0, duration: 2500, easing: Easing.inOut(Easing.sin), useNativeDriver: true })
+          Animated.timing(rotateAnim, { toValue: 1, duration: 2500, easing: Easing.inOut(Easing.sin), useNativeDriver: true, isInteraction: false }),
+          Animated.timing(rotateAnim, { toValue: -1, duration: 2500, easing: Easing.inOut(Easing.sin), useNativeDriver: true, isInteraction: false }),
+          Animated.timing(rotateAnim, { toValue: 0, duration: 2500, easing: Easing.inOut(Easing.sin), useNativeDriver: true, isInteraction: false })
         ])
       ),
       Animated.loop(
         Animated.sequence([
-          Animated.timing(scaleAnim, { toValue: 1.03, duration: 2200, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
-          Animated.timing(scaleAnim, { toValue: 0.98, duration: 2200, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
-          Animated.timing(scaleAnim, { toValue: 1, duration: 2200, easing: Easing.inOut(Easing.sin), useNativeDriver: true })
+          Animated.timing(scaleAnim, { toValue: 1.03, duration: 2200, easing: Easing.inOut(Easing.sin), useNativeDriver: true, isInteraction: false }),
+          Animated.timing(scaleAnim, { toValue: 0.98, duration: 2200, easing: Easing.inOut(Easing.sin), useNativeDriver: true, isInteraction: false }),
+          Animated.timing(scaleAnim, { toValue: 1, duration: 2200, easing: Easing.inOut(Easing.sin), useNativeDriver: true, isInteraction: false })
         ])
       ),
       Animated.loop(
         Animated.sequence([
-          Animated.timing(glowAnim, { toValue: 0.4, duration: 1500, delay: 3000, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
-          Animated.timing(glowAnim, { toValue: 0, duration: 1500, easing: Easing.inOut(Easing.sin), useNativeDriver: true })
+          Animated.timing(glowAnim, { toValue: 0.4, duration: 1500, delay: 3000, easing: Easing.inOut(Easing.sin), useNativeDriver: true, isInteraction: false }),
+          Animated.timing(glowAnim, { toValue: 0, duration: 1500, easing: Easing.inOut(Easing.sin), useNativeDriver: true, isInteraction: false })
         ])
       )
     ]);
@@ -110,12 +110,12 @@ function DumplingSlot({
       glowAnim.setValue(1);
       entranceRef.current = Animated.sequence([
         Animated.parallel([
-          Animated.spring(scaleAnim, { toValue: 1.2, friction: 4, useNativeDriver: true }),
-          Animated.timing(glowAnim, { toValue: 1, duration: 500, useNativeDriver: true })
+          Animated.spring(scaleAnim, { toValue: 1.2, friction: 4, useNativeDriver: true, isInteraction: false }),
+          Animated.timing(glowAnim, { toValue: 1, duration: 500, useNativeDriver: true, isInteraction: false })
         ]),
         Animated.parallel([
-          Animated.spring(scaleAnim, { toValue: 1, friction: 5, useNativeDriver: true }),
-          Animated.timing(glowAnim, { toValue: 0, duration: 800, delay: 600, useNativeDriver: true })
+          Animated.spring(scaleAnim, { toValue: 1, friction: 5, useNativeDriver: true, isInteraction: false }),
+          Animated.timing(glowAnim, { toValue: 0, duration: 800, delay: 600, useNativeDriver: true, isInteraction: false })
         ])
       ]);
       entranceRef.current.start(({ finished }) => {

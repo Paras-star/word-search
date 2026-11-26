@@ -1,7 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   FlatList,
-  ImageBackground,
   Platform,
   Pressable,
   StyleSheet,
@@ -10,6 +9,7 @@ import {
   View,
   type ViewToken,
 } from 'react-native';
+import { Image } from 'expo-image';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Header, LoadingScreen } from '@/components/GameUI';
@@ -17,11 +17,13 @@ import { DUMPLINGS, type Dumpling, type DumplingRarity } from '@/data/dumplings'
 import { getCollection } from '@/services/dumplingRewards';
 import { RarityPanel, panelHeight } from '@/components/collection/RarityPanel';
 import { collectionColors } from '@/components/collection/collectionTheme';
+import { usePreparedBackground } from '@/hooks/usePreparedBackground';
+import { useScreenActivity } from '@/hooks/useScreenActivity';
 
-const BACKGROUND = require('../assets/images/backgrounds/night-forest-background.png');
 const RARITIES_ORDER: DumplingRarity[] = ['Legendary', 'Epic', 'Rare', 'Uncommon', 'Common'];
 const PANEL_GAP = 14;
 const MAX_PANEL_WIDTH = 520;
+const NO_VISIBLE_DUMPLINGS = new Set<string>();
 
 type PanelData = { rarity: DumplingRarity; items: Dumpling[]; id: string };
 
@@ -36,7 +38,9 @@ export default function CollectionScreen() {
   const insets = useSafeAreaInsets();
   const topInset = Platform.OS === 'web' ? Math.max(67, insets.top) : insets.top;
   const bottomInset = Platform.OS === 'web' ? Math.max(34, insets.bottom) : insets.bottom;
-  const { width: screenWidth } = useWindowDimensions();
+  const { width: screenWidth, height: screenHeight } = useWindowDimensions();
+  const background = usePreparedBackground('night');
+  const active = useScreenActivity();
   const params = useLocalSearchParams<{ newDumplingId?: string }>();
   const panelWidth = Math.min(MAX_PANEL_WIDTH, screenWidth - 20);
 
@@ -44,6 +48,15 @@ export default function CollectionScreen() {
   if (params.newDumplingId) {
     const index = panels.findIndex((p) => p.items.some((i) => i.id === params.newDumplingId));
     if (index >= 0) initialScrollIndex = index;
+  }
+  // Fill the visible viewport from the requested rarity, including a partially
+  // visible last panel. Remaining panels are rendered in small list batches.
+  const visibleHeight = Math.max(1, screenHeight - topInset - 150);
+  let initialPanelCount = 0;
+  let initialPanelHeight = 0;
+  for (let i = initialScrollIndex; i < panels.length && initialPanelHeight < visibleHeight; i++) {
+    initialPanelHeight += panelHeight(panels[i].rarity, panelWidth) + PANEL_GAP;
+    initialPanelCount++;
   }
 
   const [ownedIds, setOwnedIds] = useState<string[] | null>(null);
@@ -90,7 +103,9 @@ export default function CollectionScreen() {
   );
 
   const shell = (children: React.ReactNode) => (
-    <ImageBackground source={BACKGROUND} style={styles.root} imageStyle={styles.backgroundImage} resizeMode="cover" testID="collection-background">
+    <View style={styles.root}>
+      <Image source={background} style={[StyleSheet.absoluteFill, styles.backgroundImage]} contentFit="cover"
+        contentPosition="center" transition={0} accessible={false} testID="collection-background" />
       <View style={[StyleSheet.absoluteFill, { backgroundColor: collectionColors.nightOverlay }]} />
       <View style={[styles.root, { paddingTop: topInset }]}>
         <Header
@@ -101,7 +116,7 @@ export default function CollectionScreen() {
         />
         {children}
       </View>
-    </ImageBackground>
+    </View>
   );
 
   if (collectionError) return shell(
@@ -141,7 +156,7 @@ export default function CollectionScreen() {
               width={panelWidth}
               owned={owned}
               newDumplingId={params.newDumplingId}
-              visibleIds={visibleDumplingIds}
+              visibleIds={active ? visibleDumplingIds : NO_VISIBLE_DUMPLINGS}
             />
           </View>
         )}
@@ -149,6 +164,9 @@ export default function CollectionScreen() {
         viewabilityConfig={viewabilityConfig}
         onViewableItemsChanged={onViewableItemsChanged}
         initialScrollIndex={initialScrollIndex > 0 ? initialScrollIndex : undefined}
+        initialNumToRender={Math.max(1, initialPanelCount)}
+        maxToRenderPerBatch={1}
+        windowSize={3}
         getItemLayout={getItemLayout}
         contentContainerStyle={{ paddingTop: 4, paddingBottom: bottomInset + 40 }}
         testID="collection-panels"

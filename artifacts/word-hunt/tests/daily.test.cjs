@@ -455,7 +455,7 @@ function dailyScreenHarness({ now = localDate(2026, 10, 25), completed = [], wid
   };
   const calendar = transpile('components/DailyCalendar.tsx', base);
   const screen = transpile('app/daily.tsx', (name) => {
-    if (name === 'expo-router') return { Redirect: 'Redirect', useRouter: () => ({ push: (d) => calls.navigation.push(d), canGoBack: () => true, back() {}, replace() {} }) };
+    if (name === 'expo-router') return { Redirect: 'Redirect', useFocusEffect: () => { cursor++; }, useRouter: () => ({ push: (d) => calls.navigation.push(d), canGoBack: () => true, back() {}, replace() {} }) };
     if (name === 'react-native-safe-area-context') return { useSafeAreaInsets: () => insets };
     if (name === '@/components/GameUI') return { Screen: 'Screen' };
     if (name === '@/components/DailyCalendar') return calendar;
