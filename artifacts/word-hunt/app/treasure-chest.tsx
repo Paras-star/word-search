@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { BackHandler, Modal, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { BackHandler, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useNavigation, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { PrimaryButton, SoftButton } from '@/components/GameUI';
@@ -28,7 +28,6 @@ export default function TreasureChestScreen() {
   const [dumpling, setDumpling] = useState<Dumpling | null>(null);
   const [isDuplicate, setIsDuplicate] = useState(false);
   const [recovery, setRecovery] = useState(false);
-  const [confirming, setConfirming] = useState(false);
 
   const blocked = phase === 'processing' || phase === 'animating';
   const blockedRef = useRef(blocked);
@@ -73,7 +72,6 @@ export default function TreasureChestScreen() {
       setError(cause instanceof Error ? cause.message : 'The purchase could not be confirmed. Please retry safely.');
       blockedRef.current = false;
       setPhase('ready');
-      setConfirming(true);
     } finally {
       inFlight.current = false;
     }
@@ -90,15 +88,25 @@ export default function TreasureChestScreen() {
 
   const { layout, onLayout } = useChestSceneLayout();
   const { H, imgY, imgH, chestTop, stage } = layout;
-  const showNeed = hydrated && phase === 'ready' && coins < TREASURE_CHEST_COST;
+  const showStatus = hydrated && phase === 'ready';
 
   return (
     <View style={styles.screen} onLayout={onLayout}>
       <ChestScene layout={layout}>
-        <ChestReveal opening={phase === 'animating' || phase === 'done'} dumpling={dumpling} onRevealed={onRevealed} onPress={() => setConfirming(true)} disabled={!canBuy} testID="treasure-chest-tap" accessibilityLabel={`Tap the chest to open for ${TREASURE_CHEST_COST} coins`} />
+        <ChestReveal opening={phase === 'animating' || phase === 'done'} dumpling={dumpling} onRevealed={onRevealed} onPress={() => { void open(); }} disabled={!canBuy} testID="treasure-chest-tap" accessibilityLabel={`Tap the chest to open for ${TREASURE_CHEST_COST} coins`} />
       </ChestScene>
-      {showNeed && (
-        <Text style={[styles.need, { top: Math.max(insets.top + 8, imgY + imgH * 0.245) }]} testID="treasure-need">{TREASURE_CHEST_COST} coins required. You need {TREASURE_CHEST_COST - coins} more.</Text>
+      {showStatus && (
+        <Text style={[styles.need, { top: Math.max(insets.top + 8, imgY + imgH * 0.245) }]} testID="treasure-need">{coins < TREASURE_CHEST_COST
+          ? `${TREASURE_CHEST_COST} coins required. You need ${TREASURE_CHEST_COST - coins} more.`
+          : 'Chest is Ready!'}</Text>
+      )}
+      {error && phase === 'ready' && (
+        <View style={[styles.errorArea, { bottom: insets.bottom + 14, maxHeight: Math.max(140, H * 0.3) }]} testID="treasure-purchase-error">
+          <ScrollView contentContainerStyle={styles.errorContent}>
+            <Text style={styles.warn} accessibilityRole="alert" testID="treasure-error">{error}</Text>
+            <PrimaryButton onPress={() => { void open(); }} disabled={!canBuy} suppressClickSound testID="treasure-retry" style={styles.btn}>RETRY</PrimaryButton>
+          </ScrollView>
+        </View>
       )}
       {done && (
         <View style={[styles.sheet, { paddingBottom: insets.bottom + 14, maxHeight: Math.max(220, H - (chestTop + stage) + 8) }]}>
@@ -119,19 +127,6 @@ export default function TreasureChestScreen() {
           </ScrollView>
         </View>
       )}
-      <Modal visible={confirming} transparent animationType={Platform.OS === 'web' ? 'fade' : 'none'} onRequestClose={() => setConfirming(false)}>
-        <View style={styles.backdrop}>
-          <View style={styles.dialog} testID="treasure-confirmation">
-            <Text style={styles.title}>{TREASURE_CHEST_COST} coins</Text>
-            <Text style={styles.copy}>Open the Treasure Chest for one surprise dumpling?</Text>
-            {error && <Text style={styles.warn} accessibilityRole="alert" testID="treasure-error">{error}</Text>}
-            <View style={styles.actions}>
-              <PrimaryButton onPress={() => { setConfirming(false); void open(); }} disabled={!canBuy} suppressClickSound testID="treasure-confirm" style={styles.btn}>CONFIRM {TREASURE_CHEST_COST} coins</PrimaryButton>
-              <SoftButton onPress={() => setConfirming(false)} testID="treasure-cancel" style={styles.soft}>CANCEL</SoftButton>
-            </View>
-          </View>
-        </View>
-      </Modal>
     </View>
   );
 }
@@ -139,8 +134,8 @@ export default function TreasureChestScreen() {
 const NEED_RED = '#c8322b';
 
 const styles = StyleSheet.create({
-  backdrop: { flex: 1, backgroundColor: 'rgba(60,50,40,0.45)', alignItems: 'center', justifyContent: 'center', padding: 24 },
-  dialog: { width: '100%', maxWidth: 360, borderRadius: 24, backgroundColor: homeColors.background, padding: 22, alignItems: 'center' },
+  errorArea: { position: 'absolute', left: 20, right: 20, borderRadius: 16, backgroundColor: homeColors.background },
+  errorContent: { padding: 16, gap: 12 },
   screen: { flex: 1, backgroundColor: homeColors.background, overflow: 'hidden' },
   need: { position: 'absolute', left: 20, right: 20, color: NEED_RED, fontFamily: 'Inter_700Bold', fontSize: 15, textAlign: 'center' },
   sheet: { position: 'absolute', left: 0, right: 0, bottom: 0, backgroundColor: homeColors.background, borderTopLeftRadius: 24, borderTopRightRadius: 24 },

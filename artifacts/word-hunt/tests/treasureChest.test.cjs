@@ -87,10 +87,12 @@ test('exactly 700 purchases one collected reward and leaves zero, never a negati
 });
 
 test('larger balances lose exactly 700 and keep all existing progression', async () => {
-  const h = harness(1734);
-  const r = await h.api.purchaseTreasureChest('larger');
-  assert.deepEqual(r.progress, fresh(1034));
-  assert.equal((await h.progress.loadProgress()).coins, 1034);
+  for (const balance of [810, 1734]) {
+    const h = harness(balance);
+    const r = await h.api.purchaseTreasureChest('larger');
+    assert.deepEqual(r.progress, fresh(balance - 700));
+    assert.equal((await h.progress.loadProgress()).coins, balance - 700);
+  }
 });
 
 test('simultaneous taps with the same ID charge once and return one reward', async () => {
@@ -292,9 +294,10 @@ test('purchase button and back behavior have immediate ref guards, plus transact
   assert.ok(source.indexOf('blockedRef.current = true') < source.indexOf('await game.purchaseTreasureChest'));
   assert.match(source, /disabled=\{!canBuy\}/);
   assert.match(source, /testID="treasure-chest-tap"/);
-  assert.match(source, /testID="treasure-confirm"/);
-  assert.match(source, /testID="treasure-cancel"/);
-  assert.match(source, /setConfirming\(false\); void open\(\)/);
+  assert.doesNotMatch(source, /\bModal\b|confirming|setConfirming|testID="treasure-confirm|testID="treasure-cancel"/);
+  assert.match(source, /onPress=\{\(\) => \{ void open\(\); \}\}/);
+  assert.match(source, /testID="treasure-retry"/);
+  assert.match(source, /accessibilityRole="alert" testID="treasure-error"/);
   assert.doesNotMatch(source, /testID="treasure-open"/);
   assert.match(source, /hardwareBackPress/);
   assert.match(source, /Platform\.OS !== 'web'\s*\? BackHandler\.addEventListener/);

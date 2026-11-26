@@ -70,7 +70,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
 
   const queueSave = useCallback(function enqueue<T>(save: () => Promise<T>, lock = true): Promise<T> {
     const next = writes.current.catch(() => {}).then(() => lock ? withGameStateLock(save) : save());
-    writes.current = next.then(() => {});
+    writes.current = next.then(() => {}, () => {});
     return next;
   }, []);
 
