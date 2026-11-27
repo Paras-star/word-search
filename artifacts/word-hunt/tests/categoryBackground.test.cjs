@@ -24,22 +24,28 @@ const find = (tree, predicate) => {
   if (predicate(tree)) return tree;
   return [tree.props?.children].flat(Infinity).map(child => find(child, predicate)).find(Boolean);
 };
-function harness(overrides = {}, os = 'android') {
+function harness(overrides = {}, os = 'android', width = 400, height = 844) {
   const routes = [], sounds = [], measurements = [];
   const state = { coins: 777, completedLevels: ['animals'], hydrated: true, onboardingStep: 6, ...overrides };
-  const colors = { background: '#FFF9EF', card: '#FFFEFA', muted: '#eee', success: '#050', border: '#aaa' };
+const colors = {
+  background: '#FFF9EF', card: '#FFFEFA', muted: '#eee', success: '#050',
+  border: '#aaa', warning: '#B77024', accent: '#FFF0D0', foreground: '#153d48',
+  mutedForeground: '#59686b',
+};
   const screen = load('app/categories.tsx', {
     react: { useState: initial => [initial, value => measurements.push(value)] },
     'react/jsx-runtime': { jsx, jsxs: jsx },
     'react-native': {
       FlatList: 'FlatList', Pressable: 'Pressable', Text: 'Text', View: 'View',
       Platform: { OS: os }, StyleSheet: { create: x => x, absoluteFill: { position: 'absolute' } },
+      useWindowDimensions: () => ({ width, height }),
     },
     'expo-image': { Image: 'Image' },
+    'expo-linear-gradient': { LinearGradient: 'LinearGradient' },
     'react-native-safe-area-context': { useSafeAreaInsets: () => ({ top: 24, bottom: 16 }) },
     'expo-router': { Redirect: 'Redirect', useRouter: () => ({ back: () => routes.push('back'), push: route => routes.push(route) }) },
-    '@expo/vector-icons': { Feather: 'Feather' },
-    '@/components/GameUI': { Header: 'Header', Screen: 'Screen', CoinPill: 'CoinPill', SectionLabel: 'SectionLabel' },
+    '@expo/vector-icons': { Feather: 'Feather', MaterialCommunityIcons: 'MaterialCommunityIcons' },
+    '@/components/GameUI': { Header: 'Header', Screen: 'Screen', CoinPill: 'CoinPill' },
     '@/data/categories': { CATEGORIES },
     '@/game/progression': progression,
     '@/context/GameProvider': { useGame: () => state },
@@ -50,7 +56,7 @@ function harness(overrides = {}, os = 'android') {
     '@/hooks/usePreparedBackground': { usePreparedBackground: kind => { assert.equal(kind, 'animals'); return 123; } },
     '../assets/images/category-title.png': 456,
   }).default;
-  return { tree: screen(), routes, sounds, state, measurements };
+  return { tree: screen(), routes, sounds, state, measurements, colors };
 }
 
 test('category background reuses the Animal puzzle image with identical centered cover and a non-interactive full-screen layer', () => {
@@ -69,7 +75,7 @@ test('category background reuses the Animal puzzle image with identical centered
   assert.match(read('services/animalBackgroundPreparation.ts'), /require\('\.\.\/assets\/images\/backgrounds\/animals-background\.png'\)/);
 });
 
-test('category grid, cleared/ready/locked statuses, coins, navigation and banner are preserved', () => {
+test('category grid keeps all categories scrollable and preserves coins, navigation and banner', () => {
   const h = harness();
   const header = find(h.tree, n => n.type === 'Header');
   assert.equal(header.props.title, '');
@@ -79,21 +85,107 @@ test('category grid, cleared/ready/locked statuses, coins, navigation and banner
   const list = find(h.tree, n => n.type === 'FlatList');
   assert.equal(list.props.data, CATEGORIES);
   assert.equal(list.props.numColumns, 2);
+  assert.equal(list.props.scrollEnabled, true);
+  assert.equal(CATEGORIES.length, 22);
+  assert.deepEqual(CATEGORIES.slice(-5).map(({ id }) => id), ['workshop', 'mythology', 'kitchen', 'transport', 'buildings']);
+  assert.deepEqual(CATEGORIES.slice(-4).map(({ id, emoji }) => [id, emoji]), [
+    ['mythology', '🐉'], ['kitchen', '🍴'], ['transport', '✈️'], ['buildings', '🏢'],
+  ]);
+  assert.deepEqual(['animals', 'food'].map(id => {
+    const category = CATEGORIES.find(item => item.id === id);
+    return [id, category?.emoji];
+  }), [['animals', '🐾'], ['food', '🥗']]);
+  assert.equal(list.props.data.at(-1).id, 'buildings');
   assert.ok(find(h.tree, n => n.type === 'AdBanner'));
   const rows = CATEGORIES.map((item, index) => list.props.renderItem({ item, index }));
   for (const [index, card] of rows.entries()) {
     assert.equal(card.props.disabled, !progression.isCategoryUnlocked(index, ['animals'], CATEGORIES));
     assert.ok(find(card, n => n.type === 'Text' && n.props.children === CATEGORIES[index].name));
     assert.ok(find(card, n => n.type === 'Text' && n.props.children === CATEGORIES[index].emoji));
-    assert.equal(card.props.style({ pressed: false })[1].opacity, 1, 'locked indicators remain readable over artwork');
+    assert.equal(card.props.accessibilityRole, 'button');
+    assert.equal(card.props.testID, `category-card-${CATEGORIES[index].id}`);
   }
-  assert.match(JSON.stringify(rows[0]), /CLEARED/);
-  assert.match(JSON.stringify(rows[1]), /READY/);
-  assert.match(JSON.stringify(rows[2]), /LOCKED/);
+  const completed = rows[0].props.style({ pressed: false });
+  const available = rows[1].props.style({ pressed: false });
+  const locked = rows[2].props.style({ pressed: false });
+  for (const [index, card] of rows.entries()) {
+    assert.equal(find(card, n => n.props?.testID === 'category-crown'), undefined,
+      `${CATEGORIES[index].name} has no completion crown`);
+    assert.equal(find(card, n => n.type === 'MaterialCommunityIcons'), undefined,
+      `${CATEGORIES[index].name} has no replacement symbol`);
+    assert.equal(card.props.style({ pressed: false })[1].paddingTop, undefined,
+      `${CATEGORIES[index].name} has no reserved top spacing`);
+    assert.equal(card.props.style({ pressed: false })[0].justifyContent, 'center',
+      `${CATEGORIES[index].name} content stays vertically centered`);
+  }
+  assert.equal(completed[2].backgroundColor, h.colors.warning, 'completed categories use gold');
+  assert.equal(completed[2].borderColor, h.colors.warning, 'completed categories retain the darker outer gold edge');
+  assert.equal(completed[2].boxShadow, `0px 2px 8px ${h.colors.warning}66`,
+    'completed categories have a restrained gold glow');
+  const rim = find(rows[0], n => n.props?.testID === 'completed-category-rim');
+  assert.ok(rim, 'completed categories have a metallic gradient rim');
+  assert.deepEqual(rim.props.colors, [h.colors.warning, h.colors.accent, h.colors.warning, h.colors.accent, h.colors.warning]);
+  assert.deepEqual(rim.props.locations, [0, 0.22, 0.5, 0.78, 1]);
+  assert.equal(find(rows[0], n => n.props?.testID === 'completed-category-highlight').props.style[0].opacity, 0.58);
+  assert.equal(find(rows[1], n => n.props?.testID === 'completed-category-rim'), undefined,
+    'available categories have no gold achievement border');
+  assert.equal(find(rows[2], n => n.props?.testID === 'completed-category-rim'), undefined,
+    'locked categories have no gold achievement border');
+  assert.equal(available[2].backgroundColor, h.colors.card, 'the next category is white');
+  assert.equal(available[2].borderColor, h.colors.card, 'the available border stays clean and white');
+  assert.equal(locked[2].opacity, 0.58, 'locked categories are faded');
+  assert.equal(rows[2].props.disabled, true, 'locked categories cannot be opened');
+  assert.equal(rows[0].props.disabled, false, 'completed categories remain playable');
   rows[1].props.onPress();
   assert.deepEqual(h.routes.at(-1), { pathname: '/mode', params: { categoryId: CATEGORIES[1].id } });
   assert.deepEqual(h.sounds, ['tap']);
+  rows[0].props.onPress();
+  assert.deepEqual(h.routes.at(-1), { pathname: '/mode', params: { categoryId: CATEGORIES[0].id } });
   assert.equal(h.state.coins, 777);
+});
+
+test('category completion promotes the next item and circle dimensions fit narrow and short screens', () => {
+  const completedProgress = harness({ completedLevels: ['animals', 'food'] }, 'android', 360, 568);
+  const list = find(completedProgress.tree, n => n.type === 'FlatList');
+  const newlyCompleted = list.props.renderItem({ item: CATEGORIES[1], index: 1 });
+  const newlyAvailable = list.props.renderItem({ item: CATEGORIES[2], index: 2 });
+  const stillLocked = list.props.renderItem({ item: CATEGORIES[3], index: 3 });
+  assert.equal(find(newlyCompleted, n => n.props?.testID === 'category-crown'), undefined);
+  assert.equal(find(newlyCompleted, n => n.type === 'MaterialCommunityIcons'), undefined);
+  assert.ok(find(newlyCompleted, n => n.props?.testID === 'completed-category-rim'));
+  assert.ok(find(newlyCompleted, n => n.props?.testID === 'completed-category-highlight'));
+  assert.equal(newlyCompleted.props.style({ pressed: false })[1].paddingTop, undefined);
+  assert.equal(newlyCompleted.props.style({ pressed: false })[0].justifyContent, 'center');
+  assert.equal(find(newlyAvailable, n => n.props?.testID === 'category-crown'), undefined);
+  assert.equal(newlyAvailable.props.disabled, false);
+  assert.equal(stillLocked.props.disabled, true);
+  assert.equal(list.props.scrollEnabled, true, 'short screens keep the full category list scrollable');
+
+  for (const width of [320, 360, 412, 768]) {
+    const responsive = harness({}, 'android', width, 568);
+    const responsiveList = find(responsive.tree, n => n.type === 'FlatList');
+    const firstCard = responsiveList.props.renderItem({ item: CATEGORIES[0], index: 0 });
+    const cardStyle = firstCard.props.style({ pressed: false });
+    const expectedSize = Math.min(210, Math.floor((width - 60) / 2));
+    const completedRim = find(firstCard, n => n.props?.testID === 'completed-category-rim');
+    const rimCutout = find(firstCard, n => n.type === 'View' && n.props?.style?.[0]?.position === 'absolute' &&
+      n.props?.style?.[1]?.backgroundColor === responsive.colors.warning);
+    const rimStyle = completedRim.props.style[1];
+    const rimWidth = Math.max(5, Math.round(expectedSize * 0.03));
+    assert.equal(cardStyle[1].width, expectedSize);
+    assert.equal(cardStyle[1].height, expectedSize);
+    assert.equal(cardStyle[0].justifyContent, 'center');
+    assert.equal(cardStyle[1].paddingTop, undefined);
+    assert.equal(rimStyle.top, 2);
+    assert.equal(rimStyle.right, 2);
+    assert.equal(rimStyle.bottom, 2);
+    assert.equal(rimStyle.left, 2);
+    assert.ok(rimStyle.borderRadius > 0);
+    assert.equal(rimCutout.props.style[1].top, rimWidth);
+    assert.equal(rimCutout.props.style[1].right, rimWidth);
+    assert.equal(rimCutout.props.style[1].bottom, rimWidth);
+    assert.equal(rimCutout.props.style[1].left, rimWidth);
+  }
 });
 
 test('transparent title image stays within the unchanged header row without intercepting either control', () => {

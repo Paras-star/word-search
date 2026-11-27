@@ -39,11 +39,11 @@ const GEOMETRY_FILE = path.join(APP, 'components/collection/panelGeometry.ts');
 // Measured from the source PNGs (see report). d0/d1 bound the baked slot band.
 // ped = middle pedestal crop (dome removed above y0; label bottom at y1).
 const PANELS = {
-  Legendary: { counterText: { x0: 408, x1: 460, y0: 39, y1: 60 }, file: 'legendary-panel_', d0: 100, d1: 204, ped: { x0: 200, x1: 304, y0: 160, y1: 202 }, rows: [2], scale: 1 },
-  Epic: { counterText: { x0: 414, x1: 461, y0: 35, y1: 56 }, file: 'epic-panel_', d0: 91, d1: 323, ped: { x0: 202, x1: 310, y0: 153, y1: 197 }, rows: [4], scale: 0.86 },
-  Rare: { counterText: { x0: 425, x1: 475, y0: 54, y1: 77 }, file: 'rare-panel_', d0: 116, d1: 231, ped: { x0: 206, x1: 319, y0: 179, y1: 229 }, rows: [3, 2], scale: 1 },
-  Uncommon: { counterText: { x0: 424, x1: 475, y0: 44, y1: 66 }, file: 'uncommon-panel_', d0: 107, d1: 222, ped: { x0: 205, x1: 318, y0: 168, y1: 220 }, rows: [4, 3], scale: 0.86 },
-  Common: { counterText: { x0: 417, x1: 477, y0: 39, y1: 61 }, file: 'common-panel_', d0: 98, d1: 213, ped: { x0: 204, x1: 317, y0: 161, y1: 211 }, rows: [4, 4, 4], scale: 0.86 },
+  Legendary: { counterText: { x0: 408, x1: 460, y0: 39, y1: 60 }, file: 'legendary-panel_', d0: 100, d1: 204, ped: { x0: 200, x1: 304, y0: 160, y1: 202 }, rows: [3], scale: 1 },
+  Epic: { counterText: { x0: 414, x1: 461, y0: 35, y1: 56 }, file: 'epic-panel_', d0: 91, d1: 323, ped: { x0: 202, x1: 310, y0: 153, y1: 197 }, rows: [4, 1], scale: 0.86 },
+  Rare: { counterText: { x0: 425, x1: 475, y0: 54, y1: 77 }, file: 'rare-panel_', d0: 116, d1: 231, ped: { x0: 206, x1: 319, y0: 179, y1: 229 }, rows: [3, 3, 1], scale: 1 },
+  Uncommon: { counterText: { x0: 424, x1: 475, y0: 44, y1: 66 }, file: 'uncommon-panel_', d0: 107, d1: 222, ped: { x0: 205, x1: 318, y0: 168, y1: 220 }, rows: [4, 3, 3], scale: 0.86 },
+  Common: { counterText: { x0: 417, x1: 477, y0: 39, y1: 61 }, file: 'common-panel_', d0: 98, d1: 213, ped: { x0: 204, x1: 317, y0: 161, y1: 211 }, rows: [4, 4, 4, 3], scale: 0.86 },
 };
 
 const SIDE = 50; // frame side columns (border + corner ornaments)

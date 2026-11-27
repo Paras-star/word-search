@@ -137,11 +137,11 @@ test('mode preparation covers every existing and future category after onboardin
   assert.doesNotMatch(start.getText(ast), /await|prepareAnimalBackground/);
 });
 
-test('Animals through Workshop and a future category use the identical prepared image and unchanged fitting on first render', async () => {
+test('Animals through Buildings and a future category use the identical prepared image and unchanged fitting on first render', async () => {
   const image = { nativeRefType: 'image' }, api = service(async () => image);
   await api.prepareAnimalBackground();
   assert.equal(categoryIds[0], 'animals');
-  assert.equal(categoryIds.at(-1), 'workshop');
+  assert.equal(categoryIds.at(-1), 'buildings');
   assert.ok(!categoryIds.includes(futureCategoryId));
   for (const id of [...categoryIds, futureCategoryId]) {
     const h = gameHarness(api, { category: { id } });

@@ -51,7 +51,7 @@ test('every literal runtime media reference exists and survives configured Andro
   assert.deepEqual([...excluded(files)], []);
 });
 
-test('only the six exact reward images are included from attached_assets', () => {
+test('only the six reward images and ten new dumplings are included from attached_assets', () => {
   const expected = new Set([
     'Common_Transparent_Banner_1795631362659.png',
     'Uncommon_Transparent_Banner_1795631362659.png',
@@ -59,6 +59,16 @@ test('only the six exact reward images are included from attached_assets', () =>
     'Epic_Transparent_Banner_1795631362660.png',
     'Legendary_Transparent_Banner_1795631362661.png',
     'Continue_1795628061907.png',
+    'Legendary-Phoenix-Blaze_1795795943824.png',
+    'Epic-Deep-Oceanic_1795795943823.png',
+    'Rare-Forest-Sprite_1795795943822.png',
+    'Rare-Cosmic-Stardust_1795795943822.png',
+    'Uncommon-Berry-Swirl_1795795943819.png',
+    'Uncommon-Honey-Butter_1795795943818.png',
+    'Uncommon-Blueberry_1795795943819.png',
+    'Common-Plum-Velvet_1795795943821.png',
+    'Common-Choco-Drizzle_1795795943821.png',
+    'Common-Lemon-Zing_1795795943820.png',
   ].map(file => `attached_assets/${file}`));
   const files = fs.readdirSync(path.join(workspace, 'attached_assets'), { recursive: true })
     .map(file => `attached_assets/${file}`)

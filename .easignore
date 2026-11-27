@@ -63,7 +63,7 @@ artifacts/word-hunt/**/.vercel
 artifacts/word-hunt/**/.env
 
 # Upload-only exclusions. Originals remain in the workspace.
-# Keep the directory traversable for the six runtime images below. All other
+# Keep the directory traversable for the runtime images below. All other
 # attachments (including nested folders) remain excluded.
 /attached_assets/*
 !/attached_assets/Common_Transparent_Banner_1795631362659.png
@@ -72,6 +72,16 @@ artifacts/word-hunt/**/.env
 !/attached_assets/Epic_Transparent_Banner_1795631362660.png
 !/attached_assets/Legendary_Transparent_Banner_1795631362661.png
 !/attached_assets/Continue_1795628061907.png
+!/attached_assets/Legendary-Phoenix-Blaze_1795795943824.png
+!/attached_assets/Epic-Deep-Oceanic_1795795943823.png
+!/attached_assets/Rare-Forest-Sprite_1795795943822.png
+!/attached_assets/Rare-Cosmic-Stardust_1795795943822.png
+!/attached_assets/Uncommon-Berry-Swirl_1795795943819.png
+!/attached_assets/Uncommon-Honey-Butter_1795795943818.png
+!/attached_assets/Uncommon-Blueberry_1795795943819.png
+!/attached_assets/Common-Plum-Velvet_1795795943821.png
+!/attached_assets/Common-Choco-Drizzle_1795795943821.png
+!/attached_assets/Common-Lemon-Zing_1795795943820.png
 /artifacts/word-hunt/tests
 /.agents
 

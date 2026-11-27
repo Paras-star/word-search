@@ -275,16 +275,28 @@ test('Home button uses the supplied icon beneath the unchanged settings gear and
   assert.match(source, /<AudioSettingsModal/);
 });
 
-test('both reward screens share the chest component but only the paid screen invokes purchase', () => {
+test('both reward routes share the approved reward presentation while only paid invokes purchase', () => {
   const paid = fs.readFileSync(path.join(root, 'app/treasure-chest.tsx'), 'utf8');
   const normal = fs.readFileSync(path.join(root, 'app/reward.tsx'), 'utf8');
   const normalScene = fs.readFileSync(path.join(root, 'components/NormalRewardScene.tsx'), 'utf8');
-  for (const source of [paid, normalScene]) assert.match(source, /<ChestReveal/);
+  for (const source of [paid, normal]) assert.match(source, /<NormalRewardScene/);
+  assert.match(normalScene, /<ChestReveal/);
   assert.match(normal, /<NormalRewardScene/);
+  assert.match(paid, /showActions=\{!!done\} showStats=\{false\} showHomeButton=\{false\}/);
   assert.match(paid, /game\.purchaseTreasureChest\(requestId\)/);
   assert.doesNotMatch(normal, /purchaseTreasureChest|TREASURE_CHEST_COST|\b700\b/);
   assert.doesNotMatch(paid, /collectReward\(|awardCoins\(/);
   assert.match(normal, /collectReward\(reward\.id\)/);
+});
+
+test('paid result no longer renders the old peach sheet, duplicate text block, or coin-spent controls', () => {
+  const paid = fs.readFileSync(path.join(root, 'app/treasure-chest.tsx'), 'utf8');
+  for (const obsolete of [
+    'Added to your Collection.', 'coins spent on a Treasure Chest', 'VIEW COLLECTION', 'testID="treasure-spent"',
+    'testID="treasure-result-name"', 'styles.sheet', 'Duplicate recorded.',
+  ]) assert.doesNotMatch(paid, new RegExp(obsolete.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
+  assert.match(paid, /collectionTestID="treasure-collection" continueTestID="treasure-continue"/);
+  assert.match(paid, /isDuplicate, recoveryPending: recovery/);
 });
 
 test('purchase button and back behavior have immediate ref guards, plus transaction-safe retries', () => {
@@ -293,11 +305,11 @@ test('purchase button and back behavior have immediate ref guards, plus transact
   assert.ok(source.indexOf('inFlight.current = true') < source.indexOf('await game.purchaseTreasureChest'));
   assert.ok(source.indexOf('blockedRef.current = true') < source.indexOf('await game.purchaseTreasureChest'));
   assert.match(source, /disabled=\{!canBuy\}/);
-  assert.match(source, /testID="treasure-chest-tap"/);
+  assert.match(source, /chestTestID="treasure-chest-tap"/);
   assert.doesNotMatch(source, /\bModal\b|confirming|setConfirming|testID="treasure-confirm|testID="treasure-cancel"/);
   assert.match(source, /onPress=\{\(\) => \{ void open\(\); \}\}/);
   assert.match(source, /testID="treasure-retry"/);
-  assert.match(source, /accessibilityRole="alert" testID="treasure-error"/);
+  assert.match(source, /errorTestID="treasure-error"/);
   assert.doesNotMatch(source, /testID="treasure-open"/);
   assert.match(source, /hardwareBackPress/);
   assert.match(source, /Platform\.OS !== 'web'\s*\? BackHandler\.addEventListener/);
@@ -331,7 +343,8 @@ const protectedGroups = {
   sounds: [['assets/sounds'], '3058dc05d908de8cf76afbbee5614ec973b8faaf1f80cd0c5e93006a3323b0e6'],
   dumplings: [['assets/images/dumplings', 'data/dumplings.ts'], '3929ecc5225a9d7d0d4bfdffcedda08517997aa5c0c4e5423c5e77facef7a30f'],
   launcher: [['assets/launcher'], '136ee046e2237636381c94267ca00af85a447c1035dbd85d122b836c890191c9'],
-  // Authorized expanded target layout for Anatomy, Emotions and Workshop, plus
+  // Authorized expanded target layout for Anatomy, Emotions, Workshop and the
+  // four appended levels, plus
   // natural target labels. Category tests preserve old puzzles; rewardedUi.test.cjs
   // retains byte-identical completion/touch guards. The narrowly scoped diagonal
   // gesture tolerance is covered by selectionGestureTolerance.test.cjs and the
@@ -340,7 +353,7 @@ const protectedGroups = {
   // introductory/Daily background is stripped below. The user also approved
   // presentation-only render isolation; selectionRendering.test.cjs separately
   // freezes the original input, timer, completion, hint, and generation logic.
-  gameplay: [['game', 'app/game.tsx'], 'f9e87a2cad331f8138efef5a8ed62830aca20b859d3a737dc31495051bb117e0'],
+  gameplay: [['game', 'app/game.tsx'], '5140ed6209e0caf3e0ea16b253f7a38ab45db126973ca1ea157cde56292322a6'],
   // Retains the authorized Continue-only interstitial transition/cancellation API.
   // Normalize only the approved Android versionCode change from 7 to 8 below;
   // the ad-service files remain unchanged. Behavioral safeguards are covered in ads.test.cjs.
@@ -359,6 +372,12 @@ for (const [name, [paths, expected]] of Object.entries(protectedGroups)) {
     const hash = require('node:crypto').createHash('sha256');
     for (const relative of paths.flatMap(walk).sort()) {
       let bytes = fs.readFileSync(path.join(root, relative));
+      if (relative === 'data/dumplings.ts') {
+        // Authorized ten-item expansion only. The original 30 definitions,
+        // order and every existing artwork byte retain the original hash.
+        // Exact new entries and uploads are frozen in dumplingExpansion.test.cjs.
+        bytes = Buffer.from(bytes.toString().replace(/  \/\/ BEGIN collection expansion[^\n]*\n[\s\S]*?  \/\/ END collection expansion\n/, ''));
+      }
       if (relative === 'app.json') {
         assert.equal(JSON.parse(bytes.toString()).expo.android.versionCode, 8);
         bytes = Buffer.from(bytes.toString().replace('"versionCode": 8', '"versionCode": 7'));

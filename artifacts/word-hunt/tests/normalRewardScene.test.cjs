@@ -95,7 +95,7 @@ const scenery = {
   prepareChestScenery: async () => 'prepared-beach',
 };
 function harness({ width = 393, height = 852, dumpling = catalog.DUMPLINGS[0], revealed = true,
-  opening = true, loading = false, busy = false, error = null, insets = {}, platform = 'web' } = {}) {
+  opening = true, loading = false, busy = false, error = null, insets = {}, platform = 'web', presentationProps = {} } = {}) {
   const native = { Platform: { OS: platform }, Pressable: 'Pressable', ScrollView: 'ScrollView',
     Text: 'Text', View: 'View', StyleSheet: { create: s => s, absoluteFill: {} },
     useWindowDimensions: () => ({ width, height }) };
@@ -115,11 +115,11 @@ function harness({ width = 393, height = 852, dumpling = catalog.DUMPLINGS[0], r
   const props = { dumpling, revealed, opening, loading, busy, error, collected: false,
     score: '1830', time: '02:17', coins: '+50', onOpen: () => calls.push('open'),
     onRevealed: () => calls.push('revealed'), onCollection: () => calls.push('collection'),
-    onContinue: () => calls.push('continue'), onHome: () => calls.push('home') };
+    onContinue: () => calls.push('continue'), onHome: () => calls.push('home'), ...presentationProps };
   return { api, props, calls, tree: expand(api.default(props)), shared };
 }
 
-test('all 30 actual catalog rewards use their exact catalog name, rarity banner and unchanged artwork', () => {
+test('all 40 actual catalog rewards use their exact catalog name, rarity banner and unchanged artwork', () => {
   const expected = {
     Common: 'Common_Transparent_Banner_1795631362659.png', Uncommon: 'Uncommon_Transparent_Banner_1795631362659.png',
     Rare: 'Rare_Transparent_Banner_1795631362661.png', Epic: 'Epic_Transparent_Banner_1795631362660.png',
@@ -251,4 +251,28 @@ test('result panel reuses Daily completion styling with actual normal-level valu
     assert.doesNotMatch(fs.readFileSync(path.join(root, file), 'utf8'),
       /rewardSheet|A surprise is waiting|A little magic is happening|now lives in your Collection Room|VIEW COLLECTION ROOM/);
   }
+});
+
+test('paid reveal uses the same rarity banner, catalog name and image-button presentation without normal stats', () => {
+  const dumpling = catalog.DUMPLINGS.find(d => d.rarity === 'Epic');
+  const { tree, calls } = harness({ dumpling, presentationProps: {
+    showActions: true, showStats: false, showHomeButton: false,
+    chestTestID: 'treasure-chest-tap', collectionTestID: 'treasure-collection',
+    continueTestID: 'treasure-continue', sceneTestID: 'treasure-reward-scene',
+    purchaseNote: { isDuplicate: true, recoveryPending: true },
+  } });
+  const banner = find(tree, 'reward-rarity-banner');
+  assert.match(banner.props.accessibilityLabel, /^Epic /);
+  assert.equal(find(tree, 'reward-dumpling-name').props.children[0], dumpling.name.toUpperCase());
+  assert.equal(path.basename(nodes(banner).find(n => n.type === 'Image').props.source),
+    'Epic_Transparent_Banner_1795631362660.png');
+  assert.equal(find(tree, 'treasure-collection').props.disabled, false);
+  assert.equal(find(tree, 'treasure-continue').props.disabled, false);
+  assert.equal(find(tree, 'reward-result-stats'), undefined);
+  assert.equal(find(tree, 'reward-home'), undefined);
+  assert.match(JSON.stringify(find(tree, 'treasure-reward-note')), /already in your Collection/);
+  assert.match(JSON.stringify(find(tree, 'treasure-reward-note')), /local save recovery/);
+  find(tree, 'treasure-collection').props.onPress();
+  find(tree, 'treasure-continue').props.onPress();
+  assert.deepEqual(calls.slice(-2), ['collection', 'continue']);
 });

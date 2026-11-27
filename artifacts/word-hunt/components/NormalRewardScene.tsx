@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { type ReactNode } from 'react';
 import { Platform, Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View, type ImageSourcePropType } from 'react-native';
 import { Image } from 'expo-image';
 import { Feather } from '@expo/vector-icons';
@@ -67,7 +67,7 @@ export function getBannerNameLayout(bannerWidth: number, name: string) {
 }
 
 /** Artwork-space layout: a contain-fit scene box plus content positioned relative to the art. */
-export function getNormalRewardLayout(availableWidth: number) {
+export function getNormalRewardLayout(availableWidth: number, footerHeight = 78) {
   const W = Math.max(1, Math.min(480, availableWidth));
   const artH = W * (BG_H / BG_W);
   const scene = getChestSceneLayout(W, artH);
@@ -83,7 +83,7 @@ export function getNormalRewardLayout(availableWidth: number) {
   const continueH = buttonW / CONTINUE_RATIO;
   const statsTop = continueTop + continueH + gap * 1.5;
   const statsH = 78;
-  const totalH = Math.max(artH, statsTop + statsH + 24);
+  const totalH = Math.max(artH, statsTop + Math.max(statsH, footerHeight) + 24);
   return { W, artH, scene, bannerW, bannerH, bannerTop, buttonW, collectionTop, collectionH, continueTop, continueH, statsTop, totalH };
 }
 
@@ -91,6 +91,13 @@ type Props = {
   dumpling: Dumpling | null; opening: boolean; revealed: boolean; loading: boolean; busy: boolean; collected: boolean;
   error: string | null; score: string; time: string; coins: string;
   onOpen: () => void; onRevealed: () => void; onCollection: () => void; onContinue: () => void; onHome: () => void;
+  showActions?: boolean; showStats?: boolean; showHomeButton?: boolean;
+  chestDisabled?: boolean;
+  statusMessage?: string | null; statusTestID?: string; errorTestID?: string; sceneTestID?: string;
+  chestTestID?: string; chestAccessibilityLabel?: string;
+  collectionTestID?: string; continueTestID?: string;
+  purchaseNote?: { isDuplicate: boolean; recoveryPending: boolean };
+  retryAction?: ReactNode; retryContainerTestID?: string;
 };
 
 function Stat({ label, value, testID }: { label: string; value: string; testID: string }) {
@@ -105,14 +112,20 @@ export default function NormalRewardScene(p: Props) {
   const insets = useSafeAreaInsets();
   const top = Platform.OS === 'web' ? Math.max(67, insets.top) : insets.top;
   const bottom = Platform.OS === 'web' ? Math.max(34, insets.bottom) : insets.bottom;
-  const L = getNormalRewardLayout(width - insets.left - insets.right);
+  const L = getNormalRewardLayout(width - insets.left - insets.right, p.retryAction ? 150 : 78);
   const actionable = p.revealed && !p.loading && !p.busy && !!p.dumpling;
   const name = p.dumpling?.name ?? '';
   const nameLayout = getBannerNameLayout(L.bannerW, name);
   const side = (L.W - L.buttonW) / 2;
   const scenery = usePreparedScenerySource();
+  const showActions = p.showActions ?? true;
+  const showStats = p.showStats ?? true;
+  const notes = [
+    p.purchaseNote?.isDuplicate ? 'This dumpling is already in your Collection.' : null,
+    p.purchaseNote?.recoveryPending ? 'The purchase is saved; local save recovery will retry automatically.' : null,
+  ].filter((note): note is string => !!note);
 
-  return <View style={styles.screen} testID="normal-reward-scene">
+  return <View style={styles.screen} testID={p.sceneTestID ?? 'normal-reward-scene'}>
     <ScrollView style={styles.screen} testID="reward-scroll" showsVerticalScrollIndicator={false}
       contentContainerStyle={{ alignItems: 'center', paddingTop: top, paddingBottom: bottom, paddingLeft: insets.left, paddingRight: insets.right }}>
       <View style={{ width: L.W, height: L.totalH, overflow: 'hidden' }}>
@@ -122,14 +135,18 @@ export default function NormalRewardScene(p: Props) {
         <View style={{ position: 'absolute', left: 0, top: 0, width: L.W, height: L.artH }}>
           <ChestScene layout={L.scene}>
             <ChestReveal opening={p.opening} dumpling={p.dumpling} onRevealed={p.onRevealed} onPress={p.onOpen}
-              disabled={p.loading || !p.dumpling || p.opening || p.revealed}
-              testID="reward-chest-tap" accessibilityLabel="Tap the chest to reveal your reward" />
+              disabled={p.chestDisabled ?? (p.loading || !p.dumpling || p.opening || p.revealed)}
+              testID={p.chestTestID ?? 'reward-chest-tap'}
+              accessibilityLabel={p.chestAccessibilityLabel ?? 'Tap the chest to reveal your reward'} />
           </ChestScene>
         </View>
 
-        <Pressable onPress={p.onHome} hitSlop={12} accessibilityRole="button" accessibilityLabel="Return home" style={styles.close} testID="reward-home">
+        {p.showHomeButton !== false && <Pressable onPress={p.onHome} hitSlop={12} accessibilityRole="button" accessibilityLabel="Return home" style={styles.close} testID="reward-home">
           <Feather name="x" size={20} color={homeColors.ink} />
-        </Pressable>
+        </Pressable>}
+
+        {p.statusMessage && <Text style={[styles.status, { top: Math.max(0, L.scene.chestTop - 22) }]}
+          testID={p.statusTestID ?? 'reward-status'}>{p.statusMessage}</Text>}
 
         <View testID="reward-rarity-banner" accessibilityLabel={p.revealed && p.dumpling ? `${p.dumpling.rarity} ${name}` : 'Reward hidden'}
           style={{ position: 'absolute', left: (L.W - L.bannerW) / 2, top: L.bannerTop, width: L.bannerW, height: L.bannerH }}>
@@ -142,26 +159,38 @@ export default function NormalRewardScene(p: Props) {
           </>}
         </View>
 
-        {p.error && <Text style={[styles.error, { bottom: L.totalH - L.collectionTop + 8 }]} testID="reward-error">{p.error}</Text>}
+        {p.error && (p.retryAction
+          ? <View style={[styles.retryArea, { top: L.statsTop, left: 16, right: 16 }]} testID={p.retryContainerTestID}>
+            <ScrollView contentContainerStyle={styles.retryContent} showsVerticalScrollIndicator={false}>
+              <Text style={styles.retryError} testID={p.errorTestID ?? 'reward-error'} accessibilityRole="alert">{p.error}</Text>
+              {p.retryAction}
+            </ScrollView>
+          </View>
+          : <Text style={[styles.error, { bottom: L.totalH - L.collectionTop + 8 }]}
+            testID={p.errorTestID ?? 'reward-error'} accessibilityRole="alert">{p.error}</Text>)}
 
-        <Pressable testID="reward-collection" accessibilityRole="button" accessibilityLabel="Collection" disabled={!actionable}
+        {showActions && <Pressable testID={p.collectionTestID ?? 'reward-collection'} accessibilityRole="button" accessibilityLabel="Collection" disabled={!actionable}
           accessibilityState={{ disabled: !actionable }} onPress={p.onCollection}
           style={({ pressed }) => [styles.imgButton, { left: side, top: L.collectionTop, width: L.buttonW, height: L.collectionH, opacity: !actionable ? 0.5 : pressed ? 0.85 : 1, transform: [{ scale: pressed ? 0.98 : 1 }] }]}>
           <Image source={COLLECTION} style={styles.fill} contentFit="contain" transition={0} accessible={false} />
-        </Pressable>
-        <Pressable testID="reward-continue" accessibilityRole="button" accessibilityLabel="Continue" disabled={!actionable}
+        </Pressable>}
+        {showActions && <Pressable testID={p.continueTestID ?? 'reward-continue'} accessibilityRole="button" accessibilityLabel="Continue" disabled={!actionable}
           accessibilityState={{ disabled: !actionable }} onPress={p.onContinue}
           style={({ pressed }) => [styles.imgButton, { left: side, top: L.continueTop, width: L.buttonW, height: L.continueH, opacity: !actionable ? 0.5 : pressed ? 0.85 : 1, transform: [{ scale: pressed ? 0.98 : 1 }] }]}>
           <Image source={CONTINUE} style={styles.fill} contentFit="contain" transition={0} accessible={false} />
-        </Pressable>
+        </Pressable>}
 
-        <View style={[styles.stats, { position: 'absolute', top: L.statsTop, left: 16, right: 16 }]} testID="reward-result-stats">
+        {showStats && <View style={[styles.stats, { position: 'absolute', top: L.statsTop, left: 16, right: 16 }]} testID="reward-result-stats">
           <Stat label="SCORE" value={p.score} testID="reward-score" />
           <View style={styles.divider} />
           <Stat label="TIME" value={p.time} testID="reward-time" />
           <View style={styles.divider} />
           <Stat label="COINS EARNED" value={p.coins} testID="reward-coins" />
-        </View>
+        </View>}
+        {notes.length > 0 && <View style={[styles.purchaseNote, { position: 'absolute', top: L.statsTop, left: 16, right: 16 }]}
+          testID="treasure-reward-note" accessibilityRole="summary">
+          {notes.map(note => <Text key={note} style={styles.purchaseNoteText}>{note}</Text>)}
+        </View>}
       </View>
     </ScrollView>
   </View>;
@@ -171,6 +200,7 @@ const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: homeColors.background },
   fill: { width: '100%', height: '100%' },
   close: { position: 'absolute', top: 10, left: 12, width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255,240,208,0.85)', zIndex: 2 },
+  status: { position: 'absolute', left: 20, right: 20, color: '#c8322b', fontFamily: 'Inter_700Bold', fontSize: 15, textAlign: 'center', zIndex: 2 },
   namePanel: { position: 'absolute', alignItems: 'center', justifyContent: 'center' },
   name: {
     color: homeColors.goldSoft, fontFamily: 'Inter_700Bold', letterSpacing: 0.35, textAlign: 'center',
@@ -178,6 +208,9 @@ const styles = StyleSheet.create({
   },
   imgButton: { position: 'absolute' },
   error: { position: 'absolute', left: 20, right: 20, textAlign: 'center', color: homeColors.ink, fontFamily: 'Inter_600SemiBold', fontSize: 12, backgroundColor: 'rgba(255,240,208,0.92)', borderRadius: 10, paddingVertical: 4, paddingHorizontal: 10, overflow: 'hidden' },
+  retryArea: { position: 'absolute', maxHeight: 150, zIndex: 2, borderRadius: 16, backgroundColor: homeColors.background },
+  retryContent: { padding: 12, gap: 10 },
+  retryError: { color: '#c8322b', fontFamily: 'Inter_600SemiBold', fontSize: 13, textAlign: 'center' },
   // Identical to DailyCompletion stats styling.
   stats: {
     flexDirection: 'row', alignSelf: 'stretch', alignItems: 'center',
@@ -188,4 +221,6 @@ const styles = StyleSheet.create({
   statLabel: { color: homeColors.softInk, fontFamily: 'Inter_700Bold', fontSize: 11, letterSpacing: 0.8, textAlign: 'center' },
   statValue: { color: homeColors.ink, fontFamily: 'Inter_700Bold', fontSize: 22, textAlign: 'center' },
   divider: { width: 1, alignSelf: 'stretch', backgroundColor: homeColors.tileBorder },
+  purchaseNote: { alignItems: 'center', justifyContent: 'center', gap: 4 },
+  purchaseNoteText: { color: homeColors.softInk, fontFamily: 'Inter_500Medium', fontSize: 12, lineHeight: 17, textAlign: 'center' },
 });

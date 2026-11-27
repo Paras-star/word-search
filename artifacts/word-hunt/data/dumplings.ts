@@ -42,6 +42,18 @@ export const DUMPLINGS: Dumpling[] = [
   { id: 'solar-gold', name: 'Solar Gold', rarity: 'Epic', asset: require('../assets/images/dumplings/epic/solar-gold.png') },
   { id: 'celestial-emperor', name: 'Celestial Emperor', rarity: 'Legendary', asset: require('../assets/images/dumplings/legendary/celestial-emperor.png') },
   { id: 'dragon-jade', name: 'Dragon Jade', rarity: 'Legendary', asset: require('../assets/images/dumplings/legendary/dragon-jade.png') },
+  // BEGIN collection expansion — original uploaded PNGs, without processing.
+  { id: 'phoenix-blaze', name: 'Phoenix Blaze', rarity: 'Legendary', asset: require('../../../attached_assets/Legendary-Phoenix-Blaze_1795795943824.png') },
+  { id: 'deep-oceanic', name: 'Deep Oceanic', rarity: 'Epic', asset: require('../../../attached_assets/Epic-Deep-Oceanic_1795795943823.png') },
+  { id: 'forest-sprite', name: 'Forest Sprite', rarity: 'Rare', asset: require('../../../attached_assets/Rare-Forest-Sprite_1795795943822.png') },
+  { id: 'cosmic-stardust', name: 'Cosmic Stardust', rarity: 'Rare', asset: require('../../../attached_assets/Rare-Cosmic-Stardust_1795795943822.png') },
+  { id: 'berry-swirl', name: 'Berry Swirl', rarity: 'Uncommon', asset: require('../../../attached_assets/Uncommon-Berry-Swirl_1795795943819.png') },
+  { id: 'honey-butter', name: 'Honey Butter', rarity: 'Uncommon', asset: require('../../../attached_assets/Uncommon-Honey-Butter_1795795943818.png') },
+  { id: 'blueberry', name: 'Blueberry', rarity: 'Uncommon', asset: require('../../../attached_assets/Uncommon-Blueberry_1795795943819.png') },
+  { id: 'plum-velvet', name: 'Plum Velvet', rarity: 'Common', asset: require('../../../attached_assets/Common-Plum-Velvet_1795795943821.png') },
+  { id: 'choco-drizzle', name: 'Choco Drizzle', rarity: 'Common', asset: require('../../../attached_assets/Common-Choco-Drizzle_1795795943821.png') },
+  { id: 'lemon-zing', name: 'Lemon Zing', rarity: 'Common', asset: require('../../../attached_assets/Common-Lemon-Zing_1795795943820.png') },
+  // END collection expansion
 ];
 
 export const DUMPLING_BY_ID = Object.fromEntries(DUMPLINGS.map((dumpling) => [dumpling.id, dumpling])) as Record<string, Dumpling>;

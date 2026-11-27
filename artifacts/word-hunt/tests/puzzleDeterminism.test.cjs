@@ -8,17 +8,23 @@ const {
 
 const original = fs.readFileSync(originalFile, 'utf8');
 const fixtures = JSON.parse(fs.readFileSync(fixtureFile, 'utf8'));
+const newLevelFixtures = JSON.parse(fs.readFileSync(
+  path.join(root, 'tests/fixtures/new-level-puzzle-hashes.json'), 'utf8'));
 const api = loadModule('game/puzzle.ts');
 
-test('golden fixtures preserve their original generator and cover six introductions and all 18 categories with multiple seeds', () => {
+test('golden fixtures preserve the generator and cover six introductions and all 22 categories', () => {
   assert.equal(hash(original), fixtures.originalSourceSha256);
   for (let step = 0; step < 6; step++) {
     assert.ok(fixtures.cases.some(input => input.group === `intro-${step}`));
   }
   const { CATEGORIES } = loadModule('data/categories.ts');
-  assert.equal(CATEGORIES.length, 18);
+  assert.equal(CATEGORIES.length, 22);
+  const additions = new Set(['mythology', 'kitchen', 'transport', 'buildings']);
   for (const category of CATEGORIES) {
-    assert.ok(fixtures.cases.filter(input => input.group === category.id).length >= 4, category.id);
+    const fixtureCount = additions.has(category.id)
+      ? newLevelFixtures.cases.filter(input => input.categoryId === category.id).length
+      : fixtures.cases.filter(input => input.group === category.id).length;
+    assert.ok(fixtureCount >= 4, category.id);
   }
   for (const category of ['countries', 'nature', 'technology', 'vegetables']) {
     assert.ok(fixtures.cases.filter(input => input.group === category).length >= 30, category);
@@ -26,6 +32,17 @@ test('golden fixtures preserve their original generator and cover six introducti
   assert.ok(fixtures.cases.some(input => input.seed === 'diagnosis:countries:52'));
   assert.ok(fixtures.cases.some(input => input.group === 'animals-first'));
   assert.ok(fixtures.cases.some(input => input.group === 'daily'));
+});
+
+test('new categories match deterministic puzzle hash fixtures across four seeds each', () => {
+  const { CATEGORIES } = loadModule('data/categories.ts');
+  assert.equal(newLevelFixtures.cases.length, 16);
+  for (const input of newLevelFixtures.cases) {
+    const category = CATEGORIES.find(item => item.id === input.categoryId);
+    assert.ok(category, `Missing category ${input.categoryId}`);
+    assert.equal(hash(JSON.stringify(api.generatePuzzle(category, input.seed))), input.sha256,
+      `${input.categoryId}: ${input.seed}`);
+  }
 });
 
 test('every complete generated output matches the pre-optimization fixture exactly', () => {

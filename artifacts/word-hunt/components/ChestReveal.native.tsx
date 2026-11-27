@@ -23,9 +23,9 @@ export function ChestReveal({ opening, dumpling, onRevealed, onPress, disabled, 
   const [closedRetry, setClosedRetry] = useState(0);
   const [rendererCount, setRendererCount] = useState(0);
   const [loadedCount, setLoadedCount] = useState(0);
+  const [firstFrameReady, setFirstFrameReady] = useState(false);
   const [failed, setFailed] = useState(false);
   const clock = useSharedValue(0);
-  const size = useSharedValue(0);
   const started = useRef(false);
   const completed = useRef(false);
   const mounted = useRef(true);
@@ -39,7 +39,7 @@ export function ChestReveal({ opening, dumpling, onRevealed, onPress, disabled, 
   const generation = useRef(0);
   const rendererEpoch = useRef(0);
   const rendererGeneration = rendererEpoch.current;
-  const rendererReady = !!assets && loadedCount === assets.atlases.length;
+  const rendererReady = !!assets && loadedCount === assets.atlases.length && firstFrameReady;
 
   const prepare = useCallback(() => {
     const current = ++generation.current;
@@ -111,6 +111,11 @@ export function ChestReveal({ opening, dumpling, onRevealed, onPress, disabled, 
   const onAtlasLoaded = useCallback((index: number) => {
     if (mounted.current) setLoadedCount(count => Math.max(count, index + 1));
   }, []);
+  const onAtlasDisplayed = useCallback((index: number) => {
+    if (mounted.current && index === 0 && rendererGeneration === rendererEpoch.current) {
+      setFirstFrameReady(true);
+    }
+  }, [rendererGeneration]);
 
   useLayoutEffect(() => {
     if (!opening || !dumpling || !assets || !audioReady || !layoutReady || !rendererReady || failed || started.current) return;
@@ -139,15 +144,14 @@ export function ChestReveal({ opening, dumpling, onRevealed, onPress, disabled, 
         accessibilityState={{ disabled: !interactive }} testID={testID} style={styles.fill}
         onLayout={event => {
           const width = event.nativeEvent.layout.width;
-          size.value = width;
           if (width > 0 && !layoutReady) setLayoutReady(true);
         }}>
         <View style={styles.fill} testID="chest-reveal-slot">
           {assets && rendererCount > 0 && <>
-            <ChestFrameRenderer atlases={assets.atlases.slice(0, rendererCount)} clock={clock} size={size}
+             <ChestFrameRenderer atlases={assets.atlases.slice(0, rendererCount)} clock={clock}
               onLoad={index => {
                 if (mounted.current && rendererGeneration === rendererEpoch.current) onAtlasLoaded(index);
-              }} onError={() => {
+               }} onDisplay={onAtlasDisplayed} onError={() => {
                 if (mounted.current && rendererGeneration === rendererEpoch.current) setFailed(true);
               }} />
             <Animated.View style={[styles.dumpling, artworkStyle]} testID="chest-revealed-artwork" pointerEvents="none">
@@ -170,6 +174,7 @@ export function ChestReveal({ opening, dumpling, onRevealed, onPress, disabled, 
         rendererEpoch.current++;
         setRendererCount(0);
         setLoadedCount(0);
+        setFirstFrameReady(false);
         setClosedRetry(count => count + 1);
         if (closedReady) prepare();
       }} style={styles.retry} testID="chest-retry" accessibilityRole="button">

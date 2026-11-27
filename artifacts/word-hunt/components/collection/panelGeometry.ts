@@ -24,7 +24,7 @@ export const PANEL_GEOMETRY: Record<DumplingRarity, PanelGeometry> = {
     "width": 507,
     "height": 249,
     "rows": [
-      2
+      3
     ],
     "counter": {
       "x": 406,
@@ -34,26 +34,39 @@ export const PANEL_GEOMETRY: Record<DumplingRarity, PanelGeometry> = {
     },
     "slots": [
       {
-        "cx": 185,
+        "cx": 118,
         "dumplingTop": 104,
         "dumplingSize": 78,
         "pedestalTop": 167,
         "pedestalBottom": 210,
         "label": {
-          "x": 151,
+          "x": 84,
           "y": 188,
           "w": 69,
           "h": 21
         }
       },
       {
-        "cx": 321,
+        "cx": 253,
         "dumplingTop": 104,
         "dumplingSize": 78,
         "pedestalTop": 167,
         "pedestalBottom": 210,
         "label": {
-          "x": 287,
+          "x": 219,
+          "y": 188,
+          "w": 69,
+          "h": 21
+        }
+      },
+      {
+        "cx": 388,
+        "dumplingTop": 104,
+        "dumplingSize": 78,
+        "pedestalTop": 167,
+        "pedestalBottom": 210,
+        "label": {
+          "x": 354,
           "y": 188,
           "w": 69,
           "h": 21
@@ -63,9 +76,10 @@ export const PANEL_GEOMETRY: Record<DumplingRarity, PanelGeometry> = {
   },
   "Epic": {
     "width": 515,
-    "height": 237,
+    "height": 340,
     "rows": [
-      4
+      4,
+      1
     ],
     "counter": {
       "x": 412,
@@ -125,15 +139,29 @@ export const PANEL_GEOMETRY: Record<DumplingRarity, PanelGeometry> = {
           "w": 59,
           "h": 18
         }
+      },
+      {
+        "cx": 257,
+        "dumplingTop": 198,
+        "dumplingSize": 67,
+        "pedestalTop": 252,
+        "pedestalBottom": 291,
+        "label": {
+          "x": 228,
+          "y": 271,
+          "w": 59,
+          "h": 18
+        }
       }
     ]
   },
   "Rare": {
     "width": 523,
-    "height": 428,
+    "height": 552,
     "rows": [
       3,
-      2
+      3,
+      1
     ],
     "counter": {
       "x": 423,
@@ -182,27 +210,53 @@ export const PANEL_GEOMETRY: Record<DumplingRarity, PanelGeometry> = {
         }
       },
       {
-        "cx": 191,
+        "cx": 120,
         "dumplingTop": 244,
         "dumplingSize": 78,
         "pedestalTop": 307,
         "pedestalBottom": 358,
         "label": {
-          "x": 157,
+          "x": 86,
           "y": 332,
           "w": 69,
           "h": 21
         }
       },
       {
-        "cx": 331,
+        "cx": 261,
         "dumplingTop": 244,
         "dumplingSize": 78,
         "pedestalTop": 307,
         "pedestalBottom": 358,
         "label": {
-          "x": 297,
+          "x": 227,
           "y": 332,
+          "w": 69,
+          "h": 21
+        }
+      },
+      {
+        "cx": 402,
+        "dumplingTop": 244,
+        "dumplingSize": 78,
+        "pedestalTop": 307,
+        "pedestalBottom": 358,
+        "label": {
+          "x": 368,
+          "y": 332,
+          "w": 69,
+          "h": 21
+        }
+      },
+      {
+        "cx": 261,
+        "dumplingTop": 368,
+        "dumplingSize": 78,
+        "pedestalTop": 431,
+        "pedestalBottom": 482,
+        "label": {
+          "x": 227,
+          "y": 456,
           "w": 69,
           "h": 21
         }
@@ -211,9 +265,10 @@ export const PANEL_GEOMETRY: Record<DumplingRarity, PanelGeometry> = {
   },
   "Uncommon": {
     "width": 524,
-    "height": 387,
+    "height": 497,
     "rows": [
       4,
+      3,
       3
     ],
     "counter": {
@@ -313,16 +368,56 @@ export const PANEL_GEOMETRY: Record<DumplingRarity, PanelGeometry> = {
           "w": 59,
           "h": 18
         }
+      },
+      {
+        "cx": 156,
+        "dumplingTop": 331,
+        "dumplingSize": 67,
+        "pedestalTop": 385,
+        "pedestalBottom": 431,
+        "label": {
+          "x": 127,
+          "y": 407,
+          "w": 59,
+          "h": 18
+        }
+      },
+      {
+        "cx": 262,
+        "dumplingTop": 331,
+        "dumplingSize": 67,
+        "pedestalTop": 385,
+        "pedestalBottom": 431,
+        "label": {
+          "x": 233,
+          "y": 407,
+          "w": 59,
+          "h": 18
+        }
+      },
+      {
+        "cx": 367,
+        "dumplingTop": 331,
+        "dumplingSize": 67,
+        "pedestalTop": 385,
+        "pedestalBottom": 431,
+        "label": {
+          "x": 338,
+          "y": 407,
+          "w": 59,
+          "h": 18
+        }
       }
     ]
   },
   "Common": {
     "width": 523,
-    "height": 486,
+    "height": 594,
     "rows": [
       4,
       4,
-      4
+      4,
+      3
     ],
     "counter": {
       "x": 415,
@@ -483,6 +578,45 @@ export const PANEL_GEOMETRY: Record<DumplingRarity, PanelGeometry> = {
         "label": {
           "x": 390,
           "y": 395,
+          "w": 59,
+          "h": 18
+        }
+      },
+      {
+        "cx": 156,
+        "dumplingTop": 426,
+        "dumplingSize": 67,
+        "pedestalTop": 480,
+        "pedestalBottom": 524,
+        "label": {
+          "x": 127,
+          "y": 503,
+          "w": 59,
+          "h": 18
+        }
+      },
+      {
+        "cx": 261,
+        "dumplingTop": 426,
+        "dumplingSize": 67,
+        "pedestalTop": 480,
+        "pedestalBottom": 524,
+        "label": {
+          "x": 232,
+          "y": 503,
+          "w": 59,
+          "h": 18
+        }
+      },
+      {
+        "cx": 367,
+        "dumplingTop": 426,
+        "dumplingSize": 67,
+        "pedestalTop": 480,
+        "pedestalBottom": 524,
+        "label": {
+          "x": 338,
+          "y": 503,
           "w": 59,
           "h": 18
         }

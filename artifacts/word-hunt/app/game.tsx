@@ -149,7 +149,7 @@ function GameSession({ params }: { params: GameParams }) {
   const daily = !onboarding && rawDailyDate !== undefined && parseLocalDateKey(rawDailyDate)
     ? { category: dailyCategory(rawDailyDate), seed: dailySeed(rawDailyDate) } : null;
   const expandedWordCount = onboarding?.words.length
-    ?? (!daily && ['human-anatomy', 'emotions', 'workshop'].includes(categoryId ?? '') ? getCategory(categoryId).words.length : 0);
+    ?? (!daily && ['human-anatomy', 'emotions', 'workshop', 'mythology', 'kitchen', 'transport', 'buildings'].includes(categoryId ?? '') ? getCategory(categoryId).words.length : 0);
   const extraWordHeight = Math.max(0, Math.ceil(expandedWordCount / 3) - 3) * 29;
   const boardSize = Math.max(0, Math.min(width - GAME_PADDING * 2, BOARD_MAX_WIDTH, height - top - bottom - NON_BOARD_HEIGHT - (onboarding ? 48 + extraWordHeight : daily ? 28 : extraWordHeight)));
   const mode: GameMode = onboarding || daily ? 'classic' : rawMode === 'time' ? 'time' : 'classic';

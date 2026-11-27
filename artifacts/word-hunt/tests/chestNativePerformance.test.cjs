@@ -21,9 +21,9 @@ function find(tree, id) {
 }
 const jsx = (type, props) => ({ type, props });
 
-test('decoded native cache is single-flight and bounded; re-entry does not decode any of the 73 frames or 30 rewards again', async () => {
+test('decoded native cache is single-flight and bounded; re-entry does not decode any of the 73 frames or 40 rewards again', async () => {
   const decoded = [];
-  const dumplings = Array.from({ length: 30 }, (_, i) => ({ id: `d${i}`, asset: 100 + i }));
+  const dumplings = Array.from({ length: 40 }, (_, i) => ({ id: `d${i}`, asset: 100 + i }));
   const cache = load('services/chestPreparation.ts', name => {
     if (name === 'expo-image') return { Image: { loadAsync: async (source, options) => {
       decoded.push({ source, options }); return { source, bitmap: true };
@@ -35,17 +35,17 @@ test('decoded native cache is single-flight and bounded; re-entry does not decod
   const first = cache.prepareChestAssets();
   assert.equal(cache.prepareChestAssets(), first);
   const refs = await first;
-  assert.equal(decoded.length, 37);
+  assert.equal(decoded.length, 47);
   assert.equal(decoded[0].source, 6, 'small closed frame is decoded before any opening resources');
   assert.equal(refs.atlases.length, 5);
-  assert.equal(refs.dumplings.size, 30);
+  assert.equal(refs.dumplings.size, 40);
   assert.ok(decoded.filter(x => x.source >= 100).every(x => x.options.maxWidth === 384 && x.options.maxHeight === 384));
   for (let i = 0; i < 25; i++) assert.equal(await cache.prepareChestAssets(), refs);
-  assert.equal(decoded.length, 37);
+  assert.equal(decoded.length, 47);
   assert.equal(cache.getPreparedChest(), refs);
   assert.equal((await cache.prepareClosedChest()).source, 6);
   assert.equal(cache.getPreparedClosedChest().source, 6);
-  assert.equal(decoded.length, 37);
+  assert.equal(decoded.length, 47);
 });
 
 test('cold preparation overlaps independent small images with only one atlas decoder and at most two total loads', async () => {
@@ -62,7 +62,7 @@ test('cold preparation overlaps independent small images with only one atlas dec
         resolve({ source });
       } }));
     } } };
-    if (name === '@/data/dumplings') return { DUMPLINGS: Array.from({ length: 30 }, (_, i) => ({ id: `d${i}`, asset: 100 + i })) };
+    if (name === '@/data/dumplings') return { DUMPLINGS: Array.from({ length: 40 }, (_, i) => ({ id: `d${i}`, asset: 100 + i })) };
     if (name === '@/components/chestAnimationData') return { CHEST_ATLASES: [0, 1, 2, 3, 4], CHEST_FRONT: 5, CHEST_CLOSED: 6 };
     throw Error(name);
   });
@@ -75,17 +75,17 @@ test('cold preparation overlaps independent small images with only one atlas dec
     for (const job of ready) { jobs.splice(jobs.indexOf(job), 1); job.finish(); }
   }
   await pending;
-  assert.equal(calls.length, 37);
-  assert.equal(now, 320, '10 ms simulated loads: closed + max(5 atlases, rim + 30 collectibles)');
+  assert.equal(calls.length, 47);
+  assert.equal(now, 420, '10 ms simulated loads: closed + max(5 atlases, rim + 40 collectibles)');
   assert.equal(peak, 2);
   assert.equal(peakAtlases, 1);
   assert.ok(calls.filter(x => x.source >= 100).every(x => x.options.maxWidth === 384 && x.options.maxHeight === 384));
   assert.equal(calls[0].source, 6);
   await cache.prepareChestAssets();
-  assert.equal(calls.length, 37, 'warm entry adds no image loads');
+  assert.equal(calls.length, 47, 'warm entry adds no image loads');
 });
 
-function nativeHarness({ preparationFails = false, cold = false, displayClosed = true, platform = 'android' } = {}) {
+function nativeHarness({ preparationFails = false, cold = false, displayClosed = true, displayFirstFrame = true, platform = 'android' } = {}) {
   let index = 0, dirty = false, tree, effects = [], renders = 0, opening = false, now = 0;
   let callbacks = 0, plays = 0, taps = 0, failure = preparationFails;
   const hooks = [], shared = [], listeners = new Set(), timers = new Map(), jsQueue = [];
@@ -188,6 +188,13 @@ function nativeHarness({ preparationFails = false, cold = false, displayClosed =
       }
     },
     displayClosed() { find(tree, 'chest-closed-frame').props.children.props.onDisplay(); },
+    displayFirstAtlasFrame() {
+      const sprite = find(tree, 'chest-reveal-slot').props.children[0];
+      const native = sprite.props.children[0];
+      const rendered = native.type(native.props);
+      const atlas = rendered.props.children.find(child => child.props.index === 0);
+      atlas.type(atlas.props).props.children.props.onDisplay();
+    },
     resolvePreparation() { resolveAssets?.(cached); },
     idleTurn() {
       const batch = [...idleQueue.values()]; idleQueue.clear(); batch.forEach(fn => fn());
@@ -205,10 +212,11 @@ function nativeHarness({ preparationFails = false, cold = false, displayClosed =
       for (const atlas of rendered.props.children) if (!loadedAtlases.has(atlas.props.index)) {
         loadedAtlases.add(atlas.props.index);
         const image = atlas.type(atlas.props).props.children;
-        // expo-image iOS renders SharedRef<UIImage> directly: onDisplay fires,
-        // but the URL-loader's onLoad event does not. Android uses Glide/onLoad.
-        if (platform === 'ios') image.props.onDisplay?.();
-        else image.props.onLoad();
+        // The first cropped atlas frame must be displayed before opening.
+        // iOS SharedRefs acknowledge readiness via onDisplay; Android also
+        // needs onLoad for each progressively mounted atlas.
+        if (atlas.props.index !== 0 || displayFirstFrame) image.props.onDisplay?.();
+        if (platform !== 'ios') image.props.onLoad();
       }
     },
     advanceUI(ms) {
@@ -231,6 +239,7 @@ function nativeHarness({ preparationFails = false, cold = false, displayClosed =
       const rendered = sprite.type(sprite.props);
       return rendered.props.children.map(atlas => atlas.type(atlas.props).props.style.at(-1).read());
     },
+    setClock(value) { shared[0].value = value; },
     emit(state) { for (const fn of listeners) fn(state); },
     retry() { failure = false; loadedAtlases.clear(); find(tree, 'chest-retry').props.onPress(); },
     unmount() { hooks.forEach(hook => hook?.cleanup?.()); },
@@ -255,7 +264,8 @@ test('Android keeps reward and rim mounted before opening; clock/play start with
   h.advanceUI(1001);
   const styles = h.atlasStyles();
   assert.equal(styles[1].opacity, 1); // frame24: sheet1, tile8
-  assert.equal(styles[1].transform[1].translateY, -648);
+  assert.equal(styles[1].top, '-200%');
+  assert.equal(styles[1].left, '0%');
   assert.equal(h.renders, before, 'no React render or JS tick needed for native frame progression');
   h.advanceUI(1499);
   assert.ok(find(h.tree, 'chest-revealed-artwork').props.style.at(-1).read().opacity > 0);
@@ -316,6 +326,45 @@ test('native renderer mounts incrementally only after closed-frame display, layo
   h.advanceUI(1);
   assert.equal(find(h.tree, 'chest-closed-frame').props.style.at(-1).read().opacity, 0,
     'the cover is removed by the native clock, without a React render');
+  h.unmount();
+});
+
+test('native crop stays on the closed first atlas tile until its first crop is actually displayed', async () => {
+  const h = nativeHarness({ displayFirstFrame: false });
+  await h.flushJS();
+  assert.equal(h.rendererCount, 5);
+  assert.equal(find(h.tree, 'tap').props.disabled, true, 'decoded images alone do not release the chest');
+  assert.equal(find(h.tree, 'chest-closed-frame').props.style.at(-1).read().opacity, 1);
+  h.displayFirstAtlasFrame();
+  await h.flushJS();
+  assert.equal(find(h.tree, 'tap').props.disabled, false, 'the first correctly positioned crop has now displayed');
+  assert.equal(find(h.tree, 'chest-closed-frame').props.style.at(-1).read().opacity, 1);
+  h.render(true);
+  assert.equal(h.plays, 1);
+  assert.equal(find(h.tree, 'chest-closed-frame').props.style.at(-1).read().opacity, 1,
+    'the cover remains until the animation clock advances');
+  h.unmount();
+});
+
+test('all 73 frame indices select one exact viewport-relative crop with no sheet-boundary gaps', async () => {
+  const h = nativeHarness();
+  await h.flushJS();
+  const expected = [
+    [0, 0], [-100, 0], [-200, 0], [-300, 0],
+    [0, -100], [-100, -100], [-200, -100], [-300, -100],
+    [0, -200], [-100, -200], [-200, -200], [-300, -200],
+    [0, -300], [-100, -300], [-200, -300], [-300, -300],
+  ];
+  for (let frame = 0; frame < 73; frame++) {
+    h.setClock(frame * 1000 / 24 + 0.01);
+    const styles = h.atlasStyles();
+    const atlasIndex = Math.floor(frame / 16);
+    const [left, top] = expected[frame % 16];
+    assert.equal(styles.filter(style => style.opacity === 1).length, 1, `frame ${frame} has one visible atlas`);
+    assert.equal(styles[atlasIndex].left, `${left}%`, `frame ${frame} horizontal crop`);
+    assert.equal(styles[atlasIndex].top, `${top}%`, `frame ${frame} vertical crop`);
+    assert.ok(styles.every(style => style.left && style.top), `frame ${frame} has no unset crop origin`);
+  }
   h.unmount();
 });
 

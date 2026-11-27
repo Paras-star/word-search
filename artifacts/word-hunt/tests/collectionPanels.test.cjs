@@ -51,11 +51,11 @@ function all(tree) {
 }
 const find = (tree, id) => all(tree).find(n => n.props?.testID === id);
 const text = tree => [tree?.props?.children].flat(Infinity).filter(x => typeof x === 'string' || typeof x === 'number').join('');
-const counts = { Legendary: 2, Epic: 4, Rare: 5, Uncommon: 7, Common: 12 };
+const counts = { Legendary: 3, Epic: 5, Rare: 7, Uncommon: 10, Common: 15 };
 
-test('exactly 30 unique catalog entries map one-to-one to distinct pedestal spaces', () => {
-  assert.equal(data.DUMPLINGS.length, 30);
-  assert.equal(new Set(data.DUMPLINGS.map(d => d.id)).size, 30);
+test('exactly 40 unique catalog entries map one-to-one to distinct pedestal spaces', () => {
+  assert.equal(data.DUMPLINGS.length, 40);
+  assert.equal(new Set(data.DUMPLINGS.map(d => d.id)).size, 40);
   assert.deepEqual(Object.keys(geometry), Object.keys(counts));
   for (const [rarity, count] of Object.entries(counts)) {
     const g = geometry[rarity];
@@ -68,12 +68,14 @@ test('exactly 30 unique catalog entries map one-to-one to distinct pedestal spac
     assert.equal(png.readUInt32BE(20), g.height);
     assert.equal(png[25], 6, 'RGBA preserves transparent exterior');
   }
-  assert.deepEqual(geometry.Rare.rows, [3, 2]);
-  assert.deepEqual(geometry.Uncommon.rows, [4, 3]);
-  assert.deepEqual(geometry.Common.rows, [4, 4, 4]);
+  assert.deepEqual(geometry.Legendary.rows, [3]);
+  assert.deepEqual(geometry.Epic.rows, [4, 1]);
+  assert.deepEqual(geometry.Rare.rows, [3, 3, 1]);
+  assert.deepEqual(geometry.Uncommon.rows, [4, 3, 3]);
+  assert.deepEqual(geometry.Common.rows, [4, 4, 4, 3]);
 });
 
-for (const [width, height] of [[360, 640], [412, 915]]) {
+for (const [width, height] of [[320, 568], [360, 640], [412, 915], [768, 1024]]) {
   test(`${width} × ${height}: panels keep aspect ratio and every slot stays aligned within its own pedestal space`, () => {
     for (const rarity of Object.keys(counts)) {
       const g = geometry[rarity], w = width - 20, k = w / g.width;
@@ -117,6 +119,7 @@ test('every rarity renders actual owned art and locked placeholders from its own
           assert.equal(art.props.source, d.asset);
           assert.equal(art.props.resizeMode, 'contain');
           assert.equal(find(rendered, `locked-${d.id}`), undefined);
+          assert.ok(all(rendered).some(n => n.type === 'Text' && text(n) === d.name));
         } else {
           assert.ok(find(rendered, `locked-${d.id}`));
           assert.equal(find(rendered, `dumpling-art-${d.id}`), undefined);
@@ -172,8 +175,8 @@ test('collection progress, new-item scroll/highlight, visibility and live rarity
   const h = screenHarness({ ids, newId: 'ivory-classic' });
   await h.settle();
   const progress = find(h.tree, 'collection-progress');
-  assert.ok(all(progress).some(n => n.type === 'Text' && text(n) === '10%'));
-  assert.ok(all(progress).some(n => n.type === 'Text' && text(n) === '3 of 30 collected'));
+  assert.ok(all(progress).some(n => n.type === 'Text' && text(n) === '8%'));
+  assert.ok(all(progress).some(n => n.type === 'Text' && text(n) === '3 of 40 collected'));
   const list = find(h.tree, 'collection-panels');
   assert.deepEqual(list.props.data.map(p => p.rarity), Object.keys(counts));
   assert.equal(list.props.initialScrollIndex, 4);
@@ -216,7 +219,7 @@ test('background explicitly fills its container without resizing the five panels
     assert.equal(background.props.source, '../assets/images/backgrounds/night-forest-background.png');
     const list = find(h.tree, 'collection-panels');
     assert.equal(list.props.data.length, 5);
-    assert.equal(list.props.data.reduce((sum, panel) => sum + panel.items.length, 0), 30);
+    assert.equal(list.props.data.reduce((sum, panel) => sum + panel.items.length, 0), 40);
     for (const item of list.props.data) {
       assert.equal(list.props.renderItem({ item }).props.children.props.width, width - 20);
     }

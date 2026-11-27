@@ -24,6 +24,10 @@ const { scoreFoundWord } = load('game/scoring.ts', { '@/constants/homePalette': 
 const expected = {
   emotions: ['COURAGE', 'CURIOSITY', 'PATIENCE', 'HONESTY', 'KINDNESS', 'JEALOUSY', 'WONDER', 'ANXIETY', 'PRIDE', 'EMPATHY', 'RESILIENCE', 'LOYALTY', 'HUMILITY', 'OPTIMISM', 'FEAR', 'GRATITUDE'],
   workshop: ['HAMMER', 'WRENCH', 'SCREWDRIVER', 'PLIERS', 'CHISEL', 'DRILL', 'HACKSAW', 'CLAMP', 'ANVIL', 'SOLDERING', 'SANDPAPER', 'LEVELER', 'RIVET', 'PULLEY', 'VISE', 'TAPEMEASURE'],
+  mythology: ['ZEUS', 'ATHENA', 'ODIN', 'THOR', 'LOKI', 'ANUBIS', 'RA', 'HADES', 'MEDUSA', 'PEGASUS', 'PHOENIX', 'CYCLOPS', 'MERMAID', 'CENTAUR', 'DRAGON', 'VALKYRIE'],
+  kitchen: ['WHISK', 'LADLE', 'SPATULA', 'COLANDER', 'GRATER', 'PEELER', 'KETTLE', 'TOASTER', 'BLENDER', 'OVEN', 'SKILLET', 'SAUCEPAN', 'TONGS', 'APRON', 'ROLLINGPIN', 'CUTTINGBOARD'],
+  transport: ['BICYCLE', 'SCOOTER', 'MOTORCYCLE', 'BUS', 'TRAM', 'SUBWAY', 'HELICOPTER', 'AIRPLANE', 'GLIDER', 'FERRY', 'YACHT', 'CANOE', 'TRACTOR', 'AMBULANCE', 'LOCOMOTIVE', 'RICKSHAW'],
+  buildings: ['CASTLE', 'MUSEUM', 'LIBRARY', 'HOSPITAL', 'STADIUM', 'TEMPLE', 'MOSQUE', 'CHURCH', 'PALACE', 'LIGHTHOUSE', 'FACTORY', 'AIRPORT', 'STATION', 'THEATRE', 'MONUMENT', 'AQUARIUM'],
 };
 const original = CATEGORIES.filter(category => !Object.hasOwn(expected, category.id));
 
@@ -42,15 +46,22 @@ function screenDeclaration(name, bindings) {
   return new Function(...Object.keys(bindings), `${js};return ${name};`)(...Object.values(bindings));
 }
 
-test('new categories follow Anatomy in exact order with 16 exact, unique targets each', () => {
-  assert.equal(CATEGORIES.length, 18);
-  assert.equal(new Set(CATEGORIES.map(category => category.id)).size, 18);
-  assert.deepEqual(CATEGORIES.slice(-3).map(category => category.id), ['human-anatomy', 'emotions', 'workshop']);
+test('new categories follow Workshop in exact order with 16 exact, unique targets each', () => {
+  assert.equal(CATEGORIES.length, 22);
+  assert.equal(new Set(CATEGORIES.map(category => category.id)).size, 22);
+  assert.deepEqual(CATEGORIES.slice(-7).map(category => category.id),
+    ['human-anatomy', 'emotions', 'workshop', 'mythology', 'kitchen', 'transport', 'buildings']);
+  assert.equal(getCategory('food').emoji, '🥗');
   assert.equal(getCategory('emotions').name, 'Emotions');
   assert.equal(getCategory('workshop').name, 'Workshop');
+  assert.deepEqual(['mythology', 'kitchen', 'transport'].map(id => {
+    const category = getCategory(id);
+    return [category.name, category.emoji];
+  }), [['Mythology', '🐉'], ['Kitchen', '🍴'], ['Transport', '✈️']]);
+  assert.deepEqual([getCategory('buildings').name, getCategory('buildings').emoji], ['Buildings', '🏢']);
   const oldWords = new Set(original.flatMap(category => category.words));
   const allNew = Object.values(expected).flat();
-  assert.equal(new Set(allNew).size, 32);
+  assert.equal(new Set(allNew).size, 96);
   for (const [id, words] of Object.entries(expected)) {
     assert.equal(getCategory(id).words.length, 16);
     assert.deepEqual(getCategory(id).words, words);
@@ -59,9 +70,9 @@ test('new categories follow Anatomy in exact order with 16 exact, unique targets
   assert.match(read('app/categories.tsx'), /<FlatList data=\{CATEGORIES\}/);
 });
 
-test('all 16 original category records and seeded puzzles are unchanged', () => {
+test('pre-existing targets and seeded puzzles stay unchanged apart from Food emoji', () => {
   const sha = value => crypto.createHash('sha256').update(value).digest('hex');
-  assert.equal(sha(JSON.stringify(original)), '3610cb3099d9eff8b02c4c6cbbce36decce8ab891c723034448d4181f2e0f366');
+  assert.equal(sha(JSON.stringify(original)), '9c8625689afb3fe25334d443a6d182446859983d9da8f294a09d110a9dd05ae6');
   const hash = crypto.createHash('sha256');
   for (const category of original) for (const seed of [undefined, `${category.id}:preservation`]) {
     hash.update(JSON.stringify(generatePuzzle(category, seed)));
@@ -70,10 +81,11 @@ test('all 16 original category records and seeded puzzles are unchanged', () => 
 });
 
 for (const [id, words] of Object.entries(expected)) {
-  test(`${id}: all 16 targets generate and can be selected in either direction across 50 seeds`, () => {
+  const seedCount = id === 'buildings' ? 100 : 50;
+  test(`${id}: all 16 targets generate and can be selected in either direction across ${seedCount} seeds`, () => {
     const category = getCategory(id);
     const before = JSON.stringify(category);
-    for (let seed = 0; seed < 50; seed++) {
+    for (let seed = 0; seed < seedCount; seed++) {
       const puzzle = generatePuzzle(category, seed === 0 ? undefined : `${id}:test:${seed}`);
       assert.equal(puzzle.size, 12);
       assert.deepEqual(puzzle.words, words);
@@ -92,13 +104,20 @@ for (const [id, words] of Object.entries(expected)) {
   });
 }
 
-test('Tape Measure displays naturally while remaining one eleven-letter normalized target', () => {
+test('compound targets display naturally while remaining single normalized words', () => {
   const category = getCategory('workshop');
   const labels = category.words.map(word => category.wordLabels?.[word] ?? word);
   assert.equal(labels.filter(label => label === 'Tape Measure').length, 1);
   assert.ok(!category.words.includes('TAPE') && !category.words.includes('MEASURE'));
   assert.equal('Tape Measure'.replace(/\s/g, '').toUpperCase(), 'TAPEMEASURE');
   assert.equal(generatePuzzle(category).placements.TAPEMEASURE.cells.length, 11);
+  const kitchen = getCategory('kitchen');
+  assert.equal(kitchen.wordLabels?.ROLLINGPIN, 'Rolling Pin');
+  assert.equal(kitchen.wordLabels?.CUTTINGBOARD, 'Cutting Board');
+  assert.equal(kitchen.words.includes('ROLLING') || kitchen.words.includes('PIN'), false);
+  assert.equal(kitchen.words.includes('CUTTING') || kitchen.words.includes('BOARD'), false);
+  assert.equal(generatePuzzle(kitchen).placements.ROLLINGPIN.cells.length, 10);
+  assert.equal(generatePuzzle(kitchen).placements.CUTTINGBOARD.cells.length, 12);
   assert.match(read('app/game.tsx'), /wordLabels=\{category\.wordLabels\}/);
   assert.match(read('app/game.tsx'), /\{wordLabels\?\.\[word\] \?\? word\}/);
 });
@@ -149,27 +168,28 @@ test('the actual hint handler highlights Tape Measure as one complete target and
   assert.equal(lettersFor(puzzle.grid, highlight), 'TAPEMEASURE');
 });
 
-test('saved category IDs unlock Anatomy → Emotions → Workshop without altering earlier progression', () => {
-  const anatomyIndex = CATEGORIES.findIndex(category => category.id === 'human-anatomy');
-  const emotionIndex = anatomyIndex + 1, workshopIndex = anatomyIndex + 2;
+test('saved category IDs unlock all levels in order without altering earlier progression', () => {
+  const levelIds = ['human-anatomy', 'emotions', 'workshop', 'mythology', 'kitchen', 'transport', 'buildings'];
   assert.equal(nextCategoryId('human-anatomy', CATEGORIES), 'emotions');
   assert.equal(nextCategoryId('emotions', CATEGORIES), 'workshop');
-  assert.equal(nextCategoryId('workshop', CATEGORIES), undefined);
-  assert.equal(isCategoryUnlocked(emotionIndex, [], CATEGORIES), false);
-  assert.equal(isCategoryUnlocked(workshopIndex, ['human-anatomy'], CATEGORIES), false);
-  assert.equal(isCategoryUnlocked(emotionIndex, ['human-anatomy'], CATEGORIES), true);
-  assert.equal(isCategoryUnlocked(workshopIndex, ['human-anatomy', 'emotions'], CATEGORIES), true);
+  assert.deepEqual(levelIds.slice(0, -1).map(id => nextCategoryId(id, CATEGORIES)), levelIds.slice(1));
+  assert.equal(nextCategoryId('buildings', CATEGORIES), undefined);
+  for (let index = 1; index < levelIds.length; index++) {
+    const categoryIndex = CATEGORIES.findIndex(category => category.id === levelIds[index]);
+    assert.equal(isCategoryUnlocked(categoryIndex, levelIds.slice(0, index - 1), CATEGORIES), false);
+    assert.equal(isCategoryUnlocked(categoryIndex, levelIds.slice(0, index), CATEGORIES), true);
+  }
   for (let i = 0; i < original.length; i++) for (let count = 0; count <= original.length; count++) {
     const completed = original.slice(0, count).map(category => category.id);
     assert.equal(isCategoryUnlocked(i, completed, CATEGORIES), isCategoryUnlocked(i, completed, original));
   }
   // The same ID-based rule continues to work if another category is added later.
   const extended = [...CATEGORIES, { id: 'future-category' }];
-  assert.equal(nextCategoryId('workshop', extended), 'future-category');
-  assert.equal(isCategoryUnlocked(extended.length - 1, ['workshop'], extended), true);
+  assert.equal(nextCategoryId('buildings', extended), 'future-category');
+  assert.equal(isCategoryUnlocked(extended.length - 1, ['buildings'], extended), true);
 });
 
-test('both new levels use the existing expanded word-list layout without changing other levels', () => {
+test('all 16-word levels use the expanded word-list layout without changing other levels', () => {
   for (const id of Object.keys(expected)) {
     assert.equal(screenDeclaration('expandedWordCount', {
       onboarding: undefined, daily: undefined, categoryId: id, getCategory,

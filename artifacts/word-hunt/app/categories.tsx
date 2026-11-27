@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
-import { FlatList, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import { FlatList, Platform, Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { Image } from 'expo-image';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Redirect, useRouter } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
-import { Header, Screen, CoinPill, SectionLabel } from '@/components/GameUI';
+import { Header, Screen, CoinPill } from '@/components/GameUI';
 import { CATEGORIES } from '@/data/categories';
 import { isCategoryUnlocked } from '@/game/progression';
 import { useGame } from '@/context/GameProvider';
@@ -19,9 +20,11 @@ export default function CategoriesScreen() {
   const router = useRouter();
   const colors = useColors();
   const insets = useSafeAreaInsets();
+  const { width } = useWindowDimensions();
   const background = usePreparedBackground('animals');
   const [coinWidth, setCoinWidth] = useState(96);
   const { coins, completedLevels, hydrated, onboardingStep } = useGame();
+  const cardSize = Math.min(210, Math.floor((width - 40 - 20) / 2));
   if (!hydrated) return null;
   if (onboardingStep < 6) {
     return <Redirect href={{ pathname: '/game', params: { onboardingStep: String(onboardingStep) } }} />;
@@ -45,13 +48,87 @@ export default function CategoriesScreen() {
           accessible={false} style={styles.titleImage} testID="category-title-image" />
       </View>
     </View>
-    <FlatList data={CATEGORIES} numColumns={2} keyExtractor={(item) => item.id} columnWrapperStyle={styles.columns} contentContainerStyle={styles.list} renderItem={({ item, index }) => {
+    <FlatList data={CATEGORIES} numColumns={2} scrollEnabled showsVerticalScrollIndicator={false}
+      keyExtractor={(item) => item.id} columnWrapperStyle={styles.columns}
+      contentContainerStyle={styles.list} renderItem={({ item, index }) => {
       const unlocked = isCategoryUnlocked(index, completedLevels, CATEGORIES);
       const completed = completedLevels.includes(item.id);
-      return <Pressable disabled={!unlocked} onPress={() => { playSound('tap'); router.push({ pathname: '/mode', params: { categoryId: item.id } }); }} style={({ pressed }) => [styles.card, { backgroundColor: unlocked ? colors.card : colors.muted, borderColor: completed ? colors.success : colors.border, opacity: pressed ? 0.75 : 1 }]}>
-        <View style={[styles.icon, { backgroundColor: unlocked ? colors.accent : colors.border }]}><Text style={styles.emoji}>{item.emoji}</Text></View>
-        <Text style={[styles.name, { color: unlocked ? colors.foreground : colors.mutedForeground }]}>{item.name}</Text>
-        <View style={styles.status}>{completed ? <><Feather name="check-circle" size={14} color={colors.success} /><Text style={[styles.statusText, { color: colors.success }]}>CLEARED</Text></> : unlocked ? <><SectionLabel>READY</SectionLabel></> : <><Feather name="lock" size={13} color={colors.mutedForeground} /><Text style={[styles.statusText, { color: colors.mutedForeground }]}>LOCKED</Text></>}</View>
+      const state = completed ? 'completed' : unlocked ? 'available' : 'locked';
+      const iconSize = Math.round(cardSize * 0.44);
+      const rimWidth = Math.max(5, Math.round(cardSize * 0.03));
+      return <Pressable
+        testID={`category-card-${item.id}`}
+        accessibilityRole="button"
+        accessibilityLabel={`${item.name}, ${state} category`}
+        accessibilityHint={unlocked ? 'Open this category' : 'Complete the previous category to unlock'}
+        accessibilityState={{ disabled: !unlocked }}
+        disabled={!unlocked}
+        onPress={() => { playSound('tap'); router.push({ pathname: '/mode', params: { categoryId: item.id } }); }}
+        style={({ pressed }) => [
+          styles.card,
+          { width: cardSize, height: cardSize },
+          completed
+            ? {
+              backgroundColor: colors.warning,
+              borderColor: colors.warning,
+              boxShadow: `0px 2px 8px ${colors.warning}66`,
+              elevation: 8,
+            }
+            : unlocked
+              ? { backgroundColor: colors.card, borderColor: colors.card }
+              : { backgroundColor: colors.card, borderColor: colors.border, opacity: 0.58 },
+          pressed && styles.pressedCard,
+        ]}>
+        {completed && <LinearGradient
+          pointerEvents="none"
+          testID="completed-category-rim"
+          colors={[colors.warning, colors.accent, colors.warning, colors.accent, colors.warning]}
+          locations={[0, 0.22, 0.5, 0.78, 1]}
+          start={{ x: 0.08, y: 0 }}
+          end={{ x: 0.92, y: 1 }}
+          style={[styles.completedRim, {
+            top: 2,
+            right: 2,
+            bottom: 2,
+            left: 2,
+            borderRadius: cardSize / 2,
+          }]}>
+          <View pointerEvents="none" style={[styles.completedRimCutout, {
+            top: rimWidth,
+            right: rimWidth,
+            bottom: rimWidth,
+            left: rimWidth,
+            borderRadius: Math.max(0, cardSize / 2 - rimWidth - 2),
+            backgroundColor: colors.warning,
+          }]} />
+        </LinearGradient>}
+        {completed && <View pointerEvents="none" testID="completed-category-highlight"
+          style={[styles.completedInnerHighlight, {
+            top: rimWidth + 1,
+            right: rimWidth + 1,
+            bottom: rimWidth + 1,
+            left: rimWidth + 1,
+            borderRadius: Math.max(0, cardSize / 2 - rimWidth - 1),
+            borderColor: colors.accent,
+          }]} />}
+        <View style={[styles.iconBadge, {
+          width: iconSize,
+          height: iconSize,
+          borderRadius: iconSize / 2,
+          marginBottom: Math.round(cardSize * 0.04),
+          backgroundColor: unlocked ? colors.accent : colors.muted,
+        }]}>
+          <Text style={[styles.emoji, { fontSize: Math.round(iconSize * 0.58), lineHeight: Math.round(iconSize * 0.72) }]}>{item.emoji}</Text>
+        </View>
+        <Text numberOfLines={2} adjustsFontSizeToFit minimumFontScale={0.75}
+          style={[styles.name, {
+            minHeight: Math.round(cardSize * 0.24),
+            color: unlocked ? colors.foreground : colors.mutedForeground,
+            fontSize: Math.min(17, Math.round(cardSize * 0.1)),
+            lineHeight: Math.min(21, Math.round(cardSize * 0.125)),
+          }]}>
+          {item.name}
+        </Text>
       </Pressable>;
     }} />
     <AdBanner />
@@ -62,16 +139,42 @@ export default function CategoriesScreen() {
 const styles = StyleSheet.create({
   screen: { paddingHorizontal: 0 },
   content: { flex: 1, paddingHorizontal: 20 },
-  titleRow: { height: 64, marginBottom: 16 },
+  titleRow: { height: 64, marginTop: 64, marginBottom: 16 },
   // Equal insets center on the screen while clearing both existing controls.
   titleArea: { position: 'absolute', top: 4, bottom: 4 },
   titleImage: { width: '100%', height: '100%' },
-  list: { paddingBottom: 24, gap: 12 },
-  columns: { gap: 12 },
-  card: { flex: 1, minHeight: 156, padding: 16, borderRadius: 20, borderWidth: 1, marginBottom: 12 },
-  icon: { width: 46, height: 46, borderRadius: 15, alignItems: 'center', justifyContent: 'center', marginBottom: 13 },
-  emoji: { fontSize: 25 },
-  name: { fontFamily: 'Inter_700Bold', fontSize: 16 },
-  status: { flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 10 },
-  statusText: { fontFamily: 'Inter_700Bold', fontSize: 10, letterSpacing: 0.7 },
+  list: { paddingTop: 20, paddingBottom: 36 },
+  columns: { justifyContent: 'space-between', marginBottom: 36 },
+  card: {
+    borderRadius: 999,
+    borderWidth: 2,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 8,
+    elevation: 3,
+  },
+  pressedCard: { transform: [{ scale: 0.97 }] },
+  completedRim: {
+    position: 'absolute',
+    overflow: 'hidden',
+  },
+  completedRimCutout: {
+    position: 'absolute',
+  },
+  completedInnerHighlight: {
+    position: 'absolute',
+    borderWidth: 1,
+    opacity: 0.58,
+  },
+  iconBadge: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  emoji: { textAlign: 'center' },
+  name: {
+    width: '100%',
+    textAlign: 'center',
+    textAlignVertical: 'center',
+    fontFamily: 'Inter_700Bold',
+  },
 });

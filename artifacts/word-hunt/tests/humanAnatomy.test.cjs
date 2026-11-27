@@ -24,11 +24,13 @@ const expectedWords = [
   'SKULL', 'SPINE', 'RIBCAGE', 'SHOULDER', 'ELBOW', 'WRIST', 'KNUCKLE', 'THIGH',
   'ANKLE', 'HEEL', 'MUSCLE', 'TENDON', 'CARTILAGE', 'LUNG', 'KIDNEY', 'PANCREAS',
 ];
-const existing = CATEGORIES.filter(category => !['human-anatomy', 'emotions', 'workshop'].includes(category.id));
+const existing = CATEGORIES.filter(category => ![
+  'human-anatomy', 'emotions', 'workshop', 'mythology', 'kitchen', 'transport', 'buildings',
+].includes(category.id));
 const sha256 = value => crypto.createHash('sha256').update(value).digest('hex');
 
 test('exactly one Human Anatomy category follows Vegetables with the exact 16 targets in order', () => {
-  assert.equal(CATEGORIES.length, 18);
+  assert.equal(CATEGORIES.length, 22);
   assert.equal(CATEGORIES.filter(category => category.id === 'human-anatomy').length, 1);
   assert.equal(CATEGORIES.findIndex(category => category.id === 'human-anatomy'),
     CATEGORIES.findIndex(category => category.id === 'vegetables') + 1);
@@ -37,8 +39,8 @@ test('exactly one Human Anatomy category follows Vegetables with the exact 16 ta
   assert.deepEqual(anatomy.words, expectedWords);
   assert.equal(new Set(anatomy.words).size, 16);
   assert.equal(sha256(JSON.stringify(existing)),
-    '70016dd12e6b20dcfdbc12d148238545e63364e09dd7721b6a9856ec8faf7d27',
-    'all previous category IDs, labels, emoji, target lists and ordering must remain unchanged');
+    'a63bbf20cf986e95d617fdcb81bdc23c2c46ee815efc1a5c6064c90089f12b79',
+    'all previous category IDs, labels, target lists and ordering remain unchanged except Food emoji');
 });
 
 test('the existing rules modestly increase the grid from Vegetables 10×10 to Anatomy 12×12', () => {
@@ -138,7 +140,7 @@ test('existing progress reloads without resets and Anatomy plus new levels compl
   assert.deepEqual(await storage.loadProgress(), {
     ...saved, coins: 475, completedLevels: [...saved.completedLevels, anatomy.id],
   });
-  for (const id of ['emotions', 'workshop']) {
+  for (const id of ['emotions', 'workshop', 'mythology', 'kitchen', 'transport', 'buildings']) {
     const progress = await storage.loadProgress();
     assert.equal(isCategoryUnlocked(CATEGORIES.findIndex(category => category.id === id), progress.completedLevels, CATEGORIES), true);
     await providerAction('awardCoins')(50);
@@ -146,7 +148,8 @@ test('existing progress reloads without resets and Anatomy plus new levels compl
     await providerAction('completeLevel')(id);
   }
   assert.deepEqual(await storage.loadProgress(), {
-    ...saved, coins: 575, completedLevels: [...saved.completedLevels, anatomy.id, 'emotions', 'workshop'],
+    ...saved, coins: 775, completedLevels: [...saved.completedLevels,
+      anatomy.id, 'emotions', 'workshop', 'mythology', 'kitchen', 'transport', 'buildings'],
   });
   assert.equal(values.get('@word-hunt/dumpling-rewards-v1'), originalCollection);
 });

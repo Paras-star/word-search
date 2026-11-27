@@ -1,4 +1,5 @@
 - [Mystery Dumpling visual constraints](mystery-dumpling-visual-constraints.md) — video-authoritative inside-chest reveals; immutable collectible art and rarity-ordered gallery.
+- [Category selection visuals](category-selection-visuals.md) — preserve the approved forest picker, circular states, category order, and existing progression.
 - [TypeScript check quirks](typescript-isolated-file-checks.md) — isolated compiler checks need explicit configuration; default-import mocks must survive test-runner interop differences.
 - [Android puzzle-grid confirmation](android-puzzle-grid-confirmation.md) — explicit-row grid and touch mapping were confirmed working across all levels on a physical Android phone.
 - [Expo Go progress persistence](expo-go-progress-persistence.md) — on-device testing retained progress after normal reopening and a QR re-scan; don't assume a scan resets it.

@@ -159,7 +159,7 @@ test('reopening a Daily date uses its cached grid while a second date keeps its 
   assert.notDeepEqual(first, second);
 });
 
-test('curated target pools stay unique while preserving the approved cross-mode Emotions reuse', () => {
+test('curated target pools preserve explicit cross-mode category overlaps', () => {
   const categoryWords = loadTypeScript('data/categories.ts').CATEGORIES.flatMap((category) => category.words);
   const onboarding = loadTypeScript('game/onboarding.ts').ONBOARDING_STEPS.flatMap((step) => step.words);
   const dailyWords = loadTypeScript('data/dailyWords.ts').DAILY_WORDS;
@@ -172,8 +172,8 @@ test('curated target pools stay unique while preserving the approved cross-mode 
   assert.deepEqual(onboarding.filter(word => categorySet.has(word)), ['WONDER'],
     'keep the existing onboarding target under the approved cross-mode reuse');
   assert.deepEqual(dailyWords.filter(word => categorySet.has(word)).sort(),
-    ['COURAGE', 'EMPATHY', 'PATIENCE', 'PRIDE'],
-    'keep existing Daily content and allow only these user-approved cross-mode repeats');
+    ['CASTLE', 'COURAGE', 'DRAGON', 'EMPATHY', 'KETTLE', 'LIBRARY', 'PALACE', 'PATIENCE', 'PRIDE'],
+    'keep existing Daily content and account for the exact category-list overlaps');
   assert.ok(dailyWords.every((word) => !onboardingSet.has(word)));
   assert.ok(dailyWords.every((word) => /^[A-Z]{3,9}$/.test(word)));
 });

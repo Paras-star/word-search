@@ -5,20 +5,23 @@ import Animated, { useAnimatedStyle, type SharedValue } from 'react-native-reani
 import { CHEST_FPS, CHEST_FRAME_COUNT } from './chestAnimationData';
 
 type AtlasProps = {
-  source: ImageRef; index: number; clock: SharedValue<number>; size: SharedValue<number>;
-  onLoad: (index: number) => void; onError: () => void;
+  source: ImageRef; index: number; clock: SharedValue<number>;
+  onLoad: (index: number) => void; onDisplay: (index: number) => void; onError: () => void;
 };
 
-function Atlas({ source, index, clock, size, onLoad, onError }: AtlasProps) {
+function Atlas({ source, index, clock, onLoad, onDisplay, onError }: AtlasProps) {
   const motion = useAnimatedStyle(() => {
     const frame = Math.min(CHEST_FRAME_COUNT - 1, Math.floor(clock.value * CHEST_FPS / 1000));
     const tile = frame % 16;
+    const column = tile % 4;
+    const row = Math.floor(tile / 4);
     return {
       opacity: Math.floor(frame / 16) === index ? 1 : 0,
-      transform: [
-        { translateX: -(tile % 4) * size.value },
-        { translateY: -Math.floor(tile / 4) * size.value },
-      ],
+      // Percent offsets are relative to the clipped viewport, exactly one
+      // viewport per tile. This avoids startup drift from a stale measured
+      // width while Android lays out the transformed 4x atlas.
+      left: column === 0 ? '0%' : `${-column * 100}%`,
+      top: row === 0 ? '0%' : `${-row * 100}%`,
     };
   });
   return (
@@ -26,22 +29,24 @@ function Atlas({ source, index, clock, size, onLoad, onError }: AtlasProps) {
       <Image source={source} style={styles.fill} contentFit="fill" transition={0}
         onLoad={() => onLoad(index)}
         // iOS renders decoded ImageRefs directly, bypassing loader onLoad.
-        // Keep Android's existing load gate; acknowledge iOS native display.
-        onDisplay={Platform.OS === 'ios' ? () => onLoad(index) : undefined}
+        onDisplay={() => {
+          onDisplay(index);
+          if (Platform.OS === 'ios') onLoad(index);
+        }}
         onError={onError} />
     </Animated.View>
   );
 }
 
-/** Bitmaps never change during playback; only UI-thread transforms/opacity do. */
-export function ChestFrameRenderer({ atlases, clock, size, onLoad, onError }: {
-  atlases: ImageRef[]; clock: SharedValue<number>; size: SharedValue<number>;
-  onLoad: (index: number) => void; onError: () => void;
+/** Bitmaps never change during playback; only UI-thread crop offsets/opacity do. */
+export function ChestFrameRenderer({ atlases, clock, onLoad, onDisplay, onError }: {
+  atlases: ImageRef[]; clock: SharedValue<number>;
+  onLoad: (index: number) => void; onDisplay: (index: number) => void; onError: () => void;
 }) {
   return (
     <View style={styles.viewport} pointerEvents="none" testID="chest-video-frames">
       {atlases.map((source, index) => <Atlas key={index} source={source} index={index}
-        clock={clock} size={size} onLoad={onLoad} onError={onError} />)}
+        clock={clock} onLoad={onLoad} onDisplay={onDisplay} onError={onError} />)}
     </View>
   );
 }

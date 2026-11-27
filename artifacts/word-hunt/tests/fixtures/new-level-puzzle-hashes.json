@@ -1,0 +1,86 @@
+{
+  "version": 1,
+  "hash": "SHA-256 of JSON.stringify(generated puzzle)",
+  "cases": [
+    {
+      "categoryId": "mythology",
+      "seed": "mythology:default",
+      "sha256": "42dacda340c6bc88e2f7ab2283f0208d12fea36195275768f390ecea1dd142c8"
+    },
+    {
+      "categoryId": "mythology",
+      "seed": "diagnosis:mythology:0",
+      "sha256": "de499245986aa98a337d7b0e592f7a2e186fa3c2a610a8d1c7bc2fefc20fbaf5"
+    },
+    {
+      "categoryId": "mythology",
+      "seed": "diagnosis:mythology:1",
+      "sha256": "6db894cc1eed7772ff0880db1b484aea149ecf4375be42fe1e67fa51937909c0"
+    },
+    {
+      "categoryId": "mythology",
+      "seed": "diagnosis:mythology:2",
+      "sha256": "15f6db0fbb571b4613b5d6acd486a42963cb738f62c54e1179f1637bf8d2b27e"
+    },
+    {
+      "categoryId": "kitchen",
+      "seed": "kitchen:default",
+      "sha256": "6dec1888d2352bfd9244311f956a5ade415694de8fc3c36a9ecaddbb8006001a"
+    },
+    {
+      "categoryId": "kitchen",
+      "seed": "diagnosis:kitchen:0",
+      "sha256": "2f912ed4d632544f9667b2ba75312b658169d1204235a25d0af7b6927ebccb4a"
+    },
+    {
+      "categoryId": "kitchen",
+      "seed": "diagnosis:kitchen:1",
+      "sha256": "9c99b7d59e19646ad470bd05c70be0baf40d380af7d67a592d814e9a9fa16030"
+    },
+    {
+      "categoryId": "kitchen",
+      "seed": "diagnosis:kitchen:2",
+      "sha256": "14f4491418760e0e5276c96b3b872a92c39a95497d9f2956fa38229560cb7451"
+    },
+    {
+      "categoryId": "transport",
+      "seed": "transport:default",
+      "sha256": "cd0f5330b861099cf227dfc5377912ceb0f28b1bb2d7ae324592ca3d9d506ab9"
+    },
+    {
+      "categoryId": "transport",
+      "seed": "diagnosis:transport:0",
+      "sha256": "5434189f4984f16a9801766b03b83f484dc52dee08c55330b7121d2d7ba6d007"
+    },
+    {
+      "categoryId": "transport",
+      "seed": "diagnosis:transport:1",
+      "sha256": "4ae4b4bb0907bc4040338197dc61c625b591451502e3391cfa7767c88a899f0c"
+    },
+    {
+      "categoryId": "transport",
+      "seed": "diagnosis:transport:2",
+      "sha256": "d7e72385b7d7c8ca1db2b3a84af3a5d55bcfec4dd5e856c976fefe6ff02edd0b"
+    },
+    {
+      "categoryId": "buildings",
+      "seed": "buildings:default",
+      "sha256": "050e628368cdbda9b994991784d66cad68cd397aeae2067cfb526478e7de8d8d"
+    },
+    {
+      "categoryId": "buildings",
+      "seed": "diagnosis:buildings:0",
+      "sha256": "266390293c981756e90fbeabccd65f30d308ebf25c51a54fce5aab1314b66177"
+    },
+    {
+      "categoryId": "buildings",
+      "seed": "diagnosis:buildings:1",
+      "sha256": "7e6e8094027755a8605c01edc60ab5504bc2b8abb682c0b168ee5912899c4be9"
+    },
+    {
+      "categoryId": "buildings",
+      "seed": "diagnosis:buildings:2",
+      "sha256": "57f6b12a92862a47e3e1424ef6e0eaab4fe1b46064639db4d8aafc783aa77c94"
+    }
+  ]
+}

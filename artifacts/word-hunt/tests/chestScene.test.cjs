@@ -97,20 +97,20 @@ test('measured screen bounds take precedence and invalid layout events cannot co
   dimensions = { width: 360, height: 640 };
 });
 
-test('all reward categories share the same layout and animation without borrowing purchase behavior', () => {
-  for (const file of ['app/treasure-chest.tsx']) {
-    const source = read(file);
-    assert.match(source, /const \{ layout, onLayout \} = useChestSceneLayout\(\)/);
-    assert.match(source, /<ChestScene layout=\{layout\}>/);
-    assert.match(source, /<ChestReveal/);
-    assert.doesNotMatch(source, /const BG_W|const chestLeft|const chestTop/);
-  }
+test('paid and normal reward routes share the same presentation and chest layout without sharing transactions', () => {
+  const paid = read('app/treasure-chest.tsx');
   const reward = read('app/reward.tsx');
   const normalScene = read('components/NormalRewardScene.tsx');
+  assert.match(paid, /<NormalRewardScene/);
+  assert.doesNotMatch(paid, /<ChestScene|<ChestReveal|useChestSceneLayout/);
+  assert.match(paid, /opening=\{phase === 'animating' \|\| phase === 'done'\}/);
+  assert.match(paid, /chestDisabled=\{!canBuy\}/);
+  assert.doesNotMatch(paid, /collectReward\(|awardCoins\(/);
   assert.match(reward, /<NormalRewardScene/);
   assert.match(normalScene, /getChestSceneLayout\(W, artH\)/);
   assert.match(normalScene, /<ChestScene layout=\{L\.scene\}>/);
   assert.match(normalScene, /<ChestReveal/);
+  assert.match(normalScene, /p\.showHomeButton !== false/);
   assert.doesNotMatch(reward, /purchaseTreasureChest|TREASURE_CHEST_COST|\b700\b/);
   assert.match(reward, /collectReward\(reward\.id\)/);
   const shared = read('components/ChestScene.tsx');

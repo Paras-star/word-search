@@ -10,7 +10,52 @@ function find(tree, id) {
   return [tree.props?.children].flat().map(child => find(child, id)).find(Boolean) || null;
 }
 
-function harness(platform, balance = 1400, hydrated = true) {
+const jsx = (type, props) => ({ type, props });
+function paidPresentation(props) {
+  const actionable = !!props.revealed && !props.loading && !props.busy && !!props.dumpling;
+  const children = [
+    jsx('Pressable', { testID: props.chestTestID, disabled: props.chestDisabled ?? (props.loading || !props.dumpling || props.opening || props.revealed),
+      opening: props.opening, onPress: props.onOpen, onRevealed: props.onRevealed }),
+    props.statusMessage && jsx('Text', {
+      testID: props.statusTestID,
+      style: [{ color: '#c8322b', fontFamily: 'Inter_700Bold', fontSize: 15 }, { top: 197 }],
+      children: props.statusMessage,
+    }),
+    props.error && jsx('View', {
+      testID: props.retryContainerTestID,
+      children: [
+        jsx('Text', { testID: props.errorTestID, accessibilityRole: 'alert', children: props.error }),
+        props.retryAction,
+      ],
+    }),
+    props.revealed && props.dumpling && jsx('View', {
+      testID: 'reward-rarity-banner', accessibilityLabel: `${props.dumpling.rarity} ${props.dumpling.name}`,
+      children: jsx('Text', { testID: 'reward-dumpling-name', children: props.dumpling.name.toUpperCase() }),
+    }),
+  ];
+  if (props.showActions) {
+    children.push(
+      jsx('Pressable', { testID: props.collectionTestID, disabled: !actionable, onPress: props.onCollection }),
+      jsx('Pressable', { testID: props.continueTestID, disabled: !actionable, onPress: props.onContinue }),
+    );
+  }
+  if (props.purchaseNote) children.push(jsx('Text', {
+    testID: 'treasure-reward-note',
+    children: [
+      props.purchaseNote.isDuplicate ? 'This dumpling is already in your Collection.' : null,
+      props.purchaseNote.recoveryPending ? 'The purchase is saved; local save recovery will retry automatically.' : null,
+    ].filter(Boolean).join(' '),
+  }));
+  return jsx('View', { testID: props.sceneTestID, presentationProps: props, children });
+}
+
+function expand(tree) {
+  if (!tree || typeof tree !== 'object') return tree;
+  if (typeof tree.type === 'function') return expand(tree.type(tree.props));
+  return { ...tree, props: { ...tree.props, children: [tree.props?.children].flat(Infinity).map(expand) } };
+}
+
+function harness(platform, balance = 1400, hydrated = true, canGoBack = true) {
   let index = 0, dirty = false, tree, effects = [], purchase, mounted = true;
   const hooks = [], requests = [], routes = [], backHandlers = [], options = [];
   let beforeRemove;
@@ -41,10 +86,9 @@ function harness(platform, balance = 1400, hydrated = true) {
     addListener: (_, fn) => { beforeRemove = fn; return () => { beforeRemove = null; }; },
   };
   const router = {
-    canGoBack: () => true, back: () => routes.push('back'), replace: route => routes.push(route),
+    canGoBack: () => canGoBack, back: () => routes.push('back'), replace: route => routes.push(route),
   };
   const dumpling = { id: 'd', name: 'Test Dumpling', rarity: 'Rare' };
-  const jsx = (type, props) => ({ type, props });
   const source = fs.readFileSync(path.join(__dirname, '../app/treasure-chest.tsx'), 'utf8');
   const js = ts.transpileModule(source, {
     compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020, jsx: ts.JsxEmit.ReactJSX },
@@ -54,7 +98,7 @@ function harness(platform, balance = 1400, hydrated = true) {
     if (name === 'react') return react;
     if (name === 'react/jsx-runtime') return { jsx, jsxs: jsx };
     if (name === 'react-native') return {
-      View: 'View', Image: 'Image', Text: 'Text', ScrollView: 'ScrollView',
+      View: 'View', Pressable: 'Pressable', Image: 'Image', Text: 'Text', ScrollView: 'ScrollView',
       Platform: { OS: platform }, StyleSheet: { create: x => x, absoluteFill: {} },
       useWindowDimensions: () => ({ width: 390, height: 844 }),
       BackHandler: { addEventListener: (_, fn) => {
@@ -63,18 +107,15 @@ function harness(platform, balance = 1400, hydrated = true) {
       } },
     };
     if (name === 'expo-router') return { useRouter: () => router, useNavigation: () => navigation };
-    if (name === 'react-native-safe-area-context') return { useSafeAreaInsets: () => ({ top: 47, bottom: 34 }) };
-    if (name === '@/components/GameUI') return { PrimaryButton: 'PrimaryButton', SoftButton: 'SoftButton' };
-    if (name === '@/components/ChestReveal') return { ChestReveal: 'ChestReveal' };
-    if (name === '@/components/ChestScene') return {
-      ChestScene: 'ChestScene',
-      useChestSceneLayout: () => ({ layout: { H: 844, imgY: 0, imgH: 844, chestTop: 260, stage: 200 }, onLayout() {} }),
-    };
+    if (name === 'react-native-safe-area-context') return { useSafeAreaInsets: () => ({ top: 47, bottom: 34, left: 9, right: 0 }) };
+    if (name === '@expo/vector-icons') return { Feather: 'Feather' };
+    if (name === '@/components/GameUI') return { PrimaryButton: 'PrimaryButton' };
+    if (name === '@/components/NormalRewardScene') return { __esModule: true, default: paidPresentation };
     if (name === '@/context/GameProvider') return { useGame: () => game };
     if (name === '@/data/dumplings') return {
       DUMPLING_BY_ID: { d: dumpling }, RARITY_PRESENTATION: { Rare: { glow: '#fff' }, Common: { glow: '#fff' } },
     };
-    if (name === '@/constants/homePalette') return { homeColors: {} };
+    if (name === '@/constants/homePalette') return { homeColors: { goldSoft: '#FFF0D0' } };
     if (name === '@/services/dumplingAudio') return { stopDumplingSounds() {} };
     if (name === '@/services/treasureChest') return { TREASURE_CHEST_COST: 700 };
     if (name.endsWith('.png')) return name;
@@ -84,7 +125,7 @@ function harness(platform, balance = 1400, hydrated = true) {
     game, requests, routes, options,
     get tree() { return tree; },
     render() {
-      index = 0; dirty = false; tree = module.exports.default();
+      index = 0; dirty = false; tree = expand(module.exports.default());
       const batch = effects; effects = []; batch.forEach(fn => fn());
     },
     async flush() {
@@ -135,6 +176,61 @@ test('provider queue returns purchase failures to the caller without leaving an 
 });
 
 for (const platform of ['ios', 'android', 'web']) {
+  test(`${platform}: plain safe-area back arrow leaves without purchasing and supports direct entry`, async () => {
+    for (const canGoBack of [true, false]) {
+      const h = harness(platform, 1400, true, canGoBack);
+      const back = find(h.tree, 'treasure-back');
+      const style = Object.assign({}, ...back.props.style);
+      assert.equal(style.position, 'absolute');
+      assert.equal(style.top, (platform === 'web' ? 67 : 47) + 8);
+      assert.equal(style.left, 21);
+      assert.ok(style.width >= 48 && style.height >= 48);
+      assert.equal(style.zIndex, 1, 'arrow stays above the scene');
+      assert.deepEqual(Object.keys(style).sort(), ['alignItems', 'height', 'justifyContent', 'left', 'position', 'top', 'width', 'zIndex'].sort(),
+        'no background, border, shadow or decoration on the touch target');
+      assert.equal(back.props.children.length, 1);
+      assert.equal(back.props.children[0].type, 'Feather');
+      assert.equal(back.props.children[0].props.name, 'arrow-left');
+      assert.equal(back.props.children[0].props.size, 28);
+      assert.equal(back.props.children[0].props.color, '#FFF0D0');
+      assert.equal(back.props.accessibilityLabel, 'Back');
+      await h.tap('treasure-back');
+      assert.deepEqual(h.routes, [canGoBack ? 'back' : '/']);
+      assert.equal(h.requests.length, 0);
+      assert.equal(h.game.coins, 1400);
+      h.unmount();
+    }
+  });
+
+  test(`${platform}: back arrow honors immediate purchase guard, reveal completion and failed-save exit`, async () => {
+    const h = harness(platform);
+    const staleBack = find(h.tree, 'treasure-back').props.onPress;
+    find(h.tree, 'treasure-chest-tap').props.onPress();
+    staleBack();
+    assert.deepEqual(h.routes, [], 'same-frame back cannot interrupt purchase');
+    await h.flush();
+    assert.equal(find(h.tree, 'treasure-back').props.disabled, true);
+    staleBack();
+    await h.resolve();
+    assert.equal(find(h.tree, 'treasure-back').props.disabled, true);
+    find(h.tree, 'treasure-back').props.onPress();
+    assert.deepEqual(h.routes, [], 'reveal cannot be interrupted');
+    await h.reveal();
+    await h.tap('treasure-back');
+    assert.deepEqual(h.routes, ['back']);
+    assert.equal(h.game.coins, 700);
+    assert.equal(h.requests.length, 1);
+    h.unmount();
+
+    const failed = harness(platform);
+    await failed.tap('treasure-chest-tap');
+    await failed.reject();
+    await failed.tap('treasure-back');
+    assert.deepEqual(failed.routes, ['back']);
+    assert.equal(failed.game.coins, 1400);
+    failed.unmount();
+  });
+
   test(`${platform}: direct tap purchases once, reveals, and preserves Collection navigation`, async () => {
     const h = harness(platform);
     assert.equal(h.requests.length, 0);
@@ -164,7 +260,10 @@ for (const platform of ['ios', 'android', 'web']) {
     assert.equal(find(h.tree, 'treasure-chest-tap').props.disabled, true);
     assert.equal(find(h.tree, 'treasure-need'), null);
     if (platform === 'ios') assert.equal(h.options.at(-1).gestureEnabled, true);
-    assert.ok(find(h.tree, 'treasure-result-name'));
+    assert.equal(find(h.tree, 'reward-dumpling-name').props.children[0], 'TEST DUMPLING');
+    const presentation = find(h.tree, 'treasure-reward-scene').props.presentationProps;
+    assert.equal(presentation.showStats, false);
+    assert.equal(presentation.showHomeButton, false);
     await h.tap('treasure-collection');
     assert.deepEqual(h.routes, [{ pathname: '/collection', params: { newDumplingId: 'd' } }]);
     h.unmount();
@@ -180,7 +279,7 @@ for (const platform of ['ios', 'android', 'web']) {
     assert.equal(h.blocked(), false);
     if (platform === 'ios') assert.equal(h.options.at(-1).gestureEnabled, true);
     assert.equal(find(h.tree, 'treasure-error').props.accessibilityRole, 'alert');
-    assert.equal(find(h.tree, 'treasure-error').props.children, 'Save unavailable');
+    assert.equal(find(h.tree, 'treasure-error').props.children[0], 'Save unavailable');
     const retry = find(h.tree, 'treasure-retry').props.onPress;
     retry(); retry(); await h.flush();
     assert.equal(h.requests.length, 2, 'retry is also synchronously single-flight');
@@ -192,11 +291,11 @@ for (const platform of ['ios', 'android', 'web']) {
     assert.equal(find(h.tree, 'treasure-error'), null, 'committed recovery is success, not a retryable failure');
     assert.equal(find(h.tree, 'treasure-retry'), null);
     await h.reveal();
-    assert.match(JSON.stringify(h.tree), /Duplicate recorded/);
-    assert.match(JSON.stringify(h.tree), /Local save recovery/);
+    assert.match(JSON.stringify(h.tree), /already in your Collection/);
+    assert.match(JSON.stringify(h.tree), /local save recovery/);
     await h.tap('treasure-collection');
     assert.equal(h.routes.at(-1), '/collection');
-    await h.tap('treasure-leave-done');
+    await h.tap('treasure-continue');
     assert.equal(h.routes.at(-1), 'back');
     h.unmount();
   });
@@ -205,12 +304,12 @@ for (const platform of ['ios', 'android', 'web']) {
     for (const coins of [0, 50, 699, 700, 810, 1400]) {
       const h = harness(platform, coins);
       const status = find(h.tree, 'treasure-need');
-      assert.equal(status.props.children, coins < 700
+      assert.equal(status.props.children[0], coins < 700
         ? `700 coins required. You need ${700 - coins} more.` : 'Chest is Ready!');
       assert.equal(status.props.style[0].color, '#c8322b');
       assert.equal(status.props.style[0].fontFamily, 'Inter_700Bold');
       assert.equal(status.props.style[0].fontSize, 15);
-      assert.equal(status.props.style[1].top, 844 * 0.245);
+      assert.ok(status.props.style[1].top > 0);
       assert.equal(find(h.tree, 'treasure-chest-tap').props.disabled, coins < 700);
       assert.equal(h.blocked(), false);
       assert.deepEqual(h.options, platform === 'ios' ? [{ gestureEnabled: true }] : []);
@@ -220,7 +319,7 @@ for (const platform of ['ios', 'android', 'web']) {
     const h = harness(platform, 699);
     for (const coins of [700, 810, 50, 1400]) {
       h.game.coins = coins; h.render();
-      assert.equal(find(h.tree, 'treasure-need').props.children, coins < 700
+      assert.equal(find(h.tree, 'treasure-need').props.children[0], coins < 700
         ? `700 coins required. You need ${700 - coins} more.` : 'Chest is Ready!');
       assert.equal(find(h.tree, 'treasure-chest-tap').props.disabled, coins < 700);
     }
@@ -231,12 +330,12 @@ for (const platform of ['ios', 'android', 'web']) {
   test(`${platform}: 700 and 810 coins open directly and leave exactly 0 and 110`, async () => {
     for (const balance of [700, 810]) {
       const h = harness(platform, balance);
-      assert.equal(find(h.tree, 'treasure-need').props.children, 'Chest is Ready!');
+      assert.equal(find(h.tree, 'treasure-need').props.children[0], 'Chest is Ready!');
       await h.tap('treasure-chest-tap');
       assert.equal(h.requests.length, 1);
       await h.resolve(); await h.reveal();
       assert.equal(h.game.coins, balance - 700);
-      assert.ok(find(h.tree, 'treasure-result-name'));
+      assert.equal(find(h.tree, 'reward-dumpling-name').props.children[0], 'TEST DUMPLING');
       h.unmount();
     }
   });

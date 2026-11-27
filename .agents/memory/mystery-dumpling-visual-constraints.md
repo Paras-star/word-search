@@ -3,7 +3,7 @@ name: Mystery Dumpling visual constraints
 description: Non-negotiable visual-source rules for future Mystery Dumpling work.
 ---
 
-Use only the supplied 30 dumpling artworks, exact catalog names and five supplied rarity tiers. The individually supplied PNGs for every rarity supersede all old combined sprite sheets. The Collection Room is a rarity-ordered, vertically scrolling gallery, not an illustrated map or shared environmental room.
+Use only the supplied dumpling artworks, exact catalog names and five supplied rarity tiers. The user expanded the authoritative collection from 30 to 40 with ten additional original PNGs; preserve the original 30 identities and ownership. The individually supplied PNGs for every rarity supersede all old combined sprite sheets. The Collection Room is a rarity-ordered, vertically scrolling gallery, not an illustrated map or shared environmental room.
 
 **Why:** The user explicitly defined the supplied collectible artwork and catalog as authoritative, then replaced the environment with a clean gallery populated only by actual owned assets and locked placeholders.
 
@@ -41,6 +41,6 @@ Use the existing 700-coin chest presentation as the positioning reference for ev
 
 The Collection Room uses the supplied adventure rarity panels over the existing night forest. Preserve each rarity's own emblem, colors, ornamental border and transparent exterior; never substitute the Epic emblem for another tier.
 
-**Why:** The user made the five uploaded rarity panel designs authoritative and requires a separate pedestal space for every existing collectible: Legendary 2, Epic 4, Rare 5, Uncommon 7, Common 12.
+**Why:** The user made the five uploaded rarity panel designs authoritative and requires a separate pedestal space for every collectible, including new additions. Expanding the catalog does not authorize changes to original artwork, rarity probabilities, ownership formats or the coin economy.
 
 **How to apply:** Reconstruct baked-in display areas instead of stretching a three-slot image or covering old pedestals. Keep the rarity-ordered scrolling gallery, live collection counts, original individual dumpling art, locked placeholders and `???` labels.
